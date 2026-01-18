@@ -17,6 +17,8 @@ To assemble the full rack, the following parts were printed using the provided S
 ### 1. Curved Intake Duct (`curved_intake_duct.scad` / `.stl`)
 A "saxophone-style" lofted duct that transitions from a 120mm circular fan mount to a rectangular chimney connector. Designed for smooth airflow with no internal sharp corners.
 
+<img src="img/curved_intake_duct.png" width="300">
+
 *   **Key Parameters:**
     *   `ancho_placa_base`: Width of the fan mounting plate (120mm for Bosser fans).
     *   `altura_saxofon`: Vertical height of the transition.
@@ -25,6 +27,8 @@ A "saxophone-style" lofted duct that transitions from a 120mm circular fan mount
 
 ### 2. Airflow Chimney Duct (`airflow_chimney_duct.scad` / `_2levels.stl` / `_3levels.stl`)
 A modular, stackable vertical duct. Each module features segmented vents ("branquias") angled at 45° to project air towards the routers without requiring print supports.
+
+<img src="img/airflow_chimney_duct_3levels.png" width="300" height="273"> <img src="img/airflow_chimney_duct_2levels.png" width="300">
 
 *   **Key Parameters:**
     *   `niveles_por_modulo`: Number of cooling levels in the segment (set to 2 or 3 for the provided STLs).
@@ -35,8 +39,16 @@ A modular, stackable vertical duct. Each module features segmented vents ("branq
 ### 3. Chimney End Cap (`chimney_duct_cover.scad` / `.stl`)
 A simple female-connector cap that fits onto the top of the last chimney segment to seal the system.
 
+<img src="img/chimney_duct_cover.png" width="300">
+
+*   **Key Parameters:**
+    *   `grosor_pared`: Wall thickness.
+    *   `tolerancia`: Fitting tolerance for the male connector.
+
 ### 4. Drawer Stop (`drawer_stop.f3d`)
-Customized stops designed in Autodesk Fusion 360. These are intended to be "encastrados" into U-shaped cuts made in the generic plastic drawers used for the rack chassis.
+Customized drawer stops designed in Autodesk Fusion 360. These parts are intended to be glued into U-shaped notches cut into the original plastic drawers using a Dremel rotary tool. Each stop features a base opening that allows the vertical chimney duct to pass through all levels, providing structural stability to the chimney while acting as a lock to prevent the drawers from opening accidentally.
+
+<img src="img/drawer_stop.png" width="300">
 
 ---
 *Note: All OpenSCAD models are designed to be printed without supports when oriented correctly on the build plate. All models were printed in a Creality Ender 3 Pro printer*
