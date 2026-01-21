@@ -10,7 +10,11 @@ To assemble the full rack, the following parts were printed using the provided S
 *   **2x Airflow Chimney Duct 3 levels (`airflow_chimney_duct_3levels.stl`):** Vertical segments with vents for three router levels.
 *   **1x Airflow Chimney Duct 2 levels (`airflow_chimney_duct_2levels.stl`):** Vertical segment with vents for two router levels.
 *   **1x Chimney End Cap (`chimney_duct_cover.stl`):** Seals the top of the chimney to force air through the vents.
-*   **8x Drawer Stops:** Custom heavy-duty stops to replace generic plastic ones.
+*   **8x Drawer Stops (`drawer_stop.stl`):** Custom heavy-duty stops to replace generic plastic ones.
+*   **3x Belkin RT3200 Base (`belkin_rt3200_base.stl`):** Custom bases for the routers to replace original bulky cases.
+*   **1x USB Hub Shelf (`hub_shelf_TP-LINK_UH700.stl`):** Shelf for the TP-Link UH700 USB hub.
+*   **1x Arduino Nano Holder (`NanoHolderA.stl`):** Mounting bracket for an Arduino Nano.
+*   **Decorative Logos (`logo fcefyn.stl`, `logo unc.stl`):** Final aesthetic details representing FCEFyN and UNC.
 
 ## 3D Design Details
 
@@ -45,10 +49,28 @@ A simple female-connector cap that fits onto the top of the last chimney segment
     *   `grosor_pared`: Wall thickness.
     *   `tolerancia`: Fitting tolerance for the male connector.
 
-### 4. Drawer Stop (`drawer_stop.f3d`)
+### 4. Drawer Stop (`drawer_stop.f3d` / `.stl`)
 Customized drawer stops designed in Autodesk Fusion 360. These parts are intended to be glued into U-shaped notches cut into the original plastic drawers using a Dremel rotary tool. Each stop features a base opening that allows the vertical chimney duct to pass through all levels, providing structural stability to the chimney while acting as a lock to prevent the drawers from opening accidentally.
 
 <img src="img/drawer_stop.png" width="300">
+
+### 5. Belkin RT3200 Base (`belkin_rt3200_base.stl`)
+The original cases for the Belkin RT3200 routers were too large for the rack chassis. We replaced them with a 3D-printed base to save space and ensure the routers remain fixed when connecting or disconnecting cables. This design is an adaptation of the [RT3200/E8450 Wall Mount Case](https://www.thingiverse.com/thing:5864938) by Thingiverse user **TuxInvader**. We utilized only the base component, leaving the top of the router uncovered for optimal cooling.
+
+<img src="img/belkin_case_adapted.jpg" width="300">
+
+### 6. Auxiliary and Decorative Parts
+*   **USB Hub Shelf (`hub_shelf_TP-LINK_UH700.stl`):** A custom shelf designed to securely house the TP-Link UH700 USB hub within the rack.
+
+<img src="img/hub_shelf.jpg" width="300">
+
+*   **Arduino Nano Holder (`NanoHolderA.stl`):** A small mounting bracket to keep the Arduino Nano fixed in its designated drawer level.
+
+<img src="img/NanoHolder.jpg" width="300">
+
+*   **FCEFyN & UNC Logos:** Decorative 3D-printed logos used as final aesthetic details, representing FCEFyN and UNC.
+
+<img src="img/logos.png" width="300">
 
 ---
 *Note: All OpenSCAD models are designed to be printed without supports when oriented correctly on the build plate. All models were printed in a Creality Ender 3 Pro printer*
