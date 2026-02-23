@@ -1,27 +1,58 @@
 # =============================================================================
-# FCEFYN Lab - Serial Device Rules for ThinkPad T430
+# Laboratorio FCEFyN - Reglas Udev para Dispositivos Seriales
+# =============================================================================
+# Archivo: /etc/udev/rules.d/99-serial-devices.rules
+# Hub USB: Nisuta NSUH113Q (10 puertos, compatible con uhubctl)
+#
+# Layout del hub USB:
+#   Puerto 1: Arduino Nano     | Puerto 6: Librerouter 1
+#   Puerto 2: Belkin RT3200 #1  | Puerto 7: (reservado - Librerouter 2)
+#   Puerto 3: Belkin RT3200 #2  | Puerto 8: (reservado - Librerouter 3)
+#   Puerto 4: Belkin RT3200 #3  | Puerto 9: OpenWRT One
+#   Puerto 5: Banana Pi R4      | Puerto 10: GL.iNet MT300N-V2 (serial, cualquier puerto)
+#
+# Dispositivos con serial único (FTDI): pueden conectarse en cualquier puerto.
+# Dispositivos sin serial único: deben permanecer en el puerto asignado.
+# KERNELS usa wildcard (*-X.Y.Z) para que las reglas funcionen si cambia el bus USB.
+#
 # =============================================================================
 
-# Arduino relay controller (FTDI con serial único)
+# --- Por serial: portátil, funciona en cualquier puerto del hub ---
+
+# Arduino Nano - FTDI, serial A5069RR4
 SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", ATTRS{serial}=="A5069RR4", \
   SYMLINK+="arduino-relay", MODE="0666", GROUP="dialout", ENV{ID_MM_DEVICE_IGNORE}="1"
 
-# Belkin RT3200 #1 (CP210x en hub, puerto 1.1.3)
-SUBSYSTEM=="tty", ENV{ID_PATH}=="pci-0000:00:14.0-usb-0:1.1.3:1.0", \
-  SYMLINK+="belkin-rt3200-1", MODE="0666", GROUP="dialout", ENV{ID_MM_DEVICE_IGNORE}="1"
+# Banana Pi R4 - FTDI, serial BG02PW5K
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", ATTRS{serial}=="BG02PW5K", \
+  SYMLINK+="bpi-r4", MODE="0666", GROUP="dialout", ENV{ID_MM_DEVICE_IGNORE}="1"
 
-# Belkin RT3200 #2 (CH340 en hub, puerto 1.1.4)
-SUBSYSTEM=="tty", ENV{ID_PATH}=="pci-0000:00:14.0-usb-0:1.1.4:1.0", \
-  SYMLINK+="belkin-rt3200-2", MODE="0666", GROUP="dialout", ENV{ID_MM_DEVICE_IGNORE}="1"
-
-# Belkin RT3200 #3 (CP210x en hub, puerto 1.2)
-SUBSYSTEM=="tty", ENV{ID_PATH}=="pci-0000:00:14.0-usb-0:1.2:1.0", \
-  SYMLINK+="belkin-rt3200-3", MODE="0666", GROUP="dialout", ENV{ID_MM_DEVICE_IGNORE}="1"
-
-# OpenWrt One (FTDI con serial único - puede moverse a cualquier puerto)
+# OpenWRT One - FTDI, serial BG02Q8N1
 SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", ATTRS{serial}=="BG02Q8N1", \
   SYMLINK+="openwrt-one", MODE="0666", GROUP="dialout", ENV{ID_MM_DEVICE_IGNORE}="1"
 
-# BananaPI R4-Pro (FTDI con serial único - puede moverse a cualquier puerto)
-SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", ATTRS{serial}=="BG02PW5K", \
-  SYMLINK+="bpi4pro", MODE="0666", GROUP="dialout", ENV{ID_MM_DEVICE_IGNORE}="1"
+# GL-MT300N-V2  - FTDI, serial BG01PX0W
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", ATTRS{serial}=="BG01PX0W", \
+  SYMLINK+="glinet-mt300n-v2", MODE="0666", GROUP="dialout", ENV{ID_MM_DEVICE_IGNORE}="1"
+
+# --- Por puerto: deben permanecer en el puerto asignado (KERNELS con wildcard) ---
+
+# Belkin RT3200 #1 - CP210x en puerto 2 (serial 0001 compartido con Librerouter)
+SUBSYSTEM=="tty", KERNELS=="*-1.1", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", \
+  SYMLINK+="belkin-rt3200-1", MODE="0666", GROUP="dialout", ENV{ID_MM_DEVICE_IGNORE}="1"
+
+# Belkin RT3200 #2 - CH340 en puerto 3 (sin serial)
+SUBSYSTEM=="tty", KERNELS=="*-1.2", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="7523", \
+  SYMLINK+="belkin-rt3200-2", MODE="0666", GROUP="dialout", ENV{ID_MM_DEVICE_IGNORE}="1"
+
+# Belkin RT3200 #3 - CH340 en puerto 4 (sin serial)
+SUBSYSTEM=="tty", KERNELS=="*-1.3.4", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="7523", \
+  SYMLINK+="belkin-rt3200-3", MODE="0666", GROUP="dialout", ENV{ID_MM_DEVICE_IGNORE}="1"
+
+# Librerouter 1 - CP210x en puerto 6 (serial 0001 compartido con Belkin 1)
+SUBSYSTEM=="tty", KERNELS=="*-1.3.2", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", \
+  SYMLINK+="librerouter-1", MODE="0666", GROUP="dialout", ENV{ID_MM_DEVICE_IGNORE}="1"
+
+# --- Reservado para el futuro ---
+# Librerouter 2 (puerto 7): ejecutar identify_devices.sh al conectar, añadir regla con KERNELS del output
+# Librerouter 3 (puerto 8): idem anterior
