@@ -1,13 +1,20 @@
-# Config SSH para Laboratorio FCEFyN - acceso a DUTs vía labgrid-bound-connect
 #
-# Copiar a: ~/.ssh/config
+# Requires: labgrid-bound-connect installed and sudoers configured.
+# See host-config.md section 3.4 for details.
 #
-# Requiere: labgrid-bound-connect instalado y sudoers configurado.
-# Ver hostConfig.md sección 3.4 para detalles.
+# File: ~/.ssh/config
 #
-# IMPORTANTE: NO añadir HostName - cada alias tiene su propia entrada en known_hosts.
-# Si usas HostName 192.168.1.1, todos los DUTs comparten una entrada y obtendrás
-# "Host key verification failed" al cambiar de VLAN.
+# IMPORTANT: Do NOT add HostName - each alias gets its own known_hosts entry.
+# If you use HostName 192.168.1.1, all DUTs share one entry and you get
+# "Host key verification failed" when switching VLANs.
+#
+# labgrid-fcefyn: for local testing. Labgrid connects as labgrid-dev to create
+# TFTP symlinks. See host-config.md section 3.5 (fcefyn-lab key).
+#
+Host labgrid-fcefyn
+    HostName labgrid-fcefyn
+    User labgrid-dev
+    IdentityFile ~/.ssh/id_ed25519_fcefyn_lab
 
 Host dut-belkin-1
     User root
@@ -45,9 +52,10 @@ Host dut-glinet-mango
     User root
     ProxyCommand sudo labgrid-bound-connect vlan108 192.168.1.1 22
 
-# Switch TP-Link SG2016P - requiere contraseña (no acepta claves públicas)
 Host switch-fcefyn
     HostName 192.168.0.1
     User admin
     PreferredAuthentications password
     PubkeyAuthentication no
+laryc@labgrid-fcefyn:~$
+
