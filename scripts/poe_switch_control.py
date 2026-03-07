@@ -6,15 +6,20 @@ Used for power cycling the OpenWRT One (PoE on port 1) and other PoE devices.
 Integrates with PDUDaemon via localcmdline driver.
 
 Optimized for speed: single SSH session for cycle (off+on), reduced wait times.
+Uses lockfile serialization to prevent SSH session contention when multiple
+PoE devices are controlled in parallel.
+
 Requires: paramiko (pip install paramiko)
 Password: set POE_SWITCH_PASSWORD environment variable, or pass via --password.
 """
 
 import argparse
+import fcntl
 import logging
 import os
 import sys
 import time
+from contextlib import contextmanager
 from typing import Optional
 
 logging.basicConfig(
@@ -39,6 +44,44 @@ CONFIG_PATHS = (
     os.path.expanduser("~/.config/poe_switch_control.conf"),
     "/etc/poe_switch_control.conf",
 )
+
+LOCK_PATH = "/tmp/poe_switch.lock"
+LOCK_TIMEOUT = 60
+
+
+@contextmanager
+def poe_lock(timeout: float = LOCK_TIMEOUT):
+    """Acquire exclusive lock to serialize SSH sessions to the switch.
+    
+    Prevents concurrent SSH connections that cause session contention
+    and delayed power cycling when multiple PoE devices boot in parallel.
+    """
+    lock_fd = None
+    try:
+        lock_fd = open(LOCK_PATH, "w")
+        deadline = time.time() + timeout
+        acquired = False
+        while time.time() < deadline:
+            try:
+                fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                acquired = True
+                logger.debug("Acquired PoE lock")
+                break
+            except BlockingIOError:
+                time.sleep(0.1)
+        
+        if not acquired:
+            logger.warning("Lock timeout after %ds, proceeding anyway", timeout)
+        
+        yield acquired
+    finally:
+        if lock_fd:
+            try:
+                fcntl.flock(lock_fd, fcntl.LOCK_UN)
+            except Exception:
+                pass
+            lock_fd.close()
+            logger.debug("Released PoE lock")
 
 
 def load_config() -> dict:
@@ -120,7 +163,10 @@ def run_poe_command(
     action: str,
     delay_sec: float = 0,
 ) -> bool:
-    """Execute PoE enable/disable on switch port via SSH."""
+    """Execute PoE enable/disable on switch port via SSH.
+    
+    Uses lockfile serialization to prevent concurrent SSH sessions.
+    """
     try:
         import paramiko
     except ImportError:
@@ -135,48 +181,49 @@ def run_poe_command(
         logger.error(f"Port {port} is not a PoE port (valid: {POE_PORTS})")
         return False
 
-    client = paramiko.SSHClient()
-    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    with poe_lock():
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-    try:
-        client.connect(
-            host,
-            username=user,
-            password=password,
-            look_for_keys=False,
-            allow_agent=False,
-            timeout=10,
-        )
-    except Exception as e:
-        logger.error(f"SSH connection failed: {e}")
-        return False
-
-    try:
-        channel = client.invoke_shell()
-        channel.settimeout(15)
-
-        time.sleep(SLEEP_INITIAL)
-        channel.send("\r\n")
-        time.sleep(SLEEP_CLEAR)
-        if not _wait_for_prompt(channel, PROMPT_TIMEOUT):
-            logger.error("Failed to get initial prompt")
+        try:
+            client.connect(
+                host,
+                username=user,
+                password=password,
+                look_for_keys=False,
+                allow_agent=False,
+                timeout=10,
+            )
+        except Exception as e:
+            logger.error(f"SSH connection failed: {e}")
             return False
 
-        success = _run_poe_commands(channel, port, action)
+        try:
+            channel = client.invoke_shell()
+            channel.settimeout(15)
 
-        if success and action == "off" and delay_sec > 0:
-            logger.info(f"PoE off on port {port}, waiting {delay_sec}s before next action")
-            time.sleep(delay_sec)
+            time.sleep(SLEEP_INITIAL)
+            channel.send("\r\n")
+            time.sleep(SLEEP_CLEAR)
+            if not _wait_for_prompt(channel, PROMPT_TIMEOUT):
+                logger.error("Failed to get initial prompt")
+                return False
 
-        if success:
-            logger.info(f"PoE {action} on port {port} completed successfully")
-        return success
+            success = _run_poe_commands(channel, port, action)
 
-    except Exception as e:
-        logger.error(f"Command execution failed: {e}")
-        return False
-    finally:
-        client.close()
+            if success and action == "off" and delay_sec > 0:
+                logger.info(f"PoE off on port {port}, waiting {delay_sec}s before next action")
+                time.sleep(delay_sec)
+
+            if success:
+                logger.info(f"PoE {action} on port {port} completed successfully")
+            return success
+
+        except Exception as e:
+            logger.error(f"Command execution failed: {e}")
+            return False
+        finally:
+            client.close()
 
 
 def run_poe_cycle_single_session(
@@ -186,7 +233,10 @@ def run_poe_cycle_single_session(
     port: int,
     delay_sec: float = DEFAULT_DELAY_SEC,
 ) -> bool:
-    """Power cycle (off + wait + on) in a single SSH session. Faster than two connects."""
+    """Power cycle (off + wait + on) in a single SSH session.
+    
+    Uses lockfile serialization to prevent concurrent SSH sessions.
+    """
     try:
         import paramiko
     except ImportError:
@@ -197,50 +247,51 @@ def run_poe_cycle_single_session(
         logger.error(f"Port {port} is not a PoE port (valid: {POE_PORTS})")
         return False
 
-    client = paramiko.SSHClient()
-    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    with poe_lock():
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-    try:
-        client.connect(
-            host,
-            username=user,
-            password=password,
-            look_for_keys=False,
-            allow_agent=False,
-            timeout=10,
-        )
-    except Exception as e:
-        logger.error(f"SSH connection failed: {e}")
-        return False
-
-    try:
-        channel = client.invoke_shell()
-        channel.settimeout(15)
-
-        time.sleep(SLEEP_INITIAL)
-        channel.send("\r\n")
-        time.sleep(SLEEP_CLEAR)
-        if not _wait_for_prompt(channel, PROMPT_TIMEOUT):
-            logger.error("Failed to get initial prompt")
+        try:
+            client.connect(
+                host,
+                username=user,
+                password=password,
+                look_for_keys=False,
+                allow_agent=False,
+                timeout=10,
+            )
+        except Exception as e:
+            logger.error(f"SSH connection failed: {e}")
             return False
 
-        # Off
-        if not _run_poe_commands(channel, port, "off"):
-            return False
-        logger.info(f"PoE off on port {port}, waiting {delay_sec}s")
-        time.sleep(delay_sec)
+        try:
+            channel = client.invoke_shell()
+            channel.settimeout(15)
 
-        # On
-        if not _run_poe_commands(channel, port, "on"):
-            return False
-        logger.info("PoE cycle completed successfully")
-        return True
+            time.sleep(SLEEP_INITIAL)
+            channel.send("\r\n")
+            time.sleep(SLEEP_CLEAR)
+            if not _wait_for_prompt(channel, PROMPT_TIMEOUT):
+                logger.error("Failed to get initial prompt")
+                return False
 
-    except Exception as e:
-        logger.error(f"Command execution failed: {e}")
-        return False
-    finally:
-        client.close()
+            # Off
+            if not _run_poe_commands(channel, port, "off"):
+                return False
+            logger.info(f"PoE off on port {port}, waiting {delay_sec}s")
+            time.sleep(delay_sec)
+
+            # On
+            if not _run_poe_commands(channel, port, "on"):
+                return False
+            logger.info("PoE cycle completed successfully")
+            return True
+
+        except Exception as e:
+            logger.error(f"Command execution failed: {e}")
+            return False
+        finally:
+            client.close()
 
 
 def main() -> int:
