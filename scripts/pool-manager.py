@@ -150,12 +150,7 @@ def _dut_block_base(dut_name: str, hw: dict) -> dict:
 
 def generate_libremesh_exporter(dut_names: list[str], duts_db: dict) -> str:
     """Generate exporter YAML for the libremesh pool (all DUTs on VLAN 200)."""
-    lines = [
-        "# LibreMesh pool exporter — all DUTs share VLAN 200.",
-        "# NetworkService addresses use fixed IPs (10.13.200.x) configured via",
-        "# serial console by conftest.py before SSH access.",
-        "",
-    ]
+    lines: list[str] = []
 
     for dut_name in dut_names:
         hw = duts_db[dut_name]
@@ -186,11 +181,7 @@ def generate_libremesh_exporter(dut_names: list[str], duts_db: dict) -> str:
 
 def generate_openwrt_exporter(dut_names: list[str], duts_db: dict) -> str:
     """Generate exporter YAML for the openwrt pool (each DUT in isolated VLAN)."""
-    lines = [
-        "# OpenWrt pool exporter — each DUT in its own isolated VLAN (100-108).",
-        "# DUT default IP is 192.168.1.1; host reaches it via per-DUT VLAN interface.",
-        "",
-    ]
+    lines: list[str] = []
 
     for dut_name in dut_names:
         hw = duts_db[dut_name]
