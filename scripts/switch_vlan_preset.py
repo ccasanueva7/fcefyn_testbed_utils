@@ -6,8 +6,8 @@ Switches between:
   - isolated: each DUT in its own VLAN (100-106) for OpenWrt tests
   - mesh:     all DUTs in VLAN 200 for LibreMesh multi-node tests
 
+For hybrid mode (DUTs split across both pools), use pool-manager.py instead.
 Uses the same config file as poe_switch_control.py (~/.config/poe_switch_control.conf).
-Validates CLI commands for Plan A; serves as base for Switch Manager in Plan B.
 Requires: paramiko (pip install paramiko)
 """
 
@@ -37,9 +37,6 @@ CONFIG_PATHS = (
     os.path.expanduser("~/.config/poe_switch_control.conf"),
     "/etc/poe_switch_control.conf",
 )
-
-# If set, SSH to this host and run labgrid-exporter-select after preset change.
-LABGRID_HOST_KEY = "LABGRID_HOST"
 
 # Preset definitions: list of (interface, commands under interface)
 # Commands are sent after "interface gigabitEthernet 1/0/X"
@@ -168,40 +165,11 @@ def _write_vlan_mode_file(preset_name: str) -> None:
         logger.warning("Could not write %s: %s (SSH may use wrong VLAN)", VLAN_MODE_FILE, e)
 
 
-def _run_labgrid_exporter_select(host: str, preset_name: str, user: str = "labgrid-dev") -> bool:
-    """SSH to labgrid host and run labgrid-exporter-select to switch exporter config."""
-    try:
-        import paramiko
-    except ImportError:
-        logger.warning("paramiko not available, skipping labgrid-exporter-select")
-        return False
-
-    try:
-        client = paramiko.SSHClient()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        client.connect(host, username=user, timeout=10)
-        stdin, stdout, stderr = client.exec_command(
-            f"sudo labgrid-exporter-select {preset_name}", get_pty=True
-        )
-        exit_code = stdout.channel.recv_exit_status()
-        client.close()
-        if exit_code != 0:
-            err = stderr.read().decode().strip() if stderr else ""
-            logger.warning("labgrid-exporter-select failed (exit %d): %s", exit_code, err)
-            return False
-        logger.info("Exporter switched to %s on %s", preset_name, host)
-        return True
-    except Exception as e:
-        logger.warning("Could not run labgrid-exporter-select on %s: %s", host, e)
-        return False
-
-
 def run_preset(
     host: str,
     user: str,
     password: str,
     preset_name: str,
-    config: dict | None = None,
 ) -> bool:
     """Apply VLAN preset (isolated or mesh) via SSH."""
     try:
@@ -222,8 +190,6 @@ def run_preset(
 
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-    config = config or {}
 
     try:
         client.connect(
@@ -253,12 +219,6 @@ def run_preset(
         if success:
             logger.info("Preset '%s' applied successfully", preset_name)
             _write_vlan_mode_file(preset_name)
-            labgrid_host = (
-                os.environ.get(LABGRID_HOST_KEY)
-                or config.get(LABGRID_HOST_KEY, "").strip()
-            )
-            if labgrid_host:
-                _run_labgrid_exporter_select(labgrid_host, preset_name)
         return success
 
     except Exception as e:
@@ -279,7 +239,8 @@ Presets:
 
 Config: same as poe_switch_control (~/.config/poe_switch_control.conf)
   POE_SWITCH_HOST, POE_SWITCH_USER, POE_SWITCH_PASSWORD
-  LABGRID_HOST     - If set, SSH to this host and run labgrid-exporter-select
+
+For hybrid mode (split DUTs), use pool-manager.py instead.
         """,
     )
 
@@ -345,7 +306,7 @@ Config: same as poe_switch_control (~/.config/poe_switch_control.conf)
         return 3
 
     success = run_preset(
-        args.host, args.user, args.password, args.preset, config=config
+        args.host, args.user, args.password, args.preset
     )
     return 0 if success else 2
 

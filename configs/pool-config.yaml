@@ -1,0 +1,109 @@
+# FCEFYN Testbed Pool Configuration
+#
+# Edit 'pools' to change which DUTs belong to each project, then run:
+#   scripts/pool-manager.py --apply
+#
+# Modes:
+#   libremesh-only:  all DUTs in 'libremesh' pool, 'openwrt' pool empty
+#   openwrt-only:    all DUTs in 'openwrt' pool,    'libremesh' pool empty
+#   hybrid:          DUTs split across both pools
+
+coordinators:
+  openwrt: "coordinator.openwrt.org:20408"
+  libremesh: "localhost:20408"
+
+switch:
+  host: "192.168.0.1"
+  user: "admin"
+  # Password is loaded from ~/.config/poe_switch_control.conf (POE_SWITCH_PASSWORD)
+  uplink_ports: [9, 10]  # always tagged for all active VLANs
+
+# DUT hardware database — physical facts that never change with pool assignments
+duts:
+  belkin_rt3200_1:
+    location: fcefyn-testbed
+    serial_port: "/dev/belkin-rt3200-1"
+    serial_speed: 115200
+    pdu_host: "localhost:16421"
+    pdu_name: "fcefyn-arduino"
+    pdu_index: 0
+    switch_port: 11
+    switch_vlan_isolated: 100
+    tftp_path: "belkin_rt3200_1/"
+    libremesh_fixed_ip: "10.13.200.11"
+
+  belkin_rt3200_2:
+    location: fcefyn-testbed
+    serial_port: "/dev/belkin-rt3200-2"
+    serial_speed: 115200
+    pdu_host: "localhost:16421"
+    pdu_name: "fcefyn-arduino"
+    pdu_index: 1
+    switch_port: 12
+    switch_vlan_isolated: 101
+    tftp_path: "belkin_rt3200_2/"
+    libremesh_fixed_ip: "10.13.200.196"
+
+  belkin_rt3200_3:
+    location: fcefyn-testbed
+    serial_port: "/dev/belkin-rt3200-3"
+    serial_speed: 115200
+    pdu_host: "localhost:16421"
+    pdu_name: "fcefyn-arduino"
+    pdu_index: 2
+    switch_port: 13
+    switch_vlan_isolated: 102
+    tftp_path: "belkin_rt3200_3/"
+    libremesh_fixed_ip: "10.13.200.118"
+
+  bananapi_bpi-r4:
+    location: fcefyn-testbed
+    serial_port: "/dev/bpi-r4"
+    serial_speed: 115200
+    pdu_host: "localhost:16421"
+    pdu_name: "fcefyn-arduino"
+    pdu_index: 3
+    switch_port: 14
+    switch_vlan_isolated: 103
+    tftp_path: "bananapi_bpi-r4/"
+    libremesh_fixed_ip: "10.13.200.169"
+
+  openwrt_one:
+    location: fcefyn-testbed
+    serial_port: "/dev/openwrt-one"
+    serial_speed: 115200
+    pdu_host: "localhost:16421"
+    pdu_name: "fcefyn-poe-port1"
+    pdu_index: 1
+    switch_port: 16        # LAN data port (eth0 swapped to br-lan)
+    switch_port_poe: 1     # WAN/PoE port — always in same VLAN for U-Boot
+    switch_vlan_isolated: 104
+    tftp_path: "openwrt_one/"
+    libremesh_fixed_ip: "10.13.200.120"
+
+  librerouter_1:
+    location: fcefyn-testbed
+    serial_port: "/dev/librerouter-1"
+    serial_speed: 115200
+    pdu_host: "localhost:16421"
+    pdu_name: "fcefyn-poe-port2"
+    pdu_index: 2
+    switch_port: 2
+    switch_vlan_isolated: 105
+    tftp_path: "librerouter_1/"
+    libremesh_fixed_ip: "10.13.200.77"
+
+# Pool assignment — edit here to change testbed mode.
+# A DUT must belong to exactly one pool (or neither, to exclude it).
+pools:
+  openwrt:
+    duts: []
+
+  libremesh:
+    duts:
+      - belkin_rt3200_1
+      - belkin_rt3200_2
+      - belkin_rt3200_3
+      - bananapi_bpi-r4
+      - openwrt_one
+      - librerouter_1
