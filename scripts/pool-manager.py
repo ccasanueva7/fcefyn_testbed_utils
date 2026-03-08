@@ -93,9 +93,22 @@ SINGLE_SERVICE = "labgrid-exporter"
 EXPORTER_DIR = Path("/etc/labgrid")
 SYSTEMD_DIR = Path("/etc/systemd/system")
 
-POOL_STATE_PATH = Path(
-    os.path.expanduser("~/.config/labgrid-pool-state.yaml")
-)
+
+def _get_config_path(filename: str) -> Path:
+    """
+    Return path to a config file in ~/.config/.
+    When running as root under sudo, use SUDO_USER's home for consistency.
+    """
+    if os.geteuid() == 0:
+        sudo_user = os.environ.get("SUDO_USER")
+        if sudo_user:
+            try:
+                import pwd
+                home = Path(pwd.getpwnam(sudo_user).pw_dir)
+                return home / ".config" / filename
+            except (ImportError, KeyError):
+                pass
+    return Path(os.path.expanduser(f"~/.config/{filename}"))
 
 
 # ---------------------------------------------------------------------------
@@ -486,22 +499,24 @@ def detect_mode(pools: dict) -> str:
 
 def load_pool_state() -> dict:
     """Load last-applied pool assignments from state file."""
-    if not POOL_STATE_PATH.exists():
+    path = _get_config_path("labgrid-pool-state.yaml")
+    if not path.exists():
         return {}
     try:
-        with open(POOL_STATE_PATH) as f:
+        with open(path) as f:
             return yaml.safe_load(f) or {}
     except Exception:
         return {}
 
 
 def save_pool_state(openwrt_duts: list[str], libremesh_duts: list[str]) -> None:
-    POOL_STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    path = _get_config_path("labgrid-pool-state.yaml")
+    path.parent.mkdir(parents=True, exist_ok=True)
     state = {
         "openwrt": sorted(openwrt_duts),
         "libremesh": sorted(libremesh_duts),
     }
-    with open(POOL_STATE_PATH, "w") as f:
+    with open(path, "w") as f:
         yaml.dump(state, f, default_flow_style=False)
 
 

@@ -6,6 +6,7 @@ Written by pool-manager.py (hybrid mode) and switch_vlan_preset.py (isolated/mes
 Used by pool-manager to avoid redundant switch commands when re-applying the same hybrid config.
 
 State file: ~/.config/labgrid-switch-state.yaml
+When run under sudo, uses the original user's home so state is shared between tools.
 """
 
 import logging
@@ -19,26 +20,43 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-STATE_FILE = Path(os.path.expanduser("~/.config/labgrid-switch-state.yaml"))
+
+def _get_state_file_path() -> Path:
+    """
+    Return the path to the switch state file.
+    When running as root under sudo, use SUDO_USER's home so pool-manager and
+    switch_vlan_preset share the same state regardless of how they are invoked.
+    """
+    if os.geteuid() == 0:
+        sudo_user = os.environ.get("SUDO_USER")
+        if sudo_user:
+            try:
+                import pwd
+                home = Path(pwd.getpwnam(sudo_user).pw_dir)
+                return home / ".config" / "labgrid-switch-state.yaml"
+            except (ImportError, KeyError):
+                pass
+    return Path(os.path.expanduser("~/.config/labgrid-switch-state.yaml"))
 
 
 def load_switch_state() -> dict | None:
     """
     Load switch state from file. Returns None if file does not exist or is invalid.
     """
-    if not STATE_FILE.is_file():
+    state_file = _get_state_file_path()
+    if not state_file.is_file():
         return None
     if yaml is None:
         logger.warning("PyYAML not installed, cannot load switch state")
         return None
     try:
-        with open(STATE_FILE) as f:
+        with open(state_file) as f:
             data = yaml.safe_load(f)
         if not isinstance(data, dict):
             return None
         return data
     except (OSError, yaml.YAMLError) as e:
-        logger.warning("Could not load switch state from %s: %s", STATE_FILE, e)
+        logger.warning("Could not load switch state from %s: %s", state_file, e)
         return None
 
 
@@ -47,12 +65,13 @@ def save_switch_state(state: dict) -> None:
     if yaml is None:
         logger.warning("PyYAML not installed, cannot save switch state")
         return
+    state_file = _get_state_file_path()
     try:
-        STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
-        with open(STATE_FILE, "w") as f:
+        state_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(state_file, "w") as f:
             yaml.dump(state, f, default_flow_style=False, sort_keys=False)
     except OSError as e:
-        logger.warning("Could not write switch state to %s: %s", STATE_FILE, e)
+        logger.warning("Could not write switch state to %s: %s", state_file, e)
 
 
 def save_preset_state(preset: str) -> None:
