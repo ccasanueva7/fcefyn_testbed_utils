@@ -13,6 +13,9 @@
 #       Apply pool-config.yaml split via pool-manager.py (switch + exporter files),
 #       then deploy each exporter via Ansible.
 #       Edit configs/pool-config.yaml to define the DUT split before running.
+#
+#   --ask-become-pass    Pass -K to ansible-playbook (prompt for sudo password).
+#                       Use if the user does not have passwordless sudo.
 
 set -euo pipefail
 
@@ -29,6 +32,7 @@ DRY_RUN=false
 NO_SWITCH=false
 MODE=""
 OPENWRT_DIR_OVERRIDE=""
+ANSIBLE_EXTRA_ARGS=()
 
 # ---------------------------------------------------------------------------
 # Argument parsing
@@ -47,6 +51,10 @@ while [[ $# -gt 0 ]]; do
             NO_SWITCH=true
             shift
             ;;
+        --ask-become-pass)
+            ANSIBLE_EXTRA_ARGS+=("--ask-become-pass")
+            shift
+            ;;
         --openwrt-dir)
             OPENWRT_DIR_OVERRIDE="$2"
             shift 2
@@ -63,7 +71,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$MODE" ]]; then
-    echo "Usage: testbed-mode.sh <libremesh|openwrt|hybrid> [--dry-run] [--no-switch]" >&2
+    echo "Usage: testbed-mode.sh <libremesh|openwrt|hybrid> [--dry-run] [--no-switch] [--ask-become-pass]" >&2
     exit 1
 fi
 
@@ -91,7 +99,8 @@ if [[ "$MODE" == "libremesh" ]]; then
     run_or_dry ansible-playbook \
         -i "${LIBREMESH_ANSIBLE}/${INVENTORY}" \
         "${LIBREMESH_ANSIBLE}/playbook_labgrid.yml" \
-        --tags export
+        --tags export \
+        "${ANSIBLE_EXTRA_ARGS[@]}"
 
     log "Done. Testbed is in libremesh-only mode."
 
@@ -114,7 +123,8 @@ elif [[ "$MODE" == "openwrt" ]]; then
     run_or_dry ansible-playbook \
         -i "${OPENWRT_ANSIBLE}/${INVENTORY}" \
         "${OPENWRT_ANSIBLE}/playbook_labgrid.yml" \
-        --tags export
+        --tags export \
+        "${ANSIBLE_EXTRA_ARGS[@]}"
 
     log "Done. Testbed is in openwrt-only mode."
 
@@ -143,7 +153,8 @@ elif [[ "$MODE" == "hybrid" ]]; then
         run_or_dry ansible-playbook \
             -i "${LIBREMESH_ANSIBLE}/${INVENTORY}" \
             "${LIBREMESH_ANSIBLE}/playbook_labgrid.yml" \
-            --tags export
+            --tags export \
+            "${ANSIBLE_EXTRA_ARGS[@]}"
     fi
 
     if [[ -f "$OW_EXPORTER" ]] && [[ -d "$OPENWRT_ANSIBLE" ]]; then
@@ -153,7 +164,8 @@ elif [[ "$MODE" == "hybrid" ]]; then
         run_or_dry ansible-playbook \
             -i "${OPENWRT_ANSIBLE}/${INVENTORY}" \
             "${OPENWRT_ANSIBLE}/playbook_labgrid.yml" \
-            --tags export
+            --tags export \
+            "${ANSIBLE_EXTRA_ARGS[@]}"
     fi
 
     log "Done. Testbed is in hybrid mode."
