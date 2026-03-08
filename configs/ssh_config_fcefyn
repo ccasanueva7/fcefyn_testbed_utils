@@ -50,10 +50,6 @@ Host dut-librerouter-3
     User root
     ProxyCommand sudo labgrid-dut-proxy librerouter-3 192.168.1.1 22
 
-Host dut-glinet-mango
-    User root
-    ProxyCommand sudo labgrid-dut-proxy glinet-mango 192.168.1.1 22
-
 Host switch-fcefyn
     HostName 192.168.0.1
     User admin
