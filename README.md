@@ -8,15 +8,25 @@ Infraestructura complementaria del banco de pruebas HIL (Hardware-in-the-Loop) d
 
 ```
 pi-hil-testing-utils/
-├── configs/          # Documentación y configs del lab
-│   ├── README.md     # Índice, orden de lectura
-│   ├── host-config.md, tftp-server.md, switch-config.md, ...
-│   └── ssh_config_fcefyn, 99-serial-devices.rules, ...
-├── scripts/          # Utilidades Python/shell
-│   ├── switch/       # Switch SSH, VLANs, PoE, pool-manager
-│   ├── testbed-mode.sh, arduino_*.py, ...
-├── firmwares/        # Imágenes por dispositivo (qemu, Belkin, etc.)
-└── arduino/          # Firmware del controlador de relés
+├── configs/              # Documentación y configs del lab
+│   ├── README.md         # Índice, orden de lectura
+│   ├── templates/        # Archivos a copiar al host (systemd, udev, ssh, etc.)
+│   │   ├── arduino-relay-daemon.service
+│   │   ├── labgrid-exporter-*.service
+│   │   ├── 99-serial-devices.rules
+│   │   ├── ssh_config_fcefyn
+│   │   └── poe_switch_control.conf.example
+│   └── *.md              # Documentación (host-config, switch-config, etc.)
+├── scripts/              # Utilidades Python/shell
+│   ├── switch/           # Switch SSH, VLANs, PoE, pool-manager
+│   ├── arduino/          # arduino_relay_control, arduino_daemon, start_daemon
+│   ├── testbed-mode.sh
+│   ├── generate_places_yaml.py
+│   └── resolve_target.py
+├── firmwares/            # Imágenes por dispositivo (qemu, Belkin, etc.)
+├── arduino/              # Firmware del controlador de relés
+├── rack_design/          # Diseño del rack
+└── vms/                  # VMs de prueba (libremesh_node.sh)
 ```
 
 ---
@@ -41,12 +51,11 @@ El playbook despliega exporter, PDUDaemon, dnsmasq, netplan, places.yaml, etc. V
 | `scripts/switch/poe_switch_control.py` | Puertos PoE del switch TP-Link (OpenWRT One, Librerouter). |
 | `scripts/switch/switch_vlan_preset.py` | Cambia VLANs del switch (isolated vs mesh). |
 | `scripts/switch/pool-manager.py` | Modo híbrido: exporters por pool, switch differential apply. |
-| `arduino_relay_control.py` | Control de relés Arduino (power on/off). Usado por PDUDaemon. |
-| `arduino_daemon.py` | Daemon de conexión persistente al Arduino. Servicio `arduino-relay-daemon`. |
-| `generate_places_yaml.py` | Genera `places.yaml` desde labnet.yaml. |
-| `identify_devices.sh` | Identificación de dispositivos seriales por udev. |
-| `start_daemon.sh` | Arranque manual del daemon Arduino. |
-| `resolve_target.py` | Resuelve target file desde device name. |
+| `scripts/arduino/arduino_relay_control.py` | Control de relés Arduino (power on/off). Usado por PDUDaemon. |
+| `scripts/arduino/arduino_daemon.py` | Daemon de conexión persistente al Arduino. Servicio `arduino-relay-daemon`. |
+| `scripts/arduino/start_daemon.sh` | Arranque manual del daemon Arduino. |
+| `scripts/generate_places_yaml.py` | Genera `places.yaml` desde labnet.yaml. |
+| `scripts/resolve_target.py` | Resuelve target file desde device name. |
 
 Los scripts de control deben estar en `/usr/local/bin/` o en el PATH; el playbook puede copiarlos.
 
