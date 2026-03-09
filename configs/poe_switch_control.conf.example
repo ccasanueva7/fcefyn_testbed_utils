@@ -20,7 +20,7 @@
 POE_SWITCH_PASSWORD=switch_password_here
 POE_SWITCH_HOST=<switch-ip>
 POE_SWITCH_USER=<switch-user>
-# POE_SWITCH_DRIVER=tplink_jetstream   # Driver module in switch_drivers/ (default)
-# POE_SWITCH_DEVICE_TYPE=tplink_jetstream   # Netmiko device_type (must match switch model)
-# POE_CYCLE_DELAY=3   # Seconds between off and on during cycle (default: 3)
-# LABGRID_HOST=labgrid-fcefyn   # If set, switch_vlan_preset SSHs and runs labgrid-exporter-select
+POE_SWITCH_DRIVER=tplink_jetstream
+POE_SWITCH_DEVICE_TYPE=tplink_jetstream
+#POE_CYCLE_DELAY=3
+LABGRID_HOST=labgrid-fcefyn
