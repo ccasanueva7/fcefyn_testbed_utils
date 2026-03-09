@@ -1,73 +1,73 @@
-# Rack Design 3D Models
+# Diseño 3D del rack
 
-This folder contains the 3D design files (OpenSCAD, Fusion 360, and STL) used to build a custom cooling rack for routers. The system uses a modular chimney approach to distribute fresh air from a single 120mm fan across multiple levels.
+Esta carpeta contiene los archivos de diseño 3D (OpenSCAD, Fusion 360 y STL) utilizados para construir un rack de refrigeración personalizado para routers. El sistema emplea un enfoque modular tipo chimenea para distribuir aire fresco desde un único ventilador de 120 mm a través de múltiples niveles.
 
-## Printed Parts Summary
+## Resumen de piezas impresas
 
-To assemble the full rack, the following parts were printed using the provided STL files:
+Para ensamblar el rack completo se imprimieron las siguientes piezas usando los archivos STL proporcionados:
 
-*   **1x Curved Intake Duct (`curved_intake_duct.stl`):** Connects the 120mm fan to the vertical chimney.
-*   **2x Airflow Chimney Duct 3 levels (`airflow_chimney_duct_3levels.stl`):** Vertical segments with vents for three router levels.
-*   **1x Airflow Chimney Duct 2 levels (`airflow_chimney_duct_2levels.stl`):** Vertical segment with vents for two router levels.
-*   **1x Chimney End Cap (`chimney_duct_cover.stl`):** Seals the top of the chimney to force air through the vents.
-*   **8x Drawer Stops (`drawer_stop.stl`):** Custom heavy-duty stops to replace generic plastic ones.
-*   **3x Belkin RT3200 Base (`belkin_rt3200_base.stl`):** Custom bases for the routers to replace original bulky cases.
-*   **1x USB Hub Shelf (`hub_shelf_TP-LINK_UH700.stl`):** Shelf for the USB hub. *(Actual: Nisuta NSUH113Q; el STL fue diseñado para TP-Link UH700 – verificar dimensiones.)*
-*   **1x Arduino Nano Holder (`NanoHolderA.stl`):** Mounting bracket for an Arduino Nano.
-*   **Decorative Logos (`logo fcefyn.stl`, `logo unc.stl`):** Final aesthetic details representing FCEFyN and UNC.
+*   **1x Conducto de admisión curvado (`curved_intake_duct.stl`):** Conecta el ventilador de 120 mm con la chimenea vertical.
+*   **4x Conducto de chimenea con 3 niveles (`airflow_chimney_duct_3levels.stl`):** Segmentos verticales con rejillas de ventilación para tres niveles de routers.
+*   **1x Conducto de chimenea con 2 niveles (`airflow_chimney_duct_2levels.stl`):** Segmento vertical con rejillas para dos niveles.
+*   **1x Tapa de chimenea (`chimney_duct_cover.stl`):** Sella la parte superior de la chimenea para forzar el paso del aire por las rejillas.
+*   **3x Base Belkin RT3200 (`belkin_rt3200_base.stl`):** Bases personalizadas para reemplazar las carcasas originales voluminosas.
+*   **1x Soporte Arduino Nano (`NanoHolderA.stl`):** Bracket de montaje para el Arduino Nano.
+*   **Logos decorativos (`logo fcefyn.stl`, `logo unc.stl`):** Detalles estéticos finales que representan FCEFyN y UNC.
 
-## 3D Design Details
+## Detalles del diseño 3D
 
-### 1. Curved Intake Duct (`curved_intake_duct.scad` / `.stl`)
-A "saxophone-style" lofted duct that transitions from a 120mm circular fan mount to a rectangular chimney connector. Designed for smooth airflow with no internal sharp corners.
+### 1. Conducto de admisión curvado (`curved_intake_duct.scad` / `.stl`)
+
+Conducto loft tipo «saxofón» que transiciona desde la base circular del ventilador de 120 mm hasta el conector rectangular de la chimenea. Diseñado para flujo de aire suave sin esquinas internas pronunciadas.
 
 <img src="img/curved_intake_duct.png" width="300">
 
-*   **Key Parameters:**
-    *   `ancho_placa_base`: Width of the fan mounting plate (120mm for Bosser fans).
-    *   `altura_saxofon`: Vertical height of the transition.
-    *   `desplazamiento_y`: Lateral offset between the fan center and chimney center.
-    *   `rect_x` / `rect_y`: Dimensions of the rectangular exit to match the chimney.
+*   **Parámetros:**
+    *   `ancho_placa_base`: Ancho de la placa de montaje del ventilador (120 mm para ventiladores Bosser).
+    *   `altura_saxofon`: Altura vertical de la transición.
+    *   `desplazamiento_y`: Desplazamiento lateral entre el centro del ventilador y el centro de la chimenea.
+    *   `rect_x` / `rect_y`: Dimensiones de la salida rectangular para ajustar a la chimenea.
 
-### 2. Airflow Chimney Duct (`airflow_chimney_duct.scad` / `_2levels.stl` / `_3levels.stl`)
-A modular, stackable vertical duct. Each module features segmented vents ("branquias") angled at 45° to project air towards the routers without requiring print supports.
+### 2. Conducto de chimenea (`airflow_chimney_duct.scad` / `_2levels.stl` / `_3levels.stl`)
+
+Conducto vertical modular y apilable. Cada módulo incluye rejillas segmentadas («branquias») anguladas a 45° para dirigir el aire hacia los routers sin requerir soportes de impresión.
 
 <img src="img/airflow_chimney_duct_3levels.png" width="300" height="273"> <img src="img/airflow_chimney_duct_2levels.png" width="300">
 
-*   **Key Parameters:**
-    *   `niveles_por_modulo`: Number of cooling levels in the segment (set to 2 or 3 for the provided STLs).
-    *   `dist_niveles`: Vertical distance between levels (60mm).
-    *   `tolerancia`: Clearance for the male/female stacking connectors.
-    *   `grosor_pared`: Wall thickness for structural rigidity.
+*   **Parámetros:**
+    *   `niveles_por_modulo`: Número de niveles de refrigeración por segmento (2 o 3 en los STL proporcionados).
+    *   `dist_niveles`: Distancia vertical entre niveles (60 mm).
+    *   `tolerancia`: Holgura para los conectores de apilado macho/hembra.
+    *   `grosor_pared`: Grosor de pared para rigidez estructural.
 
-### 3. Chimney End Cap (`chimney_duct_cover.scad` / `.stl`)
-A simple female-connector cap that fits onto the top of the last chimney segment to seal the system.
+### 3. Tapa de chimenea (`chimney_duct_cover.scad` / `.stl`)
+
+Tapa simple con conector hembra que encaja en la parte superior del último segmento de chimenea para sellar el sistema.
 
 <img src="img/chimney_duct_cover.png" width="300">
 
-*   **Key Parameters:**
-    *   `grosor_pared`: Wall thickness.
-    *   `tolerancia`: Fitting tolerance for the male connector.
-
-### 4. Drawer Stop (`drawer_stop.f3d` / `.stl`)
-Customized drawer stops designed in Autodesk Fusion 360. These parts are intended to be glued into U-shaped notches cut into the original plastic drawers using a Dremel rotary tool. Each stop features a base opening that allows the vertical chimney duct to pass through all levels, providing structural stability to the chimney while acting as a lock to prevent the drawers from opening accidentally.
+*   **Parámetros:**
+    *   `grosor_pared`: Grosor de pared.
+    *   `tolerancia`: Tolerancia de ajuste para el conector macho.
 
 <img src="img/drawer_stop.png" width="300">
 
-### 5. Belkin RT3200 Base (`belkin_rt3200_base.stl`)
-The original cases for the Belkin RT3200 routers were too large for the rack chassis. We replaced them with a 3D-printed base to save space and ensure the routers remain fixed when connecting or disconnecting cables. This design is an adaptation of the [RT3200/E8450 Wall Mount Case](https://www.thingiverse.com/thing:5864938) by Thingiverse user **TuxInvader**. We utilized only the base component, leaving the top of the router uncovered for optimal cooling.
+### 4. Base Belkin RT3200 (`belkin_rt3200_base.stl`)
+
+Las carcasas originales del Belkin RT3200 eran demasiado grandes para el rack. Se reemplazaron por una base impresa en 3D para ahorrar espacio y mantener los routers fijos al conectar cables. Adaptación del [RT3200/E8450 Wall Mount Case](https://www.thingiverse.com/thing:5864938) de **TuxInvader** — solo el componente base, parte superior descubierta para refrigeración.
 
 <img src="img/belkin_case_adapted.jpg" width="300">
 
-### 6. Auxiliary and Decorative Parts
+### 5. Piezas auxiliares y decorativas
 
-*   **Arduino Nano Holder (`NanoHolderA.stl`):** A small mounting bracket to keep the Arduino Nano fixed in its designated drawer level.
+*   **Soporte Arduino Nano (`NanoHolderA.stl`):** Pequeño bracket de montaje para mantener el Arduino Nano fijo en su nivel asignado.
 
 <img src="img/NanoHolder.jpg" width="300">
 
-*   **FCEFyN & UNC Logos:** Decorative 3D-printed logos used as final aesthetic details, representing FCEFyN and UNC.
+*   **Logos FCEFyN y UNC:** Logos decorativos impresos en 3D como detalles estéticos finales, que representan FCEFyN y UNC.
 
 <img src="img/logos.png" width="300">
 
 ---
-*Note: All OpenSCAD models are designed to be printed without supports when oriented correctly on the build plate. All models were printed in a Creality Ender 3 Pro printer*
+
+Los modelos OpenSCAD se imprimen sin soportes cuando se orientan correctamente. Impreso en Creality Ender 3 Pro.
