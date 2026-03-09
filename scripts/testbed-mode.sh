@@ -101,7 +101,7 @@ if [[ "$MODE" == "libremesh" ]]; then
     run_or_dry sudo systemctl disable labgrid-exporter-openwrt labgrid-exporter-libremesh 2>/dev/null || true
 
     log "Applying mesh VLAN preset on switch..."
-    run_or_dry python3 "${SCRIPT_DIR}/switch_vlan_preset.py" mesh
+    run_or_dry python3 "${SCRIPT_DIR}/switch/switch_vlan_preset.py" mesh
 
     log "Deploying libremesh exporter via Ansible..."
     run_or_dry ansible-playbook \
@@ -129,7 +129,7 @@ elif [[ "$MODE" == "openwrt" ]]; then
     run_or_dry sudo systemctl disable labgrid-exporter-openwrt labgrid-exporter-libremesh 2>/dev/null || true
 
     log "Applying isolated VLAN preset on switch..."
-    run_or_dry python3 "${SCRIPT_DIR}/switch_vlan_preset.py" isolated
+    run_or_dry python3 "${SCRIPT_DIR}/switch/switch_vlan_preset.py" isolated
 
     log "Deploying openwrt exporter via Ansible..."
     run_or_dry ansible-playbook \
@@ -152,7 +152,7 @@ elif [[ "$MODE" == "hybrid" ]]; then
 
     log "Applying pool manager (switch + deploy-local)..."
     # deploy-local writes to /etc/labgrid/ and restarts systemd services; requires sudo
-    run_or_dry sudo python3 "${SCRIPT_DIR}/pool-manager.py" \
+    run_or_dry sudo python3 "${SCRIPT_DIR}/switch/pool-manager.py" \
         --config "${POOL_CONFIG}" \
         "${POOL_MANAGER_ARGS[@]}"
 

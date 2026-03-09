@@ -1,7 +1,7 @@
 # FCEFYN Testbed Pool Configuration
 #
 # Edit 'pools' to change which DUTs belong to each project, then run:
-#   scripts/pool-manager.py --apply
+#   scripts/switch/pool-manager.py --apply
 #
 # Modes:
 #   libremesh-only:  all DUTs in 'libremesh' pool, 'openwrt' pool empty

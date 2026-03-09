@@ -36,7 +36,6 @@ import os
 import shutil
 import subprocess
 import sys
-import time
 from pathlib import Path
 
 try:
@@ -52,14 +51,16 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 SCRIPT_DIR = Path(__file__).parent
-CONFIG_DIR = SCRIPT_DIR.parent / "configs"
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+CONFIG_DIR = REPO_ROOT / "configs"
 POOL_CONFIG_PATH = CONFIG_DIR / "pool-config.yaml"
 
-# Add scripts dir to path for switch_state import
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-# Optional: switch state for differential apply
+from switch_client import SwitchClient, load_switch_password
+from switch_drivers.tplink_jetstream import build_hybrid_commands
+
 try:
     from switch_state import (
         load_switch_state,
@@ -256,36 +257,6 @@ def generate_dut_proxy_config(dut_names: list[str], duts_db: dict) -> str:
 # Switch configuration for hybrid mode
 # ---------------------------------------------------------------------------
 
-SLEEP_AFTER_SEND = 0.5
-SLEEP_AFTER_PROMPT = 0.5
-SLEEP_INITIAL = 2
-SLEEP_CLEAR = 1
-PROMPT_TIMEOUT = 12
-
-
-def _wait_for_prompt(channel, timeout_sec: float = PROMPT_TIMEOUT) -> bool:
-    deadline = time.time() + timeout_sec
-    buf = ""
-    while time.time() < deadline:
-        if channel.recv_ready():
-            data = channel.recv(1024).decode("utf-8", errors="replace")
-            buf += data
-            if "#" in buf or ">" in buf:
-                return True
-        else:
-            time.sleep(0.1)
-    logger.warning("Prompt timeout. Last output: %s", buf[-200:] if buf else "(none)")
-    return False
-
-
-def _send_cmd(channel, cmd: str) -> None:
-    channel.send(cmd + "\r\n")
-    time.sleep(SLEEP_AFTER_SEND)
-    if not _wait_for_prompt(channel, PROMPT_TIMEOUT):
-        logger.warning("Prompt not seen after: %s", cmd)
-    time.sleep(SLEEP_AFTER_PROMPT)
-
-
 def _get_port_assignments(
     openwrt_duts: list[str],
     libremesh_duts: list[str],
@@ -347,134 +318,23 @@ def build_hybrid_switch_commands(
     ports_to_include: set[int] | None = None,
     include_uplinks: bool = True,
 ) -> list[str]:
-    """
-    Build TP-Link CLI commands for hybrid VLAN assignment.
-    Each DUT port is configured independently based on its pool.
-    Uplink ports are tagged for all active VLANs.
+    """Build switch CLI commands for hybrid VLAN assignment.
 
-    If ports_to_include is set, only those port numbers are configured (for differential apply).
-    If include_uplinks is False, uplink port config is skipped.
+    Delegates vendor-specific command building to the driver.
     """
     port_assignments, active_isolated_vlans = _get_port_assignments(
         openwrt_duts, libremesh_duts, duts_db
     )
 
-    cmds = ["enable", "configure"]
-
-    if libremesh_duts:
-        cmds.extend(["vlan 200", 'name "mesh"', "exit"])
-
-    for port, pool, isolated_vlan in port_assignments:
-        if ports_to_include is not None and port not in ports_to_include:
-            continue
-        cmds.append(f"interface gigabitEthernet 1/0/{port}")
-        if pool == "isolated":
-            cmds.append("no switchport general allowed vlan 200")
-            cmds.append(f"switchport general allowed vlan {isolated_vlan} untagged")
-            cmds.append(f"switchport pvid {isolated_vlan}")
-            if port == 1:
-                cmds.append("power inline supply disable")
-        else:
-            cmds.append(f"no switchport general allowed vlan {isolated_vlan}")
-            cmds.append("switchport general allowed vlan 200 untagged")
-            cmds.append("switchport pvid 200")
-            if port == 1:
-                cmds.append("power inline supply disable")
-        cmds.append("exit")
-
-    if include_uplinks and uplink_ports:
-        all_vlans = sorted(active_isolated_vlans)
-        if libremesh_duts:
-            all_vlans.append(VLAN_MESH)
-        all_vlans = sorted(set(all_vlans))
-        if all_vlans:
-            vlan_str = ",".join(str(v) for v in all_vlans)
-            for uplink_port in uplink_ports:
-                cmds.append(f"interface gigabitEthernet 1/0/{uplink_port}")
-                cmds.append(f"switchport general allowed vlan {vlan_str} tagged")
-                cmds.append("exit")
-
-    cmds.append("end")
-    return cmds
-
-
-def load_switch_password() -> str:
-    """Load switch password from poe_switch_control.conf."""
-    config_paths = [
-        os.path.expanduser("~/.config/poe_switch_control.conf"),
-        "/etc/poe_switch_control.conf",
-    ]
-    # When running under sudo, also check original user's home for the switch config
-    if os.geteuid() == 0:
-        sudo_user = os.environ.get("SUDO_USER")
-        if sudo_user:
-            try:
-                import pwd
-                home = Path(pwd.getpwnam(sudo_user).pw_dir)
-                conf = home / ".config" / "poe_switch_control.conf"
-                config_paths.insert(1, str(conf))
-            except (ImportError, KeyError):
-                pass
-    for path in config_paths:
-        if os.path.isfile(path) and os.access(path, os.R_OK):
-            with open(path) as f:
-                for line in f:
-                    line = line.strip()
-                    if line and not line.startswith("#") and "=" in line:
-                        key, _, value = line.partition("=")
-                        if key.strip() == "POE_SWITCH_PASSWORD":
-                            return value.strip().strip("'\"")
-    return os.environ.get("POE_SWITCH_PASSWORD", "")
-
-
-def apply_switch_config(
-    host: str,
-    user: str,
-    password: str,
-    commands: list[str],
-) -> bool:
-    try:
-        import paramiko
-    except ImportError:
-        logger.error("paramiko not installed. Run: pip install paramiko")
-        return False
-
-    client = paramiko.SSHClient()
-    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    try:
-        client.connect(
-            host,
-            username=user,
-            password=password,
-            look_for_keys=False,
-            allow_agent=False,
-            timeout=10,
-        )
-    except Exception as e:
-        logger.error("SSH to switch failed: %s", e)
-        return False
-
-    try:
-        channel = client.invoke_shell()
-        channel.settimeout(20)
-        time.sleep(SLEEP_INITIAL)
-        channel.send("\r\n")
-        time.sleep(SLEEP_CLEAR)
-        if not _wait_for_prompt(channel, PROMPT_TIMEOUT):
-            logger.error("No initial prompt from switch")
-            return False
-
-        for cmd in commands:
-            logger.debug("Switch cmd: %s", cmd)
-            _send_cmd(channel, cmd)
-
-        logger.info("Switch configuration applied successfully")
-        return True
-    except Exception as e:
-        logger.error("Switch command execution failed: %s", e)
-        return False
-    finally:
-        client.close()
+    return build_hybrid_commands(
+        port_assignments=port_assignments,
+        active_isolated_vlans=active_isolated_vlans,
+        has_libremesh_duts=bool(libremesh_duts),
+        uplink_ports=uplink_ports,
+        vlan_mesh=VLAN_MESH,
+        ports_to_include=ports_to_include,
+        include_uplinks=include_uplinks,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -976,12 +836,17 @@ def main() -> int:
                         )
 
             if apply_cmds:
-                success = apply_switch_config(
-                    switch_cfg.get("host", "192.168.0.1"),
-                    switch_cfg.get("user", "admin"),
-                    password,
-                    apply_cmds,
-                )
+                try:
+                    client = SwitchClient(
+                        host=switch_cfg.get("host", "192.168.0.1"),
+                        user=switch_cfg.get("user", "admin"),
+                        password=password,
+                    )
+                except ValueError as e:
+                    logger.error("%s", e)
+                    return 3
+
+                success = client.send_config_commands(apply_cmds)
                 if not success:
                     logger.error("Switch configuration failed")
                     return 4
