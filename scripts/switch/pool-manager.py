@@ -493,9 +493,10 @@ def check_duts_in_use(
 
 def _install_hybrid_units() -> bool:
     """Install hybrid exporter systemd units if not already present."""
+    templates_dir = CONFIG_DIR / "templates"
     units = {
-        f"{HYBRID_SERVICE_OPENWRT}.service": CONFIG_DIR / "labgrid-exporter-openwrt.service",
-        f"{HYBRID_SERVICE_LIBREMESH}.service": CONFIG_DIR / "labgrid-exporter-libremesh.service",
+        f"{HYBRID_SERVICE_OPENWRT}.service": templates_dir / "labgrid-exporter-openwrt.service",
+        f"{HYBRID_SERVICE_LIBREMESH}.service": templates_dir / "labgrid-exporter-libremesh.service",
     }
     installed_any = False
     for unit_name, source in units.items():

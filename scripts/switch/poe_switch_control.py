@@ -98,7 +98,7 @@ Examples:
   %(prog)s cycle 1 --delay 5 # Power cycle with 5s delay
 
 Config file (recommended): ~/.config/poe_switch_control.conf
-  Copy from configs/poe_switch_control.conf.example and set POE_SWITCH_PASSWORD.
+  Copy from configs/templates/poe_switch_control.conf.example and set POE_SWITCH_PASSWORD.
   Not in git - never commit real passwords.
 
 Environment: POE_SWITCH_PASSWORD (fallback if no config file)
