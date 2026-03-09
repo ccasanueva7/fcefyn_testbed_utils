@@ -5,10 +5,10 @@
 #   All three modes work with either. Hybrid prompts for sudo when needed if run without.
 #
 # Usage:
-#   testbed-mode.sh libremesh [--dry-run]
+#   testbed-mode.sh libremesh [--dry-run] [--no-switch]
 #       Deploy libremesh-tests config via Ansible (VLAN 200 only).
 #
-#   testbed-mode.sh openwrt [--dry-run]
+#   testbed-mode.sh openwrt [--dry-run] [--no-switch]
 #       Deploy openwrt-tests config via Ansible (isolated VLANs 100-108).
 #       Requires openwrt-tests repo path (OPENWRT_TESTS_DIR or --openwrt-dir).
 #
@@ -18,6 +18,8 @@
 #       restarts two exporter services (openwrt + libremesh).
 #       No Ansible is used. Edit configs/pool-config.yaml first.
 #
+#   --no-switch          Skip switch VLAN config (only deploy exporter/config).
+#                       Useful when switch is already correct or unavailable.
 #   --ask-become-pass    Pass -K to ansible-playbook (prompt for sudo password).
 #                       Use if the user does not have passwordless sudo.
 
@@ -100,8 +102,12 @@ if [[ "$MODE" == "libremesh" ]]; then
     run_or_dry sudo systemctl stop labgrid-exporter-openwrt labgrid-exporter-libremesh 2>/dev/null || true
     run_or_dry sudo systemctl disable labgrid-exporter-openwrt labgrid-exporter-libremesh 2>/dev/null || true
 
-    log "Applying mesh VLAN preset on switch..."
-    run_or_dry python3 "${SCRIPT_DIR}/switch/switch_vlan_preset.py" mesh
+    if $NO_SWITCH; then
+        log "Skipping switch config (--no-switch)"
+    else
+        log "Applying mesh VLAN preset on switch..."
+        run_or_dry python3 "${SCRIPT_DIR}/switch/switch_vlan_preset.py" mesh
+    fi
 
     log "Deploying libremesh exporter via Ansible..."
     run_or_dry ansible-playbook \
@@ -128,8 +134,12 @@ elif [[ "$MODE" == "openwrt" ]]; then
     run_or_dry sudo systemctl stop labgrid-exporter-openwrt labgrid-exporter-libremesh 2>/dev/null || true
     run_or_dry sudo systemctl disable labgrid-exporter-openwrt labgrid-exporter-libremesh 2>/dev/null || true
 
-    log "Applying isolated VLAN preset on switch..."
-    run_or_dry python3 "${SCRIPT_DIR}/switch/switch_vlan_preset.py" isolated
+    if $NO_SWITCH; then
+        log "Skipping switch config (--no-switch)"
+    else
+        log "Applying isolated VLAN preset on switch..."
+        run_or_dry python3 "${SCRIPT_DIR}/switch/switch_vlan_preset.py" isolated
+    fi
 
     log "Deploying openwrt exporter via Ansible..."
     run_or_dry ansible-playbook \
