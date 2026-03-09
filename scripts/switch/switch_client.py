@@ -38,10 +38,20 @@ def switch_lock(timeout: float = LOCK_TIMEOUT) -> Generator[bool, None, None]:
 
     Prevents concurrent SSH connections that cause session contention
     when multiple scripts drive the switch in parallel (PoE + VLAN).
+
+    When running as root, if the lock file exists with restrictive perms
+    (e.g. created by a normal user), chmod it so root can open it for flock.
     """
     lock_fd = None
     try:
-        lock_fd = open(LOCK_PATH, "w")
+        try:
+            lock_fd = open(LOCK_PATH, "w")
+        except PermissionError:
+            if os.geteuid() == 0 and os.path.exists(LOCK_PATH):
+                os.chmod(LOCK_PATH, 0o666)
+                lock_fd = open(LOCK_PATH, "w")
+            else:
+                raise
         deadline = time.time() + timeout
         acquired = False
         while time.time() < deadline:
