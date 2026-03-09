@@ -118,6 +118,15 @@ def load_switch_password() -> str:
     )
 
 
+def get_switch_driver():
+    """Load the configured driver module from switch_drivers/."""
+    from switch_drivers import get_driver
+
+    config = load_config()
+    name = config.get("POE_SWITCH_DRIVER", "tplink_jetstream")
+    return get_driver(name)
+
+
 def get_credentials(
     host: str | None = None,
     user: str | None = None,
@@ -223,8 +232,8 @@ class SwitchClient:
 
     def poe_on(self, port: int) -> bool:
         """Enable PoE on a switch port."""
-        from switch_drivers.tplink_jetstream import build_poe_commands
-        cmds = build_poe_commands(port, "on")
+        driver = get_switch_driver()
+        cmds = driver.build_poe_commands(port, "on")
         success = self.send_config_commands(cmds)
         if success:
             logger.info("PoE enabled on port %d", port)
@@ -232,8 +241,8 @@ class SwitchClient:
 
     def poe_off(self, port: int) -> bool:
         """Disable PoE on a switch port."""
-        from switch_drivers.tplink_jetstream import build_poe_commands
-        cmds = build_poe_commands(port, "off")
+        driver = get_switch_driver()
+        cmds = driver.build_poe_commands(port, "off")
         success = self.send_config_commands(cmds)
         if success:
             logger.info("PoE disabled on port %d", port)
@@ -241,10 +250,9 @@ class SwitchClient:
 
     def poe_cycle(self, port: int, delay_sec: float = 3.0) -> bool:
         """Power cycle a PoE port: off, wait, on — in a single locked session."""
-        from switch_drivers.tplink_jetstream import build_poe_commands
-
-        off_cmds = build_poe_commands(port, "off")
-        on_cmds = build_poe_commands(port, "on")
+        driver = get_switch_driver()
+        off_cmds = driver.build_poe_commands(port, "off")
+        on_cmds = driver.build_poe_commands(port, "on")
 
         with switch_lock():
             try:

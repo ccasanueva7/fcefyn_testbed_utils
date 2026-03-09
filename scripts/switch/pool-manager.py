@@ -58,8 +58,7 @@ POOL_CONFIG_PATH = CONFIG_DIR / "pool-config.yaml"
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-from switch_client import SwitchClient, load_switch_password
-from switch_drivers.tplink_jetstream import build_hybrid_commands
+from switch_client import SwitchClient, load_switch_password, get_switch_driver
 
 try:
     from switch_state import (
@@ -326,7 +325,8 @@ def build_hybrid_switch_commands(
         openwrt_duts, libremesh_duts, duts_db
     )
 
-    return build_hybrid_commands(
+    driver = get_switch_driver()
+    return driver.build_hybrid_commands(
         port_assignments=port_assignments,
         active_isolated_vlans=active_isolated_vlans,
         has_libremesh_duts=bool(libremesh_duts),

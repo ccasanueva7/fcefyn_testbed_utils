@@ -22,8 +22,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-from switch_client import SwitchClient, load_config
-from switch_drivers.tplink_jetstream import build_preset_commands, PRESETS
+from switch_client import SwitchClient, load_config, get_switch_driver
 
 try:
     from switch_state import save_preset_state
@@ -58,8 +57,9 @@ def run_preset(
     preset_name: str,
 ) -> bool:
     """Apply VLAN preset (isolated or mesh) via SSH."""
+    driver = get_switch_driver()
     try:
-        commands = build_preset_commands(preset_name)
+        commands = driver.build_preset_commands(preset_name)
     except ValueError as e:
         logger.error("%s", e)
         return False
@@ -96,10 +96,11 @@ For hybrid mode (split DUTs), use pool-manager.py instead.
     )
 
     config = load_config()
+    driver = get_switch_driver()
 
     parser.add_argument(
         "preset",
-        choices=list(PRESETS.keys()),
+        choices=list(driver.PRESETS.keys()),
         help="VLAN preset to apply",
     )
     parser.add_argument(
@@ -134,7 +135,7 @@ For hybrid mode (split DUTs), use pool-manager.py instead.
         logging.getLogger().setLevel(logging.DEBUG)
 
     if args.dry_run:
-        commands = build_preset_commands(args.preset)
+        commands = driver.build_preset_commands(args.preset)
         print(f"Would apply preset: {args.preset}")
         for cmd in commands:
             print(f"  {cmd}")
