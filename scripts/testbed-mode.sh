@@ -13,7 +13,7 @@
 #       Requires openwrt-tests repo path (OPENWRT_TESTS_DIR or --openwrt-dir).
 #
 #   testbed-mode.sh hybrid [--dry-run] [--no-switch]
-#       Apply pool-config.yaml split via pool-manager.py --deploy-local.
+#       Apply pool-config.yaml split via pool-manager.py (deploys to /etc/labgrid/).
 #       Writes exporter configs to /etc/labgrid/, configures switch, and
 #       restarts two exporter services (openwrt + libremesh).
 #       No Ansible is used. Edit configs/pool-config.yaml first.
@@ -168,11 +168,11 @@ elif [[ "$MODE" == "hybrid" ]]; then
     log "Switching to hybrid mode (pool-config.yaml defines DUT split)"
     log "Config: ${POOL_CONFIG}"
 
-    POOL_MANAGER_ARGS=("--apply" "--deploy-local")
+    POOL_MANAGER_ARGS=("--apply")
     $NO_SWITCH && POOL_MANAGER_ARGS+=("--no-switch")
 
-    log "Applying pool manager (switch + deploy-local)..."
-    # deploy-local writes to /etc/labgrid/ and restarts systemd services; requires sudo
+    log "Applying pool manager (switch + deploy)..."
+    # pool-manager deploys to /etc/labgrid/ and restarts systemd services; requires sudo
     # Pass switch config path so pool-manager finds POE_SWITCH_PASSWORD when running under sudo
     REAL_USER="${SUDO_USER:-$USER}"
     POE_CONF="${HOME}/.config/poe_switch_control.conf"
