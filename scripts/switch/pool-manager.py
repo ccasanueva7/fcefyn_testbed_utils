@@ -17,6 +17,7 @@ Usage:
   pool-manager.py --apply --deploy-local --force  # Skip DUT-in-use safety check
 
 Differential apply: When re-applying hybrid config, only changed ports are configured.
+If state matches desired (no diff), full config is applied to correct any switch staleness.
 State is stored in ~/.config/labgrid-switch-state.yaml. Use --force to bypass.
 
 Output exporter files are written next to pool-config.yaml as:
@@ -819,8 +820,13 @@ def main() -> int:
                         current_uplink_vlans
                     )
                     if not ports_changed and not uplinks_changed:
-                        logger.info("Switch config unchanged, skipping SSH")
-                        apply_cmds = []
+                        # State matches desired, but switch may be out of sync (e.g. from
+                        # a prior differential that only touched some ports while others were
+                        # already wrong). Apply full config to correct any staleness.
+                        logger.info(
+                            "State matches desired; applying full config to ensure switch sync"
+                        )
+                        apply_cmds = switch_cmds
                     else:
                         apply_cmds = build_hybrid_switch_commands(
                             openwrt_duts,
@@ -835,7 +841,6 @@ def main() -> int:
                             len(ports_changed),
                             uplinks_changed,
                         )
-
             if apply_cmds:
                 try:
                     client = SwitchClient(
