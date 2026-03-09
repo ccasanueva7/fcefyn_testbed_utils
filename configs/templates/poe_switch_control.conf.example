@@ -1,7 +1,7 @@
 # PoE Switch Control - Configuration
 #
 # Option A: Manual use (script run by your user)
-#   cp configs/poe_switch_control.conf.example ~/.config/poe_switch_control.conf
+#   cp configs/templates/poe_switch_control.conf.example ~/.config/poe_switch_control.conf
 #   chmod 600 ~/.config/poe_switch_control.conf
 #   Edit and add your switch password.
 #
