@@ -1,6 +1,6 @@
 /**
  * ------------------------------------------------------------
- *  Proyecto: pi-hil-testing-utils
+ *  Proyecto: fcefyn-testbed-utils
  *  Script:   relay_ctrl.ino
  *  Autor:    Franco Riba
  *
