@@ -180,7 +180,7 @@ class ArduinoRelayDaemon:
                 pid = int(f.read().strip())
             os.kill(pid, 0)  # Check if process exists
             return True
-        except:
+        except OSError:
             os.unlink(self.pidfile)
             return False
 

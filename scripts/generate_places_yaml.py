@@ -109,13 +109,13 @@ def generate_places_yaml(
     # Count generated places
     place_count = sum(1 for line in places_yaml.split('\n') if line.strip().endswith(':') and 'labgrid-' in line)
     
-    print(f"✓ places.yaml generated successfully")
+    print("✓ places.yaml generated successfully")
     print(f"  Output: {output_path}")
     print(f"  Lab: {lab_name}")
     print(f"  Places generated: {place_count}")
     
     # List generated places
-    print(f"\nGenerated places:")
+    print("\nGenerated places:")
     for line in places_yaml.split('\n'):
         if line.strip().endswith(':') and 'labgrid-' in line:
             place_name = line.strip().rstrip(':')

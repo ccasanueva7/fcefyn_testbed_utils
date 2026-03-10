@@ -164,7 +164,7 @@ class PersistentArduinoController:
         if self._connection:
             try:
                 self._connection.close()
-            except:
+            except Exception:
                 pass
             self._connection = None
             
@@ -172,7 +172,7 @@ class PersistentArduinoController:
             try:
                 fcntl.flock(self._lockfile.fileno(), fcntl.LOCK_UN)
                 self._lockfile.close()
-            except:
+            except Exception:
                 pass
             self._lockfile = None
     
@@ -284,8 +284,7 @@ class ArduinoRelayController:
             logger.error("No active connection to Arduino")
             return False
         try:
-            cmd_bytes = f"{command}\n".encode('utf-8')
-            self._persistent.send_command(command) # Use persistent send_command
+            self._persistent.send_command(command)
             logger.debug(f"Command sent: {command}")
             return True
         except Exception as e:
@@ -382,7 +381,7 @@ class DaemonClient:
                 sock.settimeout(1.0)
                 sock.connect(self.socket_path)
                 return True
-        except:
+        except Exception:
             return False
     
     def send_command(self, command: str) -> dict:
