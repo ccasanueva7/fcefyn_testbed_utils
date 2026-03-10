@@ -1,22 +1,22 @@
-# pi-hil-testing-utils
+# fcefyn-testbed-utils
 
-Infraestructura complementaria del banco de pruebas HIL (Hardware-in-the-Loop) de FCEFyN: configs, scripts y firmwares que no están en libremesh-tests.
+Infraestructura complementaria del banco de pruebas HIL (Hardware-in-the-Loop) de FCEFyN: configs, scripts y firmwares que no forman parte de los repositorios contribuidos libremsh-tests y openwrt-tests
 
 ---
 
 ## Estructura
 
 ```
-pi-hil-testing-utils/
-├── configs/              # Documentación y configs del lab
-│   ├── README.md         # Índice, orden de lectura
-│   ├── templates/        # Archivos a copiar al host (systemd, udev, ssh, etc.)
+fcefyn-testbed-utils/
+├── configs/              # Configs del lab
+│   ├── pool-config.yaml
+│   └── templates/        # Archivos a copiar al host (systemd, udev, ssh, etc.)
 │   │   ├── arduino-relay-daemon.service
 │   │   ├── labgrid-exporter-*.service
 │   │   ├── 99-serial-devices.rules
 │   │   ├── ssh_config_fcefyn
 │   │   └── poe_switch_control.conf.example
-│   └── *.md              # Documentación (host-config, switch-config, etc.)
+├── docs/                 # Documentación (índice: docs/README.md)
 ├── scripts/              # Utilidades Python/shell
 │   ├── switch/           # Switch SSH, VLANs, PoE, pool-manager
 │   ├── arduino/          # arduino_relay_control, arduino_daemon, start_daemon
@@ -40,7 +40,7 @@ cd openwrt-tests   # o libremesh-tests
 ansible-playbook -i inventory.ini playbook_labgrid.yml -l labgrid-fcefyn -K
 ```
 
-El playbook despliega exporter, PDUDaemon, dnsmasq, netplan, places.yaml, etc. Ver [configs/ansible-labgrid.md](configs/ansible-labgrid.md).
+El playbook despliega exporter, PDUDaemon, dnsmasq, netplan, places.yaml, etc. Ver [docs/ref/ansible-labgrid.md](docs/ref/ansible-labgrid.md).
 
 ---
 
