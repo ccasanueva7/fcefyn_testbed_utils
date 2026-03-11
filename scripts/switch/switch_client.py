@@ -32,6 +32,26 @@ LOCK_PATH = "/tmp/poe_switch.lock"
 LOCK_TIMEOUT = 60
 
 
+def _open_lock_file():
+    """Open lock file for flock. Creates with 0o666 to allow any user to open it.
+    On PermissionError (e.g. file exists with restrictive perms from root),
+    tries chmod 0o666 and retry. Raises helpful error if still failing.
+    """
+    try:
+        return os.open(LOCK_PATH, os.O_CREAT | os.O_RDWR, 0o666)
+    except PermissionError:
+        if os.path.exists(LOCK_PATH):
+            try:
+                os.chmod(LOCK_PATH, 0o666)
+                return os.open(LOCK_PATH, os.O_RDWR)
+            except (PermissionError, OSError) as e:
+                raise PermissionError(
+                    f"Cannot access lock file {LOCK_PATH}. "
+                    "If it was created by root, run: sudo chmod 666 /tmp/poe_switch.lock"
+                ) from e
+        raise
+
+
 @contextmanager
 def switch_lock(timeout: float = LOCK_TIMEOUT) -> Generator[bool, None, None]:
     """Acquire exclusive lock to serialize SSH sessions to the switch.
@@ -39,19 +59,13 @@ def switch_lock(timeout: float = LOCK_TIMEOUT) -> Generator[bool, None, None]:
     Prevents concurrent SSH connections that cause session contention
     when multiple scripts drive the switch in parallel (PoE + VLAN).
 
-    When running as root, if the lock file exists with restrictive perms
-    (e.g. created by a normal user), chmod it so root can open it for flock.
+    Lock file is created with mode 0o666 so any user can open it. If the
+    file already exists with restrictive perms (e.g. from root), chmod
+    is attempted before retry.
     """
     lock_fd = None
     try:
-        try:
-            lock_fd = open(LOCK_PATH, "w")
-        except PermissionError:
-            if os.geteuid() == 0 and os.path.exists(LOCK_PATH):
-                os.chmod(LOCK_PATH, 0o666)
-                lock_fd = open(LOCK_PATH, "w")
-            else:
-                raise
+        lock_fd = _open_lock_file()
         deadline = time.time() + timeout
         acquired = False
         while time.time() < deadline:
@@ -68,12 +82,12 @@ def switch_lock(timeout: float = LOCK_TIMEOUT) -> Generator[bool, None, None]:
 
         yield acquired
     finally:
-        if lock_fd:
+        if lock_fd is not None:
             try:
                 fcntl.flock(lock_fd, fcntl.LOCK_UN)
             except Exception:
                 pass
-            lock_fd.close()
+            os.close(lock_fd)
             logger.debug("Released switch lock")
 
 
