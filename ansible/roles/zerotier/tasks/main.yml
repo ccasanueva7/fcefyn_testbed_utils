@@ -1,41 +1,46 @@
 ---
 # Role: zerotier
-# Installs ZeroTier on the orchestration host and joins the lab network.
+# Installs ZeroTier on the orchestration host (labgrid-fcefyn) and joins the lab network.
 # Allows remote access: SSH to host's ZeroTier IP, then run Labgrid or ssh dut-*.
 # Requires: Authorize the new node in ZeroTier Central (my.zerotier.com) after first run.
 #
-# Supported: Debian, Ubuntu (apt). Add other distros as needed.
+# Uses official install script (install.zerotier.com); apt.zerotier.com may not resolve on some networks.
+# Ensures DNS works before install (sets 8.8.8.8 on default-route interface if needed).
+#
+# Supported: Debian, Ubuntu. Other distros: add when conditions as needed.
 
-- name: Install prerequisites for ZeroTier apt repo
+- name: Install curl
   ansible.builtin.apt:
-    name:
-      - curl
-      - gpg
+    name: curl
     state: present
     update_cache: yes
   when: ansible_os_family == "Debian"
 
-- name: Add ZeroTier GPG key (dearmored for apt)
+- name: Get interface with default route (for DNS fallback)
+  ansible.builtin.shell: ip -o route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++) if($i=="dev") print $(i+1); exit}'
+  register: zt_default_iface
+  changed_when: false
+  failed_when: false
+
+- name: Ensure DNS works (set 8.8.8.8 on default-route interface for this run)
+  ansible.builtin.command: resolvectl dns {{ zt_default_iface.stdout }} 8.8.8.8 8.8.4.4
+  when:
+    - zt_default_iface.stdout | length > 0
+    - ansible_os_family == "Debian"
+  failed_when: false
+  changed_when: true
+
+- name: Check if ZeroTier is already installed
+  ansible.builtin.stat:
+    path: /usr/sbin/zerotier-one
+  register: zt_installed
+
+- name: Install ZeroTier via official script
   ansible.builtin.shell: |
-    curl -fsSL https://apt.zerotier.com/pubkey.gpg | gpg --dearmor -o /usr/share/keyrings/zerotier-archive-keyring.gpg
+    curl -fsSL https://install.zerotier.com | bash
   args:
-    creates: /usr/share/keyrings/zerotier-archive-keyring.gpg
-  when: ansible_os_family == "Debian"
-
-- name: Add ZeroTier apt repository
-  ansible.builtin.apt_repository:
-    repo: "deb [signed-by=/usr/share/keyrings/zerotier-archive-keyring.gpg] https://apt.zerotier.com/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} main"
-    filename: zerotier
-    state: present
-    update_cache: yes
-  when: ansible_os_family == "Debian"
-
-- name: Install ZeroTier
-  ansible.builtin.apt:
-    name: zerotier-one
-    state: present
-    update_cache: yes
-  when: ansible_os_family == "Debian"
+    creates: /usr/sbin/zerotier-one
+  when: not zt_installed.stat.exists
 
 - name: Start and enable ZeroTier service
   ansible.builtin.systemd:
@@ -47,7 +52,7 @@
 - name: Wait for ZeroTier daemon to be ready
   ansible.builtin.wait_for:
     path: /var/lib/zerotier-one/zerotier-one.port
-    timeout: 15
+    timeout: 20
   register: zt_port_wait
   failed_when: false
 
