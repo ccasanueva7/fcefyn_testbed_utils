@@ -5,6 +5,7 @@
 #   - virtual_mesh: vwifi-server, QEMU, mac80211_hwsim (for virtual mesh tests)
 #   - arduino: arduino-relay-daemon, udev rules (for physical DUT power control)
 #   - poe_switch: poe_switch_control.py, switch_client, switch_drivers (for PoE power control)
+#   - zerotier: ZeroTier on orchestrator for remote lab access (network 93afae5963ea9881)
 #
 # Run AFTER or BEFORE playbook_labgrid.yml from fork-openwrt-tests.
 #
@@ -31,4 +32,8 @@
     - role: poe_switch
       tags:
         - poe_switch
+        - testbed
+    - role: zerotier
+      tags:
+        - zerotier
         - testbed

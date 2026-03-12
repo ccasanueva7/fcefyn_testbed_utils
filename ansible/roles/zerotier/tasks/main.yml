@@ -1,0 +1,59 @@
+---
+# Role: zerotier
+# Installs ZeroTier on the orchestration host and joins the lab network.
+# Allows remote access: SSH to host's ZeroTier IP, then run Labgrid or ssh dut-*.
+# Requires: Authorize the new node in ZeroTier Central (my.zerotier.com) after first run.
+#
+# Supported: Debian, Ubuntu (apt). Add other distros as needed.
+
+- name: Install prerequisites for ZeroTier apt repo
+  ansible.builtin.apt:
+    name:
+      - curl
+      - gpg
+    state: present
+    update_cache: yes
+  when: ansible_os_family == "Debian"
+
+- name: Add ZeroTier GPG key (dearmored for apt)
+  ansible.builtin.shell: |
+    curl -fsSL https://apt.zerotier.com/pubkey.gpg | gpg --dearmor -o /usr/share/keyrings/zerotier-archive-keyring.gpg
+  args:
+    creates: /usr/share/keyrings/zerotier-archive-keyring.gpg
+  when: ansible_os_family == "Debian"
+
+- name: Add ZeroTier apt repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/usr/share/keyrings/zerotier-archive-keyring.gpg] https://apt.zerotier.com/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} main"
+    filename: zerotier
+    state: present
+    update_cache: yes
+  when: ansible_os_family == "Debian"
+
+- name: Install ZeroTier
+  ansible.builtin.apt:
+    name: zerotier-one
+    state: present
+    update_cache: yes
+  when: ansible_os_family == "Debian"
+
+- name: Start and enable ZeroTier service
+  ansible.builtin.systemd:
+    name: zerotier-one
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
+- name: Wait for ZeroTier daemon to be ready
+  ansible.builtin.wait_for:
+    path: /var/lib/zerotier-one/zerotier-one.port
+    timeout: 15
+  register: zt_port_wait
+  failed_when: false
+
+- name: Join ZeroTier lab network
+  ansible.builtin.command:
+    cmd: zerotier-cli join {{ zerotier_network_id }}
+  register: zt_join
+  changed_when: "'join OK' in zt_join.stdout or 'join OK' in zt_join.stderr"
+  failed_when: zt_join.rc != 0
