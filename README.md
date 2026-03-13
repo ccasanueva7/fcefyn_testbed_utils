@@ -22,6 +22,7 @@ fcefyn-testbed-utils/
 │   ├── arduino/          # arduino_relay_control, arduino_daemon, start_daemon
 │   ├── testbed-mode.sh
 │   ├── generate_places_yaml.py
+│   ├── provision_mesh_ip.py
 │   └── resolve_target.py
 ├── firmwares/            # Imágenes por dispositivo (qemu, Belkin, etc.)
 ├── arduino/              # Firmware del controlador de relés
@@ -55,6 +56,7 @@ El playbook despliega exporter, PDUDaemon, dnsmasq, netplan, places.yaml, etc. V
 | `scripts/arduino/arduino_daemon.py` | Daemon de conexión persistente al Arduino. Servicio `arduino-relay-daemon`. |
 | `scripts/arduino/start_daemon.sh` | Arranque manual del daemon Arduino. |
 | `scripts/generate_places_yaml.py` | Genera `places.yaml` desde labnet.yaml. |
+| `scripts/provision_mesh_ip.py` | Provisiona 10.13.200.x + ruta 10.13.0.0/16 por serial para SSH en mesh. Ver host-config §3.6. |
 | `scripts/resolve_target.py` | Resuelve target file desde device name. |
 
 Los scripts de control deben estar en `/usr/local/bin/` o en el PATH; el playbook puede copiarlos.
