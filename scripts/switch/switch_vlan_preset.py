@@ -6,6 +6,15 @@ Switches between:
   - isolated: each DUT in its own VLAN (100-106) for OpenWrt tests
   - mesh:     all DUTs in VLAN 200 for LibreMesh multi-node tests
 
+After changing VLANs on the switch, updates the default gateway on each DUT
+via parallel SSH (using `ssh_alias` from pool-config.yaml) so internet
+works in both modes:
+  - isolated -> gateway 192.168.XXX.254 (per-VLAN MikroTik interface)
+  - mesh     -> gateway 192.168.200.254 (shared MikroTik VLAN 200 interface)
+
+Gateway is applied immediately (ip route replace) without network restart,
+and persisted in UCI for reboots.
+
 For hybrid mode (DUTs split across both pools), use pool-manager.py instead.
 Uses switch_client.py (Netmiko) for SSH and switch_drivers/ for command building.
 
@@ -19,10 +28,12 @@ import sys
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = SCRIPT_DIR.parent.parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 from switch_client import SwitchClient, load_config, get_switch_driver
+from dut_gateway import load_duts, update_dut_gateways
 
 try:
     from switch_state import save_preset_state
@@ -50,13 +61,21 @@ def _write_vlan_mode_file(preset_name: str) -> None:
         logger.warning("Could not write %s: %s (SSH may use wrong VLAN)", VLAN_MODE_FILE, e)
 
 
+def _build_dut_modes(preset_name: str, config_path: Path) -> dict[str, str]:
+    """Build a dut_modes dict mapping all DUTs to the given preset mode."""
+    duts = load_duts(config_path)
+    return {dut["id"]: preset_name for dut in duts}
+
+
 def run_preset(
     host: str,
     user: str,
     password: str,
     preset_name: str,
+    config_path: Path | None = None,
+    dry_run: bool = False,
 ) -> bool:
-    """Apply VLAN preset (isolated or mesh) via SSH."""
+    """Apply VLAN preset (isolated or mesh) via SSH, then update DUT gateways via parallel SSH."""
     driver = get_switch_driver()
     try:
         commands = driver.build_preset_commands(preset_name)
@@ -76,6 +95,10 @@ def run_preset(
         _write_vlan_mode_file(preset_name)
         if save_preset_state:
             save_preset_state(preset_name)
+        pool_cfg = config_path or (REPO_ROOT / "configs" / "pool-config.yaml")
+        dut_modes = _build_dut_modes(preset_name, pool_cfg)
+        if dut_modes:
+            update_dut_gateways(dut_modes, pool_cfg, dry_run=dry_run)
     return success
 
 
@@ -124,6 +147,17 @@ For hybrid mode (split DUTs), use pool-manager.py instead.
         help="Show commands that would be sent, do not connect",
     )
     parser.add_argument(
+        "--no-gateway",
+        action="store_true",
+        help="Skip DUT gateway update via SSH (only change switch VLANs)",
+    )
+    parser.add_argument(
+        "--config",
+        default=None,
+        type=Path,
+        help="Path to pool-config.yaml (default: configs/pool-config.yaml)",
+    )
+    parser.add_argument(
         "--verbose", "-v",
         action="store_true",
         help="Enable debug logging",
@@ -134,11 +168,18 @@ For hybrid mode (split DUTs), use pool-manager.py instead.
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
 
+    pool_cfg = args.config or (REPO_ROOT / "configs" / "pool-config.yaml")
+
     if args.dry_run:
         commands = driver.build_preset_commands(args.preset)
         print(f"Would apply preset: {args.preset}")
         for cmd in commands:
             print(f"  {cmd}")
+        if not args.no_gateway:
+            print("\nDUT gateway commands:")
+            dut_modes = _build_dut_modes(args.preset, pool_cfg)
+            if dut_modes:
+                update_dut_gateways(dut_modes, pool_cfg, dry_run=True)
         return 0
 
     if not args.password:
@@ -149,7 +190,9 @@ For hybrid mode (split DUTs), use pool-manager.py instead.
         return 3
 
     success = run_preset(
-        args.host, args.user, args.password, args.preset
+        args.host, args.user, args.password, args.preset,
+        config_path=pool_cfg if not args.no_gateway else None,
+        dry_run=False,
     )
     return 0 if success else 2
 

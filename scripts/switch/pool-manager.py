@@ -8,11 +8,17 @@ Supports three testbed modes derived from pool-config.yaml:
   - openwrt-only:   all DUTs in openwrt pool (isolated VLANs 100-108)
   - hybrid:         DUTs split across both pools simultaneously
 
+After configuring VLANs on the switch, updates each DUT's default gateway
+via parallel SSH so that internet works regardless of pool assignment:
+  - openwrt pool  -> gateway 192.168.XXX.254 (per-VLAN MikroTik interface)
+  - libremesh pool -> gateway 192.168.200.254 (shared MikroTik VLAN 200 interface)
+
 Usage:
   pool-manager.py --generate                    # Print generated configs (dry run)
   pool-manager.py --apply                       # Apply switch + deploy to /etc/labgrid/ (default)
   pool-manager.py --apply --export-to-configs   # Write to configs/ only (for manual Ansible)
   pool-manager.py --apply --no-switch           # Skip switch config
+  pool-manager.py --apply --no-gateway          # Skip DUT gateway update via SSH
   pool-manager.py --apply --force               # Full switch apply; skip DUT-in-use check
 
 Differential apply: When re-applying hybrid config, only changed ports are configured.
@@ -54,6 +60,7 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 from switch_client import SwitchClient, load_switch_password, get_switch_driver
+from dut_gateway import update_dut_gateways
 
 try:
     from switch_state import (
@@ -680,6 +687,11 @@ def main() -> int:
         help="Also write exporter and dut-proxy files to ansible files/exporter/<host>/",
     )
     parser.add_argument(
+        "--no-gateway",
+        action="store_true",
+        help="Skip DUT gateway update via SSH after switch configuration",
+    )
+    parser.add_argument(
         "-v", "--verbose",
         action="store_true",
         help="Enable debug logging",
@@ -890,6 +902,17 @@ def main() -> int:
                       "playbook_labgrid.yml --tags export")
             print()
             print("  Tip: Omit --export-to-configs to deploy directly to /etc/labgrid/.")
+
+        # Update DUT gateways via parallel SSH
+        if not args.no_gateway and not args.no_switch:
+            dut_modes: dict[str, str] = {}
+            for dut in openwrt_duts:
+                dut_modes[dut] = "isolated"
+            for dut in libremesh_duts:
+                dut_modes[dut] = "mesh"
+            if dut_modes:
+                update_dut_gateways(dut_modes, config_path)
+
         return 0
 
     return 0

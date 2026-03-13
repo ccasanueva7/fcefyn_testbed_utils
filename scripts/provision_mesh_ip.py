@@ -1,20 +1,23 @@
 #!/usr/bin/env python3
 """
-Provision persistent mesh IP (10.13.200.x) on OpenWrt DUTs via serial console.
+Provision persistent mesh networking on OpenWrt DUTs via serial console.
 
-Adds a secondary static IP on br-lan and a route for 10.13.0.0/16 so the DUT is
-reachable via SSH in mesh mode whether running LibreMesh (RAM) or OpenWrt vanilla (flash).
+Configures each DUT with the addresses needed for SSH access in mesh mode:
+  - Secondary IP 10.13.200.x on br-lan (SSH reachability)
+  - Route 10.13.0.0/16 (host can reach the DUT)
+  - Secondary IP 192.168.200.x on br-lan (gateway subnet, for mesh internet)
 
-Without the 10.13.0.0/16 route, the DUT would use its default gateway (192.168.105.254 from
-isolated mode) to reply to the host (10.13.0.200). In mesh mode the DUT is in vlan200 and
-cannot reach that gateway, so ping/SSH would fail with "No route to host".
+The default gateway is NOT modified here; it is managed by
+switch_vlan_preset.py which updates the DUT gateway via parallel SSH each
+time the testbed mode changes (isolated -> per-VLAN gateway,
+mesh -> 192.168.200.254).
+
+All sections use named UCI keys for idempotency (re-running is safe).
 
 Usage:
   python provision_mesh_ip.py --device /dev/belkin-rt3200-1
   python provision_mesh_ip.py --all
   python provision_mesh_ip.py --device /dev/belkin-rt3200-1 --dry-run
-
-See docs/ref/provision-mesh-ip.md for full flow and file references.
 """
 
 from __future__ import annotations
@@ -31,6 +34,9 @@ except ImportError:
     sys.exit(2)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+
+MESH_GATEWAY = "192.168.200.254"
+MESH_DNS = ["8.8.8.8", "8.8.4.4"]
 
 DEFAULT_DEVICE_IP_MAP = {
     "/dev/belkin-rt3200-1": "10.13.200.11",
@@ -93,7 +99,19 @@ def send_command(ser: serial.Serial, cmd: str, timeout: float = 3.0) -> str:
 
 
 def _build_uci_commands(ip: str) -> list[str]:
-    """Build UCI commands for mesh IP and route. Uses named sections for idempotency."""
+    """Build UCI commands for mesh networking. Uses named sections for idempotency.
+
+    Only provisions addresses and routes needed for SSH reachability:
+    - lan_mesh interface (10.13.200.x on br-lan)
+    - Host route 10.13.0.0/16 (on-link)
+    - Gateway-subnet IP 192.168.200.x on lan (for MikroTik reachability in mesh)
+
+    Does NOT modify the default gateway or DNS -- those are managed by
+    switch_vlan_preset.py at mode-switch time.
+    """
+    last_octet = ip.split(".")[-1]
+    gateway_subnet_ip = f"192.168.200.{last_octet}"
+
     return [
         "uci set network.lan_mesh=interface",
         "uci set network.lan_mesh.device='br-lan'",
@@ -105,6 +123,9 @@ def _build_uci_commands(ip: str) -> list[str]:
         "uci set network.mesh_route.target='10.13.0.0'",
         "uci set network.mesh_route.netmask='255.255.0.0'",
         "uci set network.mesh_route.gateway='0.0.0.0'",
+        f"uci add_list network.lan.ipaddr='{gateway_subnet_ip}/24'",
+        "uci delete network.lan_mesh_gw 2>/dev/null; true",
+        "uci delete network.mesh_gateway 2>/dev/null; true",
         "uci commit network",
         "/etc/init.d/network restart",
     ]
