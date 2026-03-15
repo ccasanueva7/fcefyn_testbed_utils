@@ -16,6 +16,12 @@
     dest: /usr/local/bin/arduino_daemon.py
     mode: "0755"
 
+- name: Copy arduino_relay_control.py to /usr/local/bin
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../scripts/arduino/arduino_relay_control.py"
+    dest: /usr/local/bin/arduino_relay_control.py
+    mode: "0755"
+
 - name: Copy udev rules for serial devices
   ansible.builtin.copy:
     src: "{{ playbook_dir }}/../configs/templates/99-serial-devices.rules"
