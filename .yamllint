@@ -1,0 +1,12 @@
+# Yamllint configuration for fcefyn-testbed-utils
+# https://yamllint.readthedocs.io/en/stable/configuration.html
+
+extends: default
+
+rules:
+  line-length:
+    max: 200
+    allow-non-breakable-words: true
+  document-start: disable
+  truthy:
+    allowed-values: ["true", "false", "yes", "no"]

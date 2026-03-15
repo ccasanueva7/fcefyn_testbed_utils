@@ -1,0 +1,4 @@
+---
+# Wake-on-LAN role: enables WoL on the orchestration host Ethernet interface.
+# The interface must match the host (Lenovo T430 uses enp0s25).
+wol_interface: enp0s25

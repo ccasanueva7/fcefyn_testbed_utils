@@ -24,15 +24,13 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 from switch_client import SwitchClient, load_config
+from constants import DEFAULT_SWITCH_HOST, DEFAULT_SWITCH_USER
 
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
-
-DEFAULT_HOST = "192.168.0.1"
-DEFAULT_USER = "admin"
 DEFAULT_DELAY_SEC = 3
 POE_PORTS = (1, 2, 3, 4, 5, 6, 7, 8)
 
@@ -98,7 +96,7 @@ Examples:
   %(prog)s cycle 1 --delay 5 # Power cycle with 5s delay
 
 Config file (recommended): ~/.config/poe_switch_control.conf
-  Copy from configs/poe_switch_control.conf.example and set POE_SWITCH_PASSWORD.
+  Copy from configs/templates/poe_switch_control.conf.example and set POE_SWITCH_PASSWORD.
   Not in git - never commit real passwords.
 
 Environment: POE_SWITCH_PASSWORD (fallback if no config file)
@@ -109,13 +107,13 @@ Environment: POE_SWITCH_PASSWORD (fallback if no config file)
 
     parser.add_argument(
         "--host",
-        default=os.environ.get("POE_SWITCH_HOST") or config.get("POE_SWITCH_HOST", DEFAULT_HOST),
-        help=f"Switch IP (default: {DEFAULT_HOST})",
+        default=os.environ.get("POE_SWITCH_HOST") or config.get("POE_SWITCH_HOST", DEFAULT_SWITCH_HOST),
+        help=f"Switch IP (default: {DEFAULT_SWITCH_HOST})",
     )
     parser.add_argument(
         "--user",
-        default=os.environ.get("POE_SWITCH_USER") or config.get("POE_SWITCH_USER", DEFAULT_USER),
-        help=f"SSH username (default: {DEFAULT_USER})",
+        default=os.environ.get("POE_SWITCH_USER") or config.get("POE_SWITCH_USER", DEFAULT_SWITCH_USER),
+        help=f"SSH username (default: {DEFAULT_SWITCH_USER})",
     )
     parser.add_argument(
         "--password",

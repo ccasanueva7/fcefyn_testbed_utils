@@ -1,0 +1,75 @@
+---
+# Role: virtual_mesh
+# Installs vwifi-server, QEMU, and mac80211_hwsim for virtual mesh tests (QEMU + vwifi).
+
+- name: Install apt packages for virtual mesh
+  ansible.builtin.apt:
+    name:
+      - qemu-system-x86
+      - cmake
+      - build-essential
+      - git
+      - libnl-3-dev
+      - libnl-genl-3-dev
+      - pkg-config
+    state: present
+    update_cache: yes
+
+- name: Ensure vwifi build directory exists
+  ansible.builtin.file:
+    path: /tmp/vwifi-build
+    state: directory
+    mode: "0755"
+
+- name: Clone vwifi repository
+  ansible.builtin.git:
+    repo: https://github.com/Raizo62/vwifi.git
+    dest: /tmp/vwifi-build/vwifi
+    version: master
+    force: yes
+
+- name: Create vwifi build directory
+  ansible.builtin.file:
+    path: /tmp/vwifi-build/vwifi/build
+    state: directory
+    mode: "0755"
+
+- name: Configure vwifi with cmake
+  ansible.builtin.command:
+    cmd: cmake ..
+    chdir: /tmp/vwifi-build/vwifi/build
+
+- name: Build vwifi
+  ansible.builtin.command:
+    cmd: make -j{{ ansible_processor_vcpus | default(4) }}
+    chdir: /tmp/vwifi-build/vwifi/build
+
+- name: Install vwifi binaries
+  ansible.builtin.command:
+    cmd: make install
+    chdir: /tmp/vwifi-build/vwifi/build
+
+- name: Ensure mac80211_hwsim is loaded at boot
+  ansible.builtin.copy:
+    dest: /etc/modules-load.d/mac80211_hwsim.conf
+    content: |
+      # Loaded by Ansible (virtual_mesh role) for vwifi virtual mesh tests
+      mac80211_hwsim
+    mode: "0644"
+
+- name: Load mac80211_hwsim kernel module
+  ansible.builtin.command:
+    cmd: modprobe mac80211_hwsim
+  changed_when: true
+
+- name: Verify vwifi-server is installed
+  ansible.builtin.command: which vwifi-server
+  register: vwifi_which
+  changed_when: false
+  failed_when: vwifi_which.rc != 0
+
+- name: Verify qemu-system-x86_64 is installed
+  ansible.builtin.command: which qemu-system-x86_64
+  register: qemu_which
+  changed_when: false
+  failed_when: qemu_which.rc != 0

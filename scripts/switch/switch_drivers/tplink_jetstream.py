@@ -13,7 +13,7 @@ from __future__ import annotations
 DEVICE_TYPE = "tplink_jetstream"
 
 PRESET_ISOLATED = [
-    (1, ["no switchport general allowed vlan 200", "switchport general allowed vlan 104 untagged", "switchport pvid 104", "power inline supply disable"]),
+    (1, ["no switchport general allowed vlan 200", "switchport general allowed vlan 104 untagged", "switchport pvid 104"]),
     (2, ["no switchport general allowed vlan 200", "switchport general allowed vlan 105 untagged", "switchport pvid 105"]),
     (3, ["no switchport general allowed vlan 200", "switchport general allowed vlan 106 untagged", "switchport pvid 106"]),
     (4, ["no switchport general allowed vlan 200"]),
@@ -32,7 +32,7 @@ PRESET_ISOLATED = [
 ]
 
 PRESET_MESH = [
-    (1, ["no switchport general allowed vlan 104", "switchport general allowed vlan 200 untagged", "switchport pvid 200", "power inline supply disable"]),
+    (1, ["no switchport general allowed vlan 104", "switchport general allowed vlan 200 untagged", "switchport pvid 200"]),
     (2, ["no switchport general allowed vlan 105", "switchport general allowed vlan 200 untagged", "switchport pvid 200"]),
     (3, ["no switchport general allowed vlan 106", "switchport general allowed vlan 200 untagged", "switchport pvid 200"]),
     (4, ["no switchport general allowed vlan 1", "switchport general allowed vlan 200 untagged", "switchport pvid 200"]),
@@ -130,14 +130,10 @@ def build_hybrid_commands(
             cmds.append(f"no switchport general allowed vlan {vlan_mesh}")
             cmds.append(f"switchport general allowed vlan {isolated_vlan} untagged")
             cmds.append(f"switchport pvid {isolated_vlan}")
-            if port == 1:
-                cmds.append("power inline supply disable")
         else:
             cmds.append(f"no switchport general allowed vlan {isolated_vlan}")
             cmds.append(f"switchport general allowed vlan {vlan_mesh} untagged")
             cmds.append(f"switchport pvid {vlan_mesh}")
-            if port == 1:
-                cmds.append("power inline supply disable")
         cmds.append("exit")
 
     if include_uplinks and uplink_ports:

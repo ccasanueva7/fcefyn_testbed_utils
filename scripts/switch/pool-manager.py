@@ -8,26 +8,27 @@ Supports three testbed modes derived from pool-config.yaml:
   - openwrt-only:   all DUTs in openwrt pool (isolated VLANs 100-108)
   - hybrid:         DUTs split across both pools simultaneously
 
+After configuring VLANs on the switch, updates each DUT's default gateway
+via parallel SSH so that internet works regardless of pool assignment:
+  - openwrt pool  -> gateway 192.168.XXX.254 (per-VLAN MikroTik interface)
+  - libremesh pool -> gateway 192.168.200.254 (shared MikroTik VLAN 200 interface)
+
 Usage:
   pool-manager.py --generate                    # Print generated configs (dry run)
-  pool-manager.py --apply                       # Apply switch + write exporter files
-  pool-manager.py --apply --deploy-local        # Also deploy to /etc/labgrid/ and restart
-  pool-manager.py --apply --no-switch           # Write exporter files only (skip switch)
-  pool-manager.py --apply --force               # Full switch apply (ignore state file)
-  pool-manager.py --apply --deploy-local --force  # Skip DUT-in-use safety check
+  pool-manager.py --apply                       # Apply switch + deploy to /etc/labgrid/ (default)
+  pool-manager.py --apply --export-to-configs   # Write to configs/ only (for manual Ansible)
+  pool-manager.py --apply --no-switch           # Skip switch config
+  pool-manager.py --apply --no-gateway          # Skip DUT gateway update via SSH
+  pool-manager.py --apply --force               # Full switch apply; skip DUT-in-use check
 
 Differential apply: When re-applying hybrid config, only changed ports are configured.
+If state matches desired (no diff), full config is applied to correct any switch staleness.
 State is stored in ~/.config/labgrid-switch-state.yaml. Use --force to bypass.
 
-Output exporter files are written next to pool-config.yaml as:
-  exporter-libremesh.yaml
-  exporter-openwrt.yaml  (only when openwrt pool is non-empty)
+Default (--apply): deploys exporters to /etc/labgrid/, restarts services. No files in configs/.
 
-With --deploy-local (hybrid mode):
-  - Writes exporter YAMLs to /etc/labgrid/
-  - Installs hybrid systemd units if missing
-  - Restarts labgrid-exporter-openwrt and labgrid-exporter-libremesh services
-  - Checks that DUTs changing pools are not reserved (skip with --force)
+With --export-to-configs: writes exporter YAMLs and dut-proxy.yaml to configs/ (next to
+pool-config.yaml) for manual copy to Ansible. Does not deploy to /etc/labgrid/.
 """
 
 import argparse
@@ -46,19 +47,18 @@ except ImportError:
 
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
 
 SCRIPT_DIR = Path(__file__).parent
-REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-CONFIG_DIR = REPO_ROOT / "configs"
-POOL_CONFIG_PATH = CONFIG_DIR / "pool-config.yaml"
 
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 from switch_client import SwitchClient, load_switch_password, get_switch_driver
+from dut_gateway import update_dut_gateways
+from constants import VLAN_MESH, repo_root, user_config_dir
 
 try:
     from switch_state import (
@@ -71,7 +71,9 @@ except ImportError:
     save_hybrid_state = None
     is_hybrid_state_valid_for_diff = None
 
-VLAN_MESH = 200
+REPO_ROOT = repo_root()
+CONFIG_DIR = REPO_ROOT / "configs"
+POOL_CONFIG_PATH = CONFIG_DIR / "pool-config.yaml"
 TFTP_IP_MESH = "192.168.200.1"
 
 # Default SSH alias when ssh_alias not in pool-config
@@ -95,20 +97,8 @@ SYSTEMD_DIR = Path("/etc/systemd/system")
 
 
 def _get_config_path(filename: str) -> Path:
-    """
-    Return path to a config file in ~/.config/.
-    When running as root under sudo, use SUDO_USER's home for consistency.
-    """
-    if os.geteuid() == 0:
-        sudo_user = os.environ.get("SUDO_USER")
-        if sudo_user:
-            try:
-                import pwd
-                home = Path(pwd.getpwnam(sudo_user).pw_dir)
-                return home / ".config" / filename
-            except (ImportError, KeyError):
-                pass
-    return Path(os.path.expanduser(f"~/.config/{filename}"))
+    """Return path to a config file in ~/.config/, respecting SUDO_USER."""
+    return user_config_dir() / filename
 
 
 # ---------------------------------------------------------------------------
@@ -173,20 +163,20 @@ def generate_libremesh_exporter(dut_names: list[str], duts_db: dict) -> str:
 
         lines.append(f"{entry_name}:")
         lines.append(f"  location: {hw['location']}")
-        lines.append(f"  RawSerialPort:")
+        lines.append("  RawSerialPort:")
         lines.append(f"    port: \"{hw['serial_port']}\"")
         lines.append(f"    speed: {hw['serial_speed']}")
-        lines.append(f"  PDUDaemonPort:")
+        lines.append("  PDUDaemonPort:")
         lines.append(f"    host: {hw['pdu_host']}")
         lines.append(f"    pdu: {hw['pdu_name']}")
         lines.append(f"    index: {hw['pdu_index']}")
-        lines.append(f"  TFTPProvider:")
+        lines.append("  TFTPProvider:")
         lines.append(f"    internal: \"/srv/tftp/{tftp_path}\"")
         lines.append(f"    external: \"{tftp_path}\"")
         lines.append(f"    external_ip: \"{TFTP_IP_MESH}\"")
-        lines.append(f"  NetworkService:")
+        lines.append("  NetworkService:")
         lines.append(f"    address: \"{fixed_ip}%vlan{VLAN_MESH}\"")
-        lines.append(f"    username: \"root\"")
+        lines.append("    username: \"root\"")
         lines.append("")
 
     return "\n".join(lines)
@@ -205,20 +195,20 @@ def generate_openwrt_exporter(dut_names: list[str], duts_db: dict) -> str:
 
         lines.append(f"{entry_name}:")
         lines.append(f"  location: {hw['location']}")
-        lines.append(f"  RawSerialPort:")
+        lines.append("  RawSerialPort:")
         lines.append(f"    port: \"{hw['serial_port']}\"")
         lines.append(f"    speed: {hw['serial_speed']}")
-        lines.append(f"  PDUDaemonPort:")
+        lines.append("  PDUDaemonPort:")
         lines.append(f"    host: {hw['pdu_host']}")
         lines.append(f"    pdu: {hw['pdu_name']}")
         lines.append(f"    index: {hw['pdu_index']}")
-        lines.append(f"  TFTPProvider:")
+        lines.append("  TFTPProvider:")
         lines.append(f"    internal: \"/srv/tftp/{tftp_path}\"")
         lines.append(f"    external: \"{tftp_path}\"")
         lines.append(f"    external_ip: \"{tftp_ip}\"")
-        lines.append(f"  NetworkService:")
+        lines.append("  NetworkService:")
         lines.append(f"    address: \"192.168.1.1%vlan{vlan}\"")
-        lines.append(f"    username: \"root\"")
+        lines.append("    username: \"root\"")
         lines.append("")
 
     return "\n".join(lines)
@@ -493,9 +483,10 @@ def check_duts_in_use(
 
 def _install_hybrid_units() -> bool:
     """Install hybrid exporter systemd units if not already present."""
+    templates_dir = CONFIG_DIR / "templates"
     units = {
-        f"{HYBRID_SERVICE_OPENWRT}.service": CONFIG_DIR / "labgrid-exporter-openwrt.service",
-        f"{HYBRID_SERVICE_LIBREMESH}.service": CONFIG_DIR / "labgrid-exporter-libremesh.service",
+        f"{HYBRID_SERVICE_OPENWRT}.service": templates_dir / "labgrid-exporter-openwrt.service",
+        f"{HYBRID_SERVICE_LIBREMESH}.service": templates_dir / "labgrid-exporter-libremesh.service",
     }
     installed_any = False
     for unit_name, source in units.items():
@@ -562,6 +553,7 @@ def deploy_local(
     mode: str,
     lm_exporter: str,
     ow_exporter: str,
+    dut_proxy_yaml: str = "",
 ) -> bool:
     """
     Write exporter configs to /etc/labgrid/ and restart the appropriate services.
@@ -588,6 +580,11 @@ def deploy_local(
             if stale.exists():
                 stale.unlink()
                 logger.info("Removed stale: %s", stale)
+
+        if dut_proxy_yaml:
+            dest = EXPORTER_DIR / "dut-proxy.yaml"
+            dest.write_text(dut_proxy_yaml)
+            logger.info("Written: %s", dest)
 
         if lm_exporter:
             _systemctl("enable", f"{HYBRID_SERVICE_LIBREMESH}.service")
@@ -664,19 +661,23 @@ def main() -> int:
         "--force",
         action="store_true",
         help="Always apply full switch config (ignore state file, no differential). "
-             "Also skips DUT-in-use safety check with --deploy-local.",
+             "Also skips DUT-in-use safety check.",
     )
     parser.add_argument(
-        "--deploy-local",
+        "--export-to-configs",
         action="store_true",
-        help="Deploy exporter configs to /etc/labgrid/ and restart exporter services. "
-             "In hybrid mode: two services (openwrt + libremesh). "
-             "Requires sudo for systemd operations.",
+        help="Write exporter YAMLs and dut-proxy.yaml to configs/ for manual Ansible deploy. "
+             "Does not deploy to /etc/labgrid/ or restart services.",
     )
     parser.add_argument(
         "--ansible-export-dir",
         metavar="PATH",
         help="Also write exporter and dut-proxy files to ansible files/exporter/<host>/",
+    )
+    parser.add_argument(
+        "--no-gateway",
+        action="store_true",
+        help="Skip DUT gateway update via SSH after switch configuration",
     )
     parser.add_argument(
         "-v", "--verbose",
@@ -743,8 +744,8 @@ def main() -> int:
     if args.apply:
         coordinators = config.get("coordinators", {})
 
-        # Safety check: verify DUTs changing pools are not in use
-        if args.deploy_local and not args.force:
+        # Safety check: verify DUTs changing pools are not in use (when deploying)
+        if not args.export_to_configs and not args.force:
             changing = get_duts_changing_pool(openwrt_duts, libremesh_duts)
             if changing:
                 logger.info(
@@ -761,32 +762,31 @@ def main() -> int:
                     )
                     return 5
 
-        # Write exporter configs next to pool-config.yaml
-        if lm_exporter:
-            out_file = out_dir / "exporter-libremesh.yaml"
-            out_file.write_text(lm_exporter)
-            logger.info("Written: %s", out_file)
-
-        if ow_exporter:
-            out_file = out_dir / "exporter-openwrt.yaml"
-            out_file.write_text(ow_exporter)
-            logger.info("Written: %s", out_file)
-        else:
-            stale = out_dir / "exporter-openwrt.yaml"
-            if stale.exists():
-                stale.unlink()
-                logger.info("Removed stale exporter-openwrt.yaml (openwrt pool is empty)")
-
-        if dut_proxy_yaml:
-            out_file = out_dir / "dut-proxy.yaml"
-            out_file.write_text(dut_proxy_yaml)
-            logger.info("Written: %s", out_file)
-            if args.ansible_export_dir:
-                ansible_dir = Path(args.ansible_export_dir)
-                ansible_dir.mkdir(parents=True, exist_ok=True)
-                ansible_file = ansible_dir / "dut-proxy.yaml"
-                ansible_file.write_text(dut_proxy_yaml)
-                logger.info("Written: %s", ansible_file)
+        # Write to configs/ only when --export-to-configs (for manual Ansible flow)
+        if args.export_to_configs:
+            if lm_exporter:
+                out_file = out_dir / "exporter-libremesh.yaml"
+                out_file.write_text(lm_exporter)
+                logger.info("Written: %s", out_file)
+            if ow_exporter:
+                out_file = out_dir / "exporter-openwrt.yaml"
+                out_file.write_text(ow_exporter)
+                logger.info("Written: %s", out_file)
+            else:
+                stale = out_dir / "exporter-openwrt.yaml"
+                if stale.exists():
+                    stale.unlink()
+                    logger.info("Removed stale exporter-openwrt.yaml (openwrt pool is empty)")
+            if dut_proxy_yaml:
+                out_file = out_dir / "dut-proxy.yaml"
+                out_file.write_text(dut_proxy_yaml)
+                logger.info("Written: %s", out_file)
+                if args.ansible_export_dir:
+                    ansible_dir = Path(args.ansible_export_dir)
+                    ansible_dir.mkdir(parents=True, exist_ok=True)
+                    ansible_file = ansible_dir / "dut-proxy.yaml"
+                    ansible_file.write_text(dut_proxy_yaml)
+                    logger.info("Written: %s", ansible_file)
 
         # Switch configuration
         if not args.no_switch:
@@ -818,8 +818,13 @@ def main() -> int:
                         current_uplink_vlans
                     )
                     if not ports_changed and not uplinks_changed:
-                        logger.info("Switch config unchanged, skipping SSH")
-                        apply_cmds = []
+                        # State matches desired, but switch may be out of sync (e.g. from
+                        # a prior differential that only touched some ports while others were
+                        # already wrong). Apply full config to correct any staleness.
+                        logger.info(
+                            "State matches desired; applying full config to ensure switch sync"
+                        )
+                        apply_cmds = switch_cmds
                     else:
                         apply_cmds = build_hybrid_switch_commands(
                             openwrt_duts,
@@ -834,7 +839,6 @@ def main() -> int:
                             len(ports_changed),
                             uplinks_changed,
                         )
-
             if apply_cmds:
                 try:
                     client = SwitchClient(
@@ -858,13 +862,13 @@ def main() -> int:
             logger.info("Switch configuration skipped (--no-switch)")
             logger.info("Would send %d commands to switch", len(switch_cmds))
 
-        # Deploy to /etc/labgrid/ and restart services
-        if args.deploy_local:
-            if not deploy_local(mode, lm_exporter, ow_exporter):
-                logger.error("Local deployment failed")
+        # Deploy to /etc/labgrid/ and restart services (default); or show Next steps
+        if not args.export_to_configs:
+            if not deploy_local(mode, lm_exporter, ow_exporter, dut_proxy_yaml or ""):
+                logger.error("Deploy failed")
                 return 6
             save_pool_state(openwrt_duts, libremesh_duts)
-            logger.info("Deploy-local complete. Mode: %s", mode)
+            logger.info("Deploy complete. Mode: %s", mode)
         else:
             save_pool_state(openwrt_duts, libremesh_duts)
             print()
@@ -872,21 +876,31 @@ def main() -> int:
             if mode in ("libremesh-only", "hybrid"):
                 print("  1. Deploy libremesh exporter and dut-proxy via Ansible:")
                 print("     cp configs/exporter-libremesh.yaml "
-                      "<fork-openwrt-tests>/ansible/files/exporter/labgrid-fcefyn/exporter.yaml")
+                      "<libremesh-tests>/ansible/files/exporter/labgrid-fcefyn/exporter.yaml")
                 if dut_proxy_yaml:
                     print("     cp configs/dut-proxy.yaml "
-                          "<fork-openwrt-tests>/ansible/files/exporter/labgrid-fcefyn/dut-proxy.yaml")
-                print("     cd <fork-openwrt-tests>/ansible && ansible-playbook -i inventory.ini "
+                          "<libremesh-tests>/ansible/files/exporter/labgrid-fcefyn/dut-proxy.yaml")
+                print("     cd <libremesh-tests>/ansible && ansible-playbook -i inventory.ini "
                       "playbook_labgrid.yml --tags export")
             if mode in ("openwrt-only", "hybrid"):
-                print("  2. Deploy openwrt exporter via Ansible (openwrt-tests repo):")
+                print("  2. Deploy openwrt exporter via Ansible (libremesh-tests repo):")
                 print("     cp configs/exporter-openwrt.yaml "
-                      "<openwrt-tests>/ansible/files/exporter/labgrid-fcefyn/exporter.yaml")
-                print("     cd <openwrt-tests>/ansible && ansible-playbook -i inventory.ini "
+                      "<libremesh-tests>/ansible/files/exporter/labgrid-fcefyn/exporter.yaml")
+                print("     cd <libremesh-tests>/ansible && ansible-playbook -i inventory.ini "
                       "playbook_labgrid.yml --tags export")
-            if mode == "hybrid":
-                print()
-                print("  Tip: Use --deploy-local to skip Ansible and deploy directly.")
+            print()
+            print("  Tip: Omit --export-to-configs to deploy directly to /etc/labgrid/.")
+
+        # Update DUT gateways via parallel SSH
+        if not args.no_gateway and not args.no_switch:
+            dut_modes: dict[str, str] = {}
+            for dut in openwrt_duts:
+                dut_modes[dut] = "isolated"
+            for dut in libremesh_duts:
+                dut_modes[dut] = "mesh"
+            if dut_modes:
+                update_dut_gateways(dut_modes, config_path)
+
         return 0
 
     return 0

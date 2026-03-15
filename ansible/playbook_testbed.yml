@@ -1,0 +1,45 @@
+---
+# Playbook: FCEFyN testbed infrastructure.
+#
+# Installs components NOT covered by openwrt-tests/libremesh-tests playbook_labgrid.yml:
+#   - virtual_mesh: vwifi-server, QEMU, mac80211_hwsim (for virtual mesh tests)
+#   - arduino: arduino-relay-daemon, udev rules (for physical DUT power control)
+#   - poe_switch: poe_switch_control.py, switch_client, switch_drivers (for PoE power control)
+#   - zerotier: ZeroTier on orchestrator for remote lab access (network 93afae5963ea9881)
+#   - wol: Wake-on-LAN persistence (ethtool at boot) so host can be woken remotely
+#
+# Run AFTER or BEFORE playbook_labgrid.yml from fork-openwrt-tests.
+#
+# Usage (from repo root):
+#   pipx run --spec ansible-core ansible-playbook -i ansible/inventory/hosts.yml ansible/playbook_testbed.yml --ask-become-pass
+#   pipx run --spec ansible-core ansible-playbook -i ansible/inventory/hosts.yml ansible/playbook_testbed.yml --tags virtual_mesh --ask-become-pass
+#   pipx run --spec ansible-core ansible-playbook -i ansible/inventory/hosts.yml ansible/playbook_testbed.yml --tags arduino --ask-become-pass
+#   pipx run --spec ansible-core ansible-playbook -i ansible/inventory/hosts.yml ansible/playbook_testbed.yml --tags poe_switch --ask-become-pass
+#   pipx run --spec ansible-core ansible-playbook -i ansible/inventory/hosts.yml ansible/playbook_testbed.yml --tags wol --ask-become-pass
+#
+# Or if ansible-core is installed: ansible-playbook -i ansible/inventory/hosts.yml ansible/playbook_testbed.yml -K
+
+- name: FCEFyN testbed infrastructure
+  hosts: localhost
+  become: true
+  roles:
+    - role: virtual_mesh
+      tags:
+        - virtual_mesh
+        - testbed
+    - role: arduino_relay
+      tags:
+        - arduino
+        - testbed
+    - role: poe_switch
+      tags:
+        - poe_switch
+        - testbed
+    - role: zerotier
+      tags:
+        - zerotier
+        - testbed
+    - role: wol
+      tags:
+        - wol
+        - testbed

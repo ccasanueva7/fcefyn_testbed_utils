@@ -21,6 +21,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+RELAY_CHANNEL_COUNT = 11  # 8 DUTs + 3 SSR (Switch, Cooler, Fuente)
+
 class RelayChannel(IntEnum):
     CHANNEL_0 = 0
     CHANNEL_1 = 1
@@ -30,6 +32,9 @@ class RelayChannel(IntEnum):
     CHANNEL_5 = 5
     CHANNEL_6 = 6
     CHANNEL_7 = 7
+    CHANNEL_8 = 8   # SSR Switch
+    CHANNEL_9 = 9   # SSR Cooler
+    CHANNEL_10 = 10  # SSR Fuente
 
 
 class ArduinoCommands:
@@ -164,7 +169,7 @@ class PersistentArduinoController:
         if self._connection:
             try:
                 self._connection.close()
-            except:
+            except Exception:
                 pass
             self._connection = None
             
@@ -172,7 +177,7 @@ class PersistentArduinoController:
             try:
                 fcntl.flock(self._lockfile.fileno(), fcntl.LOCK_UN)
                 self._lockfile.close()
-            except:
+            except Exception:
                 pass
             self._lockfile = None
     
@@ -268,8 +273,8 @@ class ArduinoRelayController:
         return False
 
     def _validate_channel(self, channel: int) -> None:
-        if not 0 <= channel <= 7:
-            raise ValueError(f"Invalid channel {channel}. Must be 0-7")
+        if not 0 <= channel < RELAY_CHANNEL_COUNT:
+            raise ValueError(f"Invalid channel {channel}. Must be 0-{RELAY_CHANNEL_COUNT - 1}")
 
     def _validate_channels(self, channels: Iterable[int]) -> List[int]:
         ch_list = list(channels)
@@ -284,8 +289,7 @@ class ArduinoRelayController:
             logger.error("No active connection to Arduino")
             return False
         try:
-            cmd_bytes = f"{command}\n".encode('utf-8')
-            self._persistent.send_command(command) # Use persistent send_command
+            self._persistent.send_command(command)
             logger.debug(f"Command sent: {command}")
             return True
         except Exception as e:
@@ -382,7 +386,7 @@ class DaemonClient:
                 sock.settimeout(1.0)
                 sock.connect(self.socket_path)
                 return True
-        except:
+        except Exception:
             return False
     
     def send_command(self, command: str) -> dict:
@@ -408,6 +412,7 @@ def create_argument_parser() -> argparse.ArgumentParser:
         epilog="""
 Usage Examples:
   %(prog)s on 0 1 3                # Turn ON channels 0,1,3
+  %(prog)s on 8 9                  # Turn ON Switch (8) and Cooler (9)
   %(prog)s off 2 5                 # Turn OFF channels 2 and 5
   %(prog)s toggle 0 4              # Toggle channels 0 and 4
   %(prog)s pulse 1 500             # Pulse channel 1 for 500 ms
@@ -438,27 +443,27 @@ Exit Codes:
 
     # ON
     on_parser = subparsers.add_parser('on', help='Turn ON one or more channels')
-    on_parser.add_argument('channels', nargs='+', type=int, choices=range(8),
-                           help='Relay channels (0-7). Multiple allowed.')
+    on_parser.add_argument('channels', nargs='+', type=int, choices=range(RELAY_CHANNEL_COUNT),
+                           help=f'Relay channels (0-{RELAY_CHANNEL_COUNT - 1}). Multiple allowed. 8=Switch, 9=Cooler, 10=Fuente.')
     on_parser.add_argument('--glinet-sequence', action='store_true',
                            help='Use GL.iNet MT300N-v2 power sequence: disconnect serial (relay 1) before power on (relay 0), then reconnect serial after boot')
 
     # OFF
     off_parser = subparsers.add_parser('off', help='Turn OFF one or more channels')
-    off_parser.add_argument('channels', nargs='+', type=int, choices=range(8),
-                            help='Relay channels (0-7). Multiple allowed.')
+    off_parser.add_argument('channels', nargs='+', type=int, choices=range(RELAY_CHANNEL_COUNT),
+                            help=f'Relay channels (0-{RELAY_CHANNEL_COUNT - 1}). Multiple allowed.')
     off_parser.add_argument('--glinet-sequence', action='store_true',
                             help='Use GL.iNet MT300N-v2 power off sequence: power off (relay 0) then reconnect serial (relay 1)')
 
     # TOGGLE
     tog_parser = subparsers.add_parser('toggle', help='Toggle one or more channels')
-    tog_parser.add_argument('channels', nargs='+', type=int, choices=range(8),
-                            help='Relay channels (0-7). Multiple allowed.')
+    tog_parser.add_argument('channels', nargs='+', type=int, choices=range(RELAY_CHANNEL_COUNT),
+                            help=f'Relay channels (0-{RELAY_CHANNEL_COUNT - 1}). Multiple allowed.')
 
     # PULSE
     pulse_parser = subparsers.add_parser('pulse', help='Pulse a channel for ms')
-    pulse_parser.add_argument('channel', type=int, choices=range(8),
-                              help='Relay channel (0-7)')
+    pulse_parser.add_argument('channel', type=int, choices=range(RELAY_CHANNEL_COUNT),
+                              help=f'Relay channel (0-{RELAY_CHANNEL_COUNT - 1})')
     pulse_parser.add_argument('milliseconds', type=int,
                               help='Pulse width in milliseconds (1..60000)')
 

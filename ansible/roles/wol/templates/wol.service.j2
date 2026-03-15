@@ -1,0 +1,11 @@
+[Unit]
+Description=Enable Wake On LAN
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/ethtool -s {{ wol_interface }} wol g
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

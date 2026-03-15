@@ -10,7 +10,6 @@ When run under sudo, uses the original user's home so state is shared between to
 """
 
 import logging
-import os
 from pathlib import Path
 
 try:
@@ -18,25 +17,14 @@ try:
 except ImportError:
     yaml = None
 
+from constants import user_config_dir
+
 logger = logging.getLogger(__name__)
 
 
 def _get_state_file_path() -> Path:
-    """
-    Return the path to the switch state file.
-    When running as root under sudo, use SUDO_USER's home so pool-manager and
-    switch_vlan_preset share the same state regardless of how they are invoked.
-    """
-    if os.geteuid() == 0:
-        sudo_user = os.environ.get("SUDO_USER")
-        if sudo_user:
-            try:
-                import pwd
-                home = Path(pwd.getpwnam(sudo_user).pw_dir)
-                return home / ".config" / "labgrid-switch-state.yaml"
-            except (ImportError, KeyError):
-                pass
-    return Path(os.path.expanduser("~/.config/labgrid-switch-state.yaml"))
+    """Return the path to the switch state file (~/.config/labgrid-switch-state.yaml)."""
+    return user_config_dir() / "labgrid-switch-state.yaml"
 
 
 def load_switch_state() -> dict | None:

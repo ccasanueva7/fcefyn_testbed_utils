@@ -1,0 +1,14 @@
+# Ruff configuration for fcefyn-testbed-utils
+# https://docs.astral.sh/ruff/configuration/
+
+target-version = "py311"
+line-length = 120
+
+exclude = [
+    ".git",
+    ".venv",
+]
+
+[lint]
+# E402: import after sys.path mod is intentional in scripts that load local modules
+ignore = ["E402"]

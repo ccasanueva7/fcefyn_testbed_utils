@@ -1,0 +1,53 @@
+---
+# Role: arduino_relay
+# Installs arduino-relay-daemon and udev rules for DUT power control via Arduino relays.
+# Requires: udev rules create /dev/arduino-relay when Arduino is connected.
+
+- name: Install Python dependencies for arduino daemon
+  ansible.builtin.apt:
+    name:
+      - python3-serial
+    state: present
+    update_cache: yes
+
+- name: Copy arduino_daemon.py to /usr/local/bin
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../scripts/arduino/arduino_daemon.py"
+    dest: /usr/local/bin/arduino_daemon.py
+    mode: "0755"
+
+- name: Copy arduino_relay_control.py to /usr/local/bin
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../scripts/arduino/arduino_relay_control.py"
+    dest: /usr/local/bin/arduino_relay_control.py
+    mode: "0755"
+
+- name: Copy udev rules for serial devices
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../configs/templates/99-serial-devices.rules"
+    dest: /etc/udev/rules.d/99-serial-devices.rules
+    mode: "0644"
+
+- name: Copy arduino-relay-daemon systemd unit
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../configs/templates/arduino-relay-daemon.service"
+    dest: /etc/systemd/system/arduino-relay-daemon.service
+    mode: "0644"
+
+- name: Reload udev rules
+  ansible.builtin.command: udevadm control --reload-rules
+  changed_when: true
+
+- name: Trigger udev
+  ansible.builtin.command: udevadm trigger
+  changed_when: true
+
+- name: Reload systemd daemon
+  ansible.builtin.systemd:
+    daemon_reload: yes
+
+- name: Enable arduino-relay-daemon service
+  ansible.builtin.systemd:
+    name: arduino-relay-daemon
+    enabled: yes
+    state: started

@@ -24,6 +24,7 @@ duts:
     location: fcefyn-testbed
     serial_port: "/dev/belkin-rt3200-1"
     serial_speed: 115200
+    ssh_alias: "dut-belkin-1"
     pdu_host: "localhost:16421"
     pdu_name: "fcefyn-arduino"
     pdu_index: 0
@@ -36,6 +37,7 @@ duts:
     location: fcefyn-testbed
     serial_port: "/dev/belkin-rt3200-2"
     serial_speed: 115200
+    ssh_alias: "dut-belkin-2"
     pdu_host: "localhost:16421"
     pdu_name: "fcefyn-arduino"
     pdu_index: 1
@@ -48,6 +50,7 @@ duts:
     location: fcefyn-testbed
     serial_port: "/dev/belkin-rt3200-3"
     serial_speed: 115200
+    ssh_alias: "dut-belkin-3"
     pdu_host: "localhost:16421"
     pdu_name: "fcefyn-arduino"
     pdu_index: 2
@@ -60,6 +63,7 @@ duts:
     location: fcefyn-testbed
     serial_port: "/dev/bpi-r4"
     serial_speed: 115200
+    ssh_alias: "dut-bananapi"
     pdu_host: "localhost:16421"
     pdu_name: "fcefyn-arduino"
     pdu_index: 3
@@ -72,6 +76,7 @@ duts:
     location: fcefyn-testbed
     serial_port: "/dev/openwrt-one"
     serial_speed: 115200
+    ssh_alias: "dut-openwrt-one"
     pdu_host: "localhost:16421"
     pdu_name: "fcefyn-poe-port1"
     pdu_index: 1
@@ -85,6 +90,7 @@ duts:
     location: fcefyn-testbed
     serial_port: "/dev/librerouter-1"
     serial_speed: 115200
+    ssh_alias: "dut-librerouter-1"
     pdu_host: "localhost:16421"
     pdu_name: "fcefyn-poe-port2"
     pdu_index: 2

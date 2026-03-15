@@ -1,0 +1,31 @@
+---
+# Role: wol
+# Enables Wake-on-LAN on the orchestration host Ethernet interface.
+# Creates a systemd oneshot service that runs ethtool -s <interface> wol g at boot.
+# Without this, WoL is lost after reboot.
+#
+# Prerequisites: BIOS must have Wake on LAN enabled (AC Only for Lenovo T430).
+# See docs/ops/wake-on-lan-setup.md.
+
+- name: Ensure ethtool is installed
+  ansible.builtin.apt:
+    name: ethtool
+    state: present
+    update_cache: yes
+  when: ansible_os_family == "Debian"
+
+- name: Deploy wol.service systemd unit
+  ansible.builtin.template:
+    src: wol.service.j2
+    dest: /etc/systemd/system/wol.service
+    mode: "0644"
+
+- name: Reload systemd daemon
+  ansible.builtin.systemd:
+    daemon_reload: yes
+
+- name: Enable wol service (runs ethtool at boot)
+  ansible.builtin.systemd:
+    name: wol
+    enabled: yes
+    state: started

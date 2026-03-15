@@ -1,0 +1,64 @@
+---
+# Role: zerotier
+# Installs ZeroTier on the orchestration host (labgrid-fcefyn) and joins the lab network.
+# Allows remote access: SSH to host's ZeroTier IP, then run Labgrid or ssh dut-*.
+# Requires: Authorize the new node in ZeroTier Central (my.zerotier.com) after first run.
+#
+# Uses official install script (install.zerotier.com); apt.zerotier.com may not resolve on some networks.
+# Ensures DNS works before install (sets 8.8.8.8 on default-route interface if needed).
+#
+# Supported: Debian, Ubuntu. Other distros: add when conditions as needed.
+
+- name: Install curl
+  ansible.builtin.apt:
+    name: curl
+    state: present
+    update_cache: yes
+  when: ansible_os_family == "Debian"
+
+- name: Get interface with default route (for DNS fallback)
+  ansible.builtin.shell: ip -o route get 8.8.8.8 | awk '{for(i=1;i<=NF;i++) if($i=="dev") print $(i+1); exit}'
+  register: zt_default_iface
+  changed_when: false
+  failed_when: false
+
+- name: Ensure DNS works (set 8.8.8.8 on default-route interface for this run)
+  ansible.builtin.command: resolvectl dns {{ zt_default_iface.stdout }} 8.8.8.8 8.8.4.4
+  when:
+    - zt_default_iface.stdout | length > 0
+    - ansible_os_family == "Debian"
+  failed_when: false
+  changed_when: true
+
+- name: Check if ZeroTier is already installed
+  ansible.builtin.stat:
+    path: /usr/sbin/zerotier-one
+  register: zt_installed
+
+- name: Install ZeroTier via official script
+  ansible.builtin.shell: |
+    curl -fsSL https://install.zerotier.com | bash
+  args:
+    creates: /usr/sbin/zerotier-one
+  when: not zt_installed.stat.exists
+
+- name: Start and enable ZeroTier service
+  ansible.builtin.systemd:
+    name: zerotier-one
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
+- name: Wait for ZeroTier daemon to be ready
+  ansible.builtin.wait_for:
+    path: /var/lib/zerotier-one/zerotier-one.port
+    timeout: 20
+  register: zt_port_wait
+  failed_when: false
+
+- name: Join ZeroTier lab network
+  ansible.builtin.command:
+    cmd: zerotier-cli join {{ zerotier_network_id }}
+  register: zt_join
+  changed_when: "'join OK' in zt_join.stdout or 'join OK' in zt_join.stderr"
+  failed_when: zt_join.rc != 0

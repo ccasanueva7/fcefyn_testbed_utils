@@ -19,17 +19,36 @@ import logging
 import os
 import time
 from contextlib import contextmanager
-from pathlib import Path
 from typing import Generator
+
+from constants import DEFAULT_SWITCH_HOST, DEFAULT_SWITCH_USER, user_config_dir
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_HOST = "192.168.0.1"
-DEFAULT_USER = "admin"
 DEFAULT_DEVICE_TYPE = "tplink_jetstream"
 
 LOCK_PATH = "/tmp/poe_switch.lock"
 LOCK_TIMEOUT = 60
+
+
+def _open_lock_file():
+    """Open lock file for flock. Creates with 0o666 to allow any user to open it.
+    On PermissionError (e.g. file exists with restrictive perms from root),
+    tries chmod 0o666 and retry. Raises helpful error if still failing.
+    """
+    try:
+        return os.open(LOCK_PATH, os.O_CREAT | os.O_RDWR, 0o666)
+    except PermissionError:
+        if os.path.exists(LOCK_PATH):
+            try:
+                os.chmod(LOCK_PATH, 0o666)
+                return os.open(LOCK_PATH, os.O_RDWR)
+            except (PermissionError, OSError) as e:
+                raise PermissionError(
+                    f"Cannot access lock file {LOCK_PATH}. "
+                    "If it was created by root, run: sudo chmod 666 /tmp/poe_switch.lock"
+                ) from e
+        raise
 
 
 @contextmanager
@@ -38,10 +57,14 @@ def switch_lock(timeout: float = LOCK_TIMEOUT) -> Generator[bool, None, None]:
 
     Prevents concurrent SSH connections that cause session contention
     when multiple scripts drive the switch in parallel (PoE + VLAN).
+
+    Lock file is created with mode 0o666 so any user can open it. If the
+    file already exists with restrictive perms (e.g. from root), chmod
+    is attempted before retry.
     """
     lock_fd = None
     try:
-        lock_fd = open(LOCK_PATH, "w")
+        lock_fd = _open_lock_file()
         deadline = time.time() + timeout
         acquired = False
         while time.time() < deadline:
@@ -58,30 +81,28 @@ def switch_lock(timeout: float = LOCK_TIMEOUT) -> Generator[bool, None, None]:
 
         yield acquired
     finally:
-        if lock_fd:
+        if lock_fd is not None:
             try:
                 fcntl.flock(lock_fd, fcntl.LOCK_UN)
             except Exception:
                 pass
-            lock_fd.close()
+            os.close(lock_fd)
             logger.debug("Released switch lock")
 
 
 def _get_config_paths() -> list[str]:
-    """Return config file paths to check, accounting for sudo."""
-    paths = [
-        os.path.expanduser("~/.config/poe_switch_control.conf"),
-        "/etc/poe_switch_control.conf",
-    ]
-    if os.geteuid() == 0:
-        sudo_user = os.environ.get("SUDO_USER")
-        if sudo_user:
-            try:
-                import pwd
-                home = Path(pwd.getpwnam(sudo_user).pw_dir)
-                paths.insert(1, str(home / ".config" / "poe_switch_control.conf"))
-            except (ImportError, KeyError):
-                pass
+    """Return config file paths to check, accounting for sudo.
+
+    Priority:
+    1. POE_SWITCH_CONFIG env var (explicit path from caller, e.g. testbed-mode.sh)
+    2. ~/.config/poe_switch_control.conf (SUDO_USER-aware via user_config_dir)
+    3. /etc/poe_switch_control.conf
+    """
+    paths: list[str] = []
+    if explicit := os.environ.get("POE_SWITCH_CONFIG"):
+        paths.append(explicit)
+    paths.append(str(user_config_dir() / "poe_switch_control.conf"))
+    paths.append("/etc/poe_switch_control.conf")
     return paths
 
 
@@ -136,8 +157,8 @@ def get_credentials(
     """Build a credentials dict, filling gaps from config/env."""
     config = load_config()
     return {
-        "host": host or os.environ.get("POE_SWITCH_HOST") or config.get("POE_SWITCH_HOST", DEFAULT_HOST),
-        "user": user or os.environ.get("POE_SWITCH_USER") or config.get("POE_SWITCH_USER", DEFAULT_USER),
+        "host": host or os.environ.get("POE_SWITCH_HOST") or config.get("POE_SWITCH_HOST", DEFAULT_SWITCH_HOST),
+        "user": user or os.environ.get("POE_SWITCH_USER") or config.get("POE_SWITCH_USER", DEFAULT_SWITCH_USER),
         "password": password or os.environ.get("POE_SWITCH_PASSWORD") or config.get("POE_SWITCH_PASSWORD", ""),
         "device_type": device_type or config.get("POE_SWITCH_DEVICE_TYPE", DEFAULT_DEVICE_TYPE),
     }

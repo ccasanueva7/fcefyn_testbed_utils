@@ -1,0 +1,41 @@
+---
+# Role: poe_switch
+# Installs poe_switch_control.py and its dependencies (switch_client, switch_drivers)
+# for PoE power control of DUTs via TP-Link managed switch.
+# Required by PDUDaemon (openwrt-tests playbook_labgrid.yml) for fcefyn-poe-port1/port2.
+#
+# All files go to /usr/local/bin/ so poe_switch_control can import switch_client
+# (it adds parent dir of __file__ to sys.path).
+
+- name: Install netmiko for switch SSH (apt avoids PEP 668 externally-managed-environment)
+  ansible.builtin.apt:
+    name: python3-netmiko
+    state: present
+    update_cache: yes
+
+- name: Copy poe_switch_control.py to /usr/local/bin
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../scripts/switch/poe_switch_control.py"
+    dest: /usr/local/bin/poe_switch_control.py
+    mode: "0755"
+
+- name: Copy switch_client.py to /usr/local/bin
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../scripts/switch/switch_client.py"
+    dest: /usr/local/bin/switch_client.py
+    mode: "0644"
+
+- name: Create switch_drivers directory in /usr/local/bin
+  ansible.builtin.file:
+    path: /usr/local/bin/switch_drivers
+    state: directory
+    mode: "0755"
+
+- name: Copy switch_drivers package files
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../scripts/switch/switch_drivers/{{ item }}"
+    dest: "/usr/local/bin/switch_drivers/{{ item }}"
+    mode: "0644"
+  loop:
+    - __init__.py
+    - tplink_jetstream.py

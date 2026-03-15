@@ -8,13 +8,14 @@ import logging
 import os
 import signal
 import socket
+import sys
 import threading
 import time
 from typing import Dict, Any, Optional
 
 import serial
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 
@@ -33,11 +34,25 @@ class ArduinoRelayDaemon:
         self.running = False
         self.arduino_lock = threading.Lock()
 
+    def _socket_reachable(self) -> bool:
+        """Check if another daemon instance is serving the socket."""
+        try:
+            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
+                s.settimeout(1.0)
+                s.connect(self.socket_path)
+            return True
+        except (OSError, socket.error):
+            return False
+
     def start(self):
         """Starts the daemon."""
         if self._is_already_running():
-            logger.error("Daemon already running")
-            return False
+            if self._socket_reachable():
+                logger.info("Daemon already running (socket reachable)")
+                return True
+            logger.warning("Stale pidfile, cleaning up")
+            if os.path.exists(self.pidfile):
+                os.unlink(self.pidfile)
 
         # Connect Arduino
         if not self._connect_arduino():
@@ -180,7 +195,7 @@ class ArduinoRelayDaemon:
                 pid = int(f.read().strip())
             os.kill(pid, 0)  # Check if process exists
             return True
-        except:
+        except OSError:
             os.unlink(self.pidfile)
             return False
 
@@ -197,7 +212,8 @@ def main():
     daemon = ArduinoRelayDaemon(arduino_port=args.port)
 
     if args.action == "start":
-        daemon.start()
+        if not daemon.start():
+            sys.exit(1)
     elif args.action == "stop":
         try:
             with open("/tmp/arduino-relay.pid", 'r') as f:

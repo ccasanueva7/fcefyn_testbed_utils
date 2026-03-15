@@ -9,11 +9,11 @@
 #       Deploy libremesh-tests config via Ansible (VLAN 200 only).
 #
 #   testbed-mode.sh openwrt [--dry-run] [--no-switch]
-#       Deploy openwrt-tests config via Ansible (isolated VLANs 100-108).
+#       Deploy upstream openwrt-tests config via Ansible (isolated VLANs 100-108).
 #       Requires openwrt-tests repo path (OPENWRT_TESTS_DIR or --openwrt-dir).
 #
 #   testbed-mode.sh hybrid [--dry-run] [--no-switch]
-#       Apply pool-config.yaml split via pool-manager.py --deploy-local.
+#       Apply pool-config.yaml split via pool-manager.py (deploys to /etc/labgrid/).
 #       Writes exporter configs to /etc/labgrid/, configures switch, and
 #       restarts two exporter services (openwrt + libremesh).
 #       No Ansible is used. Edit configs/pool-config.yaml first.
@@ -30,8 +30,13 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 POOL_CONFIG="${REPO_ROOT}/configs/pool-config.yaml"
 
 # Paths to the Ansible playbooks (adjust to your local setup)
-LIBREMESH_ANSIBLE="${LIBREMESH_TESTS_DIR:-${HOME}/pi/fork-openwrt-tests}/ansible"
-OPENWRT_ANSIBLE="${OPENWRT_TESTS_DIR:-${HOME}/pi/openwrt-tests}/ansible"
+# When running under sudo, env vars from .profile/.bashrc are not passed; load from real user
+if [[ $(id -u) -eq 0 && -n "${SUDO_USER:-}" ]]; then
+    [[ -z "${LIBREMESH_TESTS_DIR:-}" ]] && LIBREMESH_TESTS_DIR=$(sudo -u "$SUDO_USER" -i printenv LIBREMESH_TESTS_DIR 2>/dev/null || true)
+    [[ -z "${OPENWRT_TESTS_DIR:-}" ]] && OPENWRT_TESTS_DIR=$(sudo -u "$SUDO_USER" -i printenv OPENWRT_TESTS_DIR 2>/dev/null || true)
+fi
+LIBREMESH_ANSIBLE="${LIBREMESH_TESTS_DIR:-${REPO_ROOT}/../libremesh-tests}/ansible"
+OPENWRT_ANSIBLE="${OPENWRT_TESTS_DIR:-${REPO_ROOT}/../openwrt-tests}/ansible"
 
 INVENTORY="inventory.ini"
 DRY_RUN=false
@@ -109,6 +114,12 @@ if [[ "$MODE" == "libremesh" ]]; then
         run_or_dry python3 "${SCRIPT_DIR}/switch/switch_vlan_preset.py" mesh
     fi
 
+    if [[ ! -f "${LIBREMESH_ANSIBLE}/playbook_labgrid.yml" ]]; then
+        echo "ERROR: playbook not found at ${LIBREMESH_ANSIBLE}/playbook_labgrid.yml" >&2
+        echo "Set LIBREMESH_TESTS_DIR in ~/.profile (e.g. export LIBREMESH_TESTS_DIR=/home/laryc/testbed_fcefyn/libremesh-tests)" >&2
+        echo "Or run with sudo -E to preserve env: sudo -E ./testbed-mode.sh libremesh" >&2
+        exit 1
+    fi
     log "Deploying libremesh exporter via Ansible..."
     run_or_dry ansible-playbook \
         -i "${LIBREMESH_ANSIBLE}/${INVENTORY}" \
@@ -125,7 +136,7 @@ elif [[ "$MODE" == "openwrt" ]]; then
     log "Switching to openwrt-only mode (isolated VLANs per DUT)"
 
     if [[ ! -d "$OPENWRT_ANSIBLE" ]]; then
-        echo "ERROR: openwrt-tests Ansible directory not found: ${OPENWRT_ANSIBLE}" >&2
+        echo "ERROR: upstream openwrt-tests Ansible directory not found: ${OPENWRT_ANSIBLE}" >&2
         echo "Set OPENWRT_TESTS_DIR or pass --openwrt-dir <path>" >&2
         exit 1
     fi
@@ -157,12 +168,19 @@ elif [[ "$MODE" == "hybrid" ]]; then
     log "Switching to hybrid mode (pool-config.yaml defines DUT split)"
     log "Config: ${POOL_CONFIG}"
 
-    POOL_MANAGER_ARGS=("--apply" "--deploy-local")
+    POOL_MANAGER_ARGS=("--apply")
     $NO_SWITCH && POOL_MANAGER_ARGS+=("--no-switch")
 
-    log "Applying pool manager (switch + deploy-local)..."
-    # deploy-local writes to /etc/labgrid/ and restarts systemd services; requires sudo
-    run_or_dry sudo python3 "${SCRIPT_DIR}/switch/pool-manager.py" \
+    log "Applying pool manager (switch + deploy)..."
+    # pool-manager deploys to /etc/labgrid/ and restarts systemd services; requires sudo
+    # Pass switch config path so pool-manager finds POE_SWITCH_PASSWORD when running under sudo
+    REAL_USER="${SUDO_USER:-$USER}"
+    POE_CONF="${HOME}/.config/poe_switch_control.conf"
+    if [[ -n "$REAL_USER" && "$REAL_USER" != "root" ]]; then
+        REAL_HOME=$(getent passwd "$REAL_USER" 2>/dev/null | cut -d: -f6)
+        [[ -n "$REAL_HOME" ]] && POE_CONF="${REAL_HOME}/.config/poe_switch_control.conf"
+    fi
+    run_or_dry sudo -E POE_SWITCH_CONFIG="$POE_CONF" python3 "${SCRIPT_DIR}/switch/pool-manager.py" \
         --config "${POOL_CONFIG}" \
         "${POOL_MANAGER_ARGS[@]}"
 

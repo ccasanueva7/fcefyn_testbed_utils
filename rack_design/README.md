@@ -1,6 +1,8 @@
 # Diseño 3D del rack
 
-Esta carpeta contiene los archivos de diseño 3D (OpenSCAD, Fusion 360 y STL) utilizados para construir un rack de refrigeración personalizado para routers. El sistema emplea un enfoque modular tipo chimenea para distribuir aire fresco desde un único ventilador de 120 mm a través de múltiples niveles.
+Esta carpeta contiene los archivos de diseño 3D (OpenSCAD, Fusion 360 y STL) utilizados para construir un rack de refrigeración personalizado para routers.
+
+> **Nota:** Las imágenes referenciadas (`img/curved_intake_duct.png`, `img/airflow_chimney_duct_*.png`, etc.) no están incluidas. Crear `rack_design/img/` y añadir capturas si se desea visualización local. El sistema emplea un enfoque modular tipo chimenea para distribuir aire fresco desde un único ventilador de 120 mm a través de múltiples niveles.
 
 ## Resumen de piezas impresas
 
