@@ -37,13 +37,13 @@ except ImportError:
     sys.exit(1)
 
 
-def find_openwrt_tests_dir():
-    """Try to find the openwrt-tests directory."""
-    # Common locations
+def find_libremesh_tests_dir():
+    """Try to find the libremesh-tests directory."""
     possible_paths = [
-        Path.home() / "Documents" / "openwrt-tests",
-        Path.home() / "openwrt-tests",
-        Path.cwd().parent / "openwrt-tests",
+        Path.cwd().parent / "libremesh-tests",
+        Path.home() / "libremesh-tests",
+        Path.home() / "testbed_fcefyn" / "libremesh-tests",
+        Path.home() / "Documents" / "libremesh-tests",
     ]
     
     for path in possible_paths:
@@ -137,13 +137,13 @@ def main():
     parser.add_argument(
         '--labnet',
         type=Path,
-        help='Path to labnet.yaml (default: auto-detect from openwrt-tests)'
+        help='Path to labnet.yaml (default: auto-detect from libremesh-tests)'
     )
     
     parser.add_argument(
         '--template',
         type=Path,
-        help='Path to places.yaml.j2 template (default: auto-detect from openwrt-tests)'
+        help='Path to places.yaml.j2 template (default: auto-detect from libremesh-tests)'
     )
     
     parser.add_argument(
@@ -155,19 +155,18 @@ def main():
     
     args = parser.parse_args()
     
-    # Auto-detect openwrt-tests directory if paths not specified
     if args.labnet is None or args.template is None:
-        openwrt_tests = find_openwrt_tests_dir()
-        if openwrt_tests is None:
-            print("Error: Could not find openwrt-tests directory.", file=sys.stderr)
+        tests_dir = find_libremesh_tests_dir()
+        if tests_dir is None:
+            print("Error: Could not find libremesh-tests directory.", file=sys.stderr)
             print("Please specify --labnet and --template paths manually.", file=sys.stderr)
             sys.exit(1)
         
         if args.labnet is None:
-            args.labnet = openwrt_tests / 'labnet.yaml'
+            args.labnet = tests_dir / 'labnet.yaml'
         
         if args.template is None:
-            args.template = openwrt_tests / 'ansible' / 'files' / 'coordinator' / 'places.yaml.j2'
+            args.template = tests_dir / 'ansible' / 'files' / 'coordinator' / 'places.yaml.j2'
     
     generate_places_yaml(
         lab_name=args.lab,

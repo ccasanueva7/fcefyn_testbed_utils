@@ -9,7 +9,7 @@
 #       Deploy libremesh-tests config via Ansible (VLAN 200 only).
 #
 #   testbed-mode.sh openwrt [--dry-run] [--no-switch]
-#       Deploy openwrt-tests config via Ansible (isolated VLANs 100-108).
+#       Deploy upstream openwrt-tests config via Ansible (isolated VLANs 100-108).
 #       Requires openwrt-tests repo path (OPENWRT_TESTS_DIR or --openwrt-dir).
 #
 #   testbed-mode.sh hybrid [--dry-run] [--no-switch]
@@ -35,8 +35,8 @@ if [[ $(id -u) -eq 0 && -n "${SUDO_USER:-}" ]]; then
     [[ -z "${LIBREMESH_TESTS_DIR:-}" ]] && LIBREMESH_TESTS_DIR=$(sudo -u "$SUDO_USER" -i printenv LIBREMESH_TESTS_DIR 2>/dev/null || true)
     [[ -z "${OPENWRT_TESTS_DIR:-}" ]] && OPENWRT_TESTS_DIR=$(sudo -u "$SUDO_USER" -i printenv OPENWRT_TESTS_DIR 2>/dev/null || true)
 fi
-LIBREMESH_ANSIBLE="${LIBREMESH_TESTS_DIR:-${HOME}/pi/fork-openwrt-tests}/ansible"
-OPENWRT_ANSIBLE="${OPENWRT_TESTS_DIR:-${HOME}/pi/openwrt-tests}/ansible"
+LIBREMESH_ANSIBLE="${LIBREMESH_TESTS_DIR:-${REPO_ROOT}/../libremesh-tests}/ansible"
+OPENWRT_ANSIBLE="${OPENWRT_TESTS_DIR:-${REPO_ROOT}/../openwrt-tests}/ansible"
 
 INVENTORY="inventory.ini"
 DRY_RUN=false
@@ -116,7 +116,7 @@ if [[ "$MODE" == "libremesh" ]]; then
 
     if [[ ! -f "${LIBREMESH_ANSIBLE}/playbook_labgrid.yml" ]]; then
         echo "ERROR: playbook not found at ${LIBREMESH_ANSIBLE}/playbook_labgrid.yml" >&2
-        echo "Set LIBREMESH_TESTS_DIR in ~/.profile (e.g. export LIBREMESH_TESTS_DIR=/home/laryc/testbed_fcefyn/openwrt-tests)" >&2
+        echo "Set LIBREMESH_TESTS_DIR in ~/.profile (e.g. export LIBREMESH_TESTS_DIR=/home/laryc/testbed_fcefyn/libremesh-tests)" >&2
         echo "Or run with sudo -E to preserve env: sudo -E ./testbed-mode.sh libremesh" >&2
         exit 1
     fi
@@ -136,7 +136,7 @@ elif [[ "$MODE" == "openwrt" ]]; then
     log "Switching to openwrt-only mode (isolated VLANs per DUT)"
 
     if [[ ! -d "$OPENWRT_ANSIBLE" ]]; then
-        echo "ERROR: openwrt-tests Ansible directory not found: ${OPENWRT_ANSIBLE}" >&2
+        echo "ERROR: upstream openwrt-tests Ansible directory not found: ${OPENWRT_ANSIBLE}" >&2
         echo "Set OPENWRT_TESTS_DIR or pass --openwrt-dir <path>" >&2
         exit 1
     fi

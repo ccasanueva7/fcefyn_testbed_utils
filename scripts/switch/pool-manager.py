@@ -876,17 +876,17 @@ def main() -> int:
             if mode in ("libremesh-only", "hybrid"):
                 print("  1. Deploy libremesh exporter and dut-proxy via Ansible:")
                 print("     cp configs/exporter-libremesh.yaml "
-                      "<fork-openwrt-tests>/ansible/files/exporter/labgrid-fcefyn/exporter.yaml")
+                      "<libremesh-tests>/ansible/files/exporter/labgrid-fcefyn/exporter.yaml")
                 if dut_proxy_yaml:
                     print("     cp configs/dut-proxy.yaml "
-                          "<fork-openwrt-tests>/ansible/files/exporter/labgrid-fcefyn/dut-proxy.yaml")
-                print("     cd <fork-openwrt-tests>/ansible && ansible-playbook -i inventory.ini "
+                          "<libremesh-tests>/ansible/files/exporter/labgrid-fcefyn/dut-proxy.yaml")
+                print("     cd <libremesh-tests>/ansible && ansible-playbook -i inventory.ini "
                       "playbook_labgrid.yml --tags export")
             if mode in ("openwrt-only", "hybrid"):
-                print("  2. Deploy openwrt exporter via Ansible (openwrt-tests repo):")
+                print("  2. Deploy openwrt exporter via Ansible (libremesh-tests repo):")
                 print("     cp configs/exporter-openwrt.yaml "
-                      "<openwrt-tests>/ansible/files/exporter/labgrid-fcefyn/exporter.yaml")
-                print("     cd <openwrt-tests>/ansible && ansible-playbook -i inventory.ini "
+                      "<libremesh-tests>/ansible/files/exporter/labgrid-fcefyn/exporter.yaml")
+                print("     cd <libremesh-tests>/ansible && ansible-playbook -i inventory.ini "
                       "playbook_labgrid.yml --tags export")
             print()
             print("  Tip: Omit --export-to-configs to deploy directly to /etc/labgrid/.")
