@@ -1,0 +1,47 @@
+---
+# Role: testbed_status
+# Installs the testbed-status TUI dashboard for real-time lab monitoring.
+# Requires: Python 3.8+, pip.
+
+- name: Install textual TUI framework
+  ansible.builtin.pip:
+    name: textual
+    state: present
+    extra_args: --break-system-packages
+
+- name: Ensure PyYAML is installed
+  ansible.builtin.apt:
+    name: python3-yaml
+    state: present
+    update_cache: yes
+
+- name: Create testbed_status lib directory
+  ansible.builtin.file:
+    path: /usr/local/lib/testbed_status
+    state: directory
+    mode: "0755"
+
+- name: Copy testbed_status package files
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../scripts/testbed_status/{{ item }}"
+    dest: "/usr/local/lib/testbed_status/{{ item }}"
+    mode: "0644"
+  loop:
+    - __init__.py
+    - __main__.py
+    - app.py
+    - collectors.py
+    - widgets.py
+    - config.py
+
+- name: Install testbed-status wrapper script
+  ansible.builtin.copy:
+    dest: /usr/local/bin/testbed-status
+    mode: "0755"
+    content: |
+      #!/usr/bin/env python3
+      """Wrapper to launch testbed-status TUI."""
+      import sys
+      sys.path.insert(0, "/usr/local/lib")
+      from testbed_status.__main__ import main
+      main()
