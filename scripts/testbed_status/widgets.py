@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Dict, List, Optional
 
 from textual.message import Message
@@ -15,27 +14,31 @@ from .config import CHANNEL_NAMES, CHANNEL_PINS, INFRA_CHANNELS, LOG_MAX_LINES, 
 # ---------------------------------------------------------------------------
 # Custom messages posted by panels so the App can handle actions
 # ---------------------------------------------------------------------------
-@dataclass
 class RelayToggleRequest(Message):
-    channel: int
-    current_state: Optional[bool]
-    is_infra: bool
+    def __init__(self, channel: int, current_state: Optional[bool], is_infra: bool) -> None:
+        super().__init__()
+        self.channel = channel
+        self.current_state = current_state
+        self.is_infra = is_infra
 
 
-@dataclass
 class ServiceActionRequest(Message):
-    service_name: str
+    def __init__(self, service_name: str) -> None:
+        super().__init__()
+        self.service_name = service_name
 
 
-@dataclass
 class PoolMoveRequest(Message):
-    dut_name: str
-    current_pool: str
+    def __init__(self, dut_name: str, current_pool: str) -> None:
+        super().__init__()
+        self.dut_name = dut_name
+        self.current_pool = current_pool
 
 
-@dataclass
 class ModeChangeRequest(Message):
-    current_mode: str
+    def __init__(self, current_mode: str) -> None:
+        super().__init__()
+        self.current_mode = current_mode
 
 
 # ---------------------------------------------------------------------------
@@ -331,3 +334,4 @@ class CommandLogPanel(Static):
                 self.update("\n".join(self._lines[-12:]))
             else:
                 self.update("[dim]No hay comandos ejecutados aún[/]")
+        self.refresh()
