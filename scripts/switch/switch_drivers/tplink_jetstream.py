@@ -21,8 +21,8 @@ PRESET_ISOLATED = [
     (6, ["no switchport general allowed vlan 200"]),
     (7, ["no switchport general allowed vlan 200"]),
     (8, ["no switchport general allowed vlan 200"]),
-    (9, ["no switchport general allowed vlan 200", "switchport general allowed vlan 100-106 tagged"]),
-    (10, ["no switchport general allowed vlan 200", "switchport general allowed vlan 100-106 tagged"]),
+    (9, ["no switchport general allowed vlan 200", "switchport general allowed vlan 1 untagged", "switchport general allowed vlan 100-108 tagged", "switchport pvid 1"]),
+    (10, ["no switchport general allowed vlan 200", "switchport general allowed vlan 1 untagged", "switchport general allowed vlan 100-108 tagged", "switchport pvid 1"]),
     (11, ["no switchport general allowed vlan 200", "switchport general allowed vlan 100 untagged", "switchport pvid 100"]),
     (12, ["no switchport general allowed vlan 200", "switchport general allowed vlan 101 untagged", "switchport pvid 101"]),
     (13, ["no switchport general allowed vlan 200", "switchport general allowed vlan 102 untagged", "switchport pvid 102"]),
@@ -40,8 +40,8 @@ PRESET_MESH = [
     (6, ["no switchport general allowed vlan 1", "switchport general allowed vlan 200 untagged", "switchport pvid 200"]),
     (7, ["no switchport general allowed vlan 1", "switchport general allowed vlan 200 untagged", "switchport pvid 200"]),
     (8, ["no switchport general allowed vlan 1", "switchport general allowed vlan 200 untagged", "switchport pvid 200"]),
-    (9, ["switchport general allowed vlan 100-106,200 tagged"]),
-    (10, ["switchport general allowed vlan 100-106,200 tagged"]),
+    (9, ["switchport general allowed vlan 1 untagged", "switchport general allowed vlan 100-108,200 tagged", "switchport pvid 1"]),
+    (10, ["switchport general allowed vlan 1 untagged", "switchport general allowed vlan 100-108,200 tagged", "switchport pvid 1"]),
     (11, ["no switchport general allowed vlan 100", "switchport general allowed vlan 200 untagged", "switchport pvid 200"]),
     (12, ["no switchport general allowed vlan 101", "switchport general allowed vlan 200 untagged", "switchport pvid 200"]),
     (13, ["no switchport general allowed vlan 102", "switchport general allowed vlan 200 untagged", "switchport pvid 200"]),
@@ -55,6 +55,15 @@ PRESETS = {
     "mesh": (PRESET_MESH, True),
 }
 
+VLAN_NAMES: dict[int, str] = {
+    100: "belkin_rt3200_1",
+    101: "belkin_rt3200_2",
+    102: "belkin_rt3200_3",
+    103: "banana-pi-r4",
+    104: "openwrt-one",
+    105: "libre_router_1",
+    106: "libre_router_2",
+}
 
 def build_preset_commands(preset_name: str) -> list[str]:
     """Build CLI commands for a full VLAN preset (isolated or mesh).
@@ -66,6 +75,9 @@ def build_preset_commands(preset_name: str) -> list[str]:
 
     preset, create_vlan_200 = PRESETS[preset_name]
     cmds: list[str] = []
+
+    for vlan_id, name in VLAN_NAMES.items():
+        cmds.extend([f"vlan {vlan_id}", f'name "{name}"', "exit"])
 
     if create_vlan_200:
         cmds.extend(["vlan 200", 'name "mesh"', "exit"])
