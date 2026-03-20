@@ -2,7 +2,7 @@
 
 El **host (Lenovo)** ejecuta **dnsmasq**, que actúa como servidor **DHCP** y **TFTP** en cada VLAN. Sirve para que los DUTs descarguen firmware durante el arranque (modo recovery) y para que la interfaz WAN obtenga IP cuando está conectada.
 
-**Rutas:** `/etc/dnsmasq.conf`, `/srv/tftp/` — ver [Rutas en el host](../index.md#rutas-en-el-host).
+**Rutas:** `/etc/dnsmasq.conf`, `/srv/tftp/` - ver [Rutas en el host](../index.md#rutas-en-el-host).
 
 ---
 
