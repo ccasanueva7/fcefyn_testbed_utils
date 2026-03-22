@@ -1,4 +1,4 @@
-# Configuración del Switch - Laboratorio FCEFyN
+# Configuración del Switch
 
 En el laboratorio el switch es un **TP-Link SG2016P** (16× Gigabit, 8× PoE). La **configuración de VLAN** se **aplica mediante scripts**, no como rutina manual en el CLI del equipo. Un switch distinto con **802.1Q** puede reutilizar el mismo esquema con otro driver en `scripts/switch/switch_drivers/`.
 

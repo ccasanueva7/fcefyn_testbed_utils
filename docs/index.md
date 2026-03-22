@@ -53,6 +53,6 @@ Dependiendo de lo que necesites saber, sugerimos revisar:
 ## Secciones
 
 - **[Operar el lab](operar/SOM.md)** - Procedimientos diarios, cambio de modos, power cycle, troubleshooting. TUI de estado: [testbed-status](operar/testbed-status.md).
-- **[Configuración](configuracion/host-config.md)** - Detalle de cada componente: host, switch, gateway, DUTs, TFTP, Arduino, Ansible.
+- **[Configuración](configuracion/host-config.md)** - Detalle de cada componente: host, switch, gateway, DUTs, TFTP, Arduino, Ansible. Fotos y fichas breves: [catálogo hardware](configuracion/catalogo-hardware.md).
 - **[Tests y desarrollo](tests/libremesh-testing-approach.md)** - Enfoque de testing, proxy SSH, catálogo de firmware CI, troubleshooting Labgrid.
 - **[Diseño y propuestas](diseno/hybrid-lab-proposal.md)** - Propuestas técnicas, tracking de fases, CI, virtual mesh.
