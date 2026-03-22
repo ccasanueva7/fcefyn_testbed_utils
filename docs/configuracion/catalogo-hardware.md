@@ -1,10 +1,10 @@
 # Catálogo de hardware del lab
 
-Se presentan **imagenes y datos de identificación** del equipamiento físico del banco de pruebas. Para cableado, comandos y configuración conviene ir a las guías enlazadas en cada bloque o en la tabla final.
+Se presentan **imágenes y datos de identificación** del equipamiento físico del banco de pruebas. Los enlaces en cada bloque y la tabla final apuntan a la configuración y operación.
 
 ## Aportes y agradecimientos
 
-Parte del equipamiento llegó como **aporte** de fabricantes e instituciones (registro para trazabilidad y agradecimiento):
+Parte del equipamiento llegó como **aporte** de fabricantes e instituciones:
 
 | Aportante | Equipamiento |
 |-----------|----------------|
@@ -15,7 +15,7 @@ Parte del equipamiento llegó como **aporte** de fabricantes e instituciones (re
 
 ## Relés Arduino (rack)
 
-El **Arduino Nano** (abajo) controla la potencia de los DUTs y de la infraestructura del rack vía **11 canales** USB-Serial. Detalle de canales, UTP, comandos y daemon: [arduino-relay.md](arduino-relay.md).
+El **Arduino Nano** controla la potencia de los DUTs y de la infraestructura del rack vía **11 canales** USB-Serial. Detalle de canales, UTP, comandos y daemon: [arduino-relay.md](arduino-relay.md).
 
 ### Arduino Nano
 
@@ -71,7 +71,7 @@ Sirve para los canales **0 a 7** (pines **D2-D9** del Arduino): relés electrome
 
 ## Fuente AC (carga canal 10)
 
-La fuente que alimenta esa rama de **CA** se enchufa detrás del **Fotek**; el papel del canal 10 en el rack se explica en [arduino-relay](arduino-relay.md). Abajo va la ficha de la unidad que usamos (Coper Light metálica).
+La fuente que alimenta esa rama de **CA** se enchufa detrás del **Fotek**; el papel del canal 10 en el rack se explica en [arduino-relay](arduino-relay.md). Datos de la unidad **Coper Light** metálica:
 
 ![Fuente Coper Light metálica](../img/hardware/psu.png){: style="max-width: 260px; width: 100%; height: auto; display: block;" }
 
@@ -105,7 +105,7 @@ En el lab el encendido del cooler va por **SSR** (canal 9); detalle en [arduino-
 
 ## Hub USB
 
-En el host solemos usar un hub de **carcasa metálica** con varios puertos USB 3.0; la foto de referencia del repositorio se llama `hubusb-NSUH113Q.png`.
+Ubicado en el rack y conectado al host de orquestacón hay un hub de **carcasa metálica** con varios puertos USB 3.0.
 
 *Aporte **Nisuta** (ver [tabla arriba](#aportes-y-agradecimientos)).*
 
@@ -121,7 +121,7 @@ En el host solemos usar un hub de **carcasa metálica** con varios puertos USB 3
 | Fuente externa | 12 V, 5,4 A |
 | Por puerto USB 3.0 | Hasta 5 V, 0,9 A máx. por puerto |
 
-Con varios adaptadores seriales y periféricos a la vez, lo razonable es tener **conectada la fuente del hub** para no depender solo del bus de la PC.
+Con varios adaptadores seriales y periféricos, el hub se usa con **fuente externa conectada** además del bus USB de la PC.
 
 ## Switch gestionado (TP-Link SG2016P)
 
@@ -139,17 +139,15 @@ Switch **L2+** del lab: trunk al host y al gateway, puertos access a DUTs, parte
 
 ## Host de orquestación (Lenovo ThinkPad T430)
 
-Notebook **Ubuntu** que corre Labgrid, dnsmasq/TFTP, scripts del switch, PDUDaemon y runner de CI. Documentación operativa: [host-config.md](host-config.md).
+El host de orquestación del laboratorio es un **Lenovo ThinkPad T430** con **Ubuntu**: Labgrid, dnsmasq/TFTP, scripts del switch, PDUDaemon y runner de CI. Documentación: [host-config.md](host-config.md).
 
 ![Lenovo ThinkPad T430 (host del lab)](../img/hardware/lenovo-t430.png){: style="max-width: 420px; width: 100%; height: auto; display: block;" }
 
 | Característica | Detalle |
 |----------------|---------|
-| Modelo | **Lenovo ThinkPad T430** (línea profesional) |
+| Modelo | **Lenovo ThinkPad T430** |
 | Rol en el lab | Orquestación HIL, DHCP/TFTP por VLAN, SSH a DUTs, exporter Labgrid |
 | Red | Trunk 802.1Q al switch (Netplan + NetworkManager); ver host-config |
-
-*Nota:* En la documentación del lab el host se cita como **T430**; si en tu unidad es otra variante de la serie, actualizá modelo y foto.
 
 *Aporte **INTI** (Instituto Nacional de Tecnología Industrial).*
 
@@ -167,11 +165,11 @@ Diseño habitual con chip **CH340**; suele ser el más económico. El nivel lóg
 
 ![Adaptador USB-TTL FT232RNL](../img/hardware/usb-ttl-Ft232rnl.png){: style="max-width: 260px; width: 100%; height: auto; display: block;" }
 
-Variante con interfaz **FTDI** (en la foto, línea **FT232RNL**). En Linux suele ir bien con los drivers del kernel y resulta cómodo cuando hace falta estabilidad o compatibilidad con herramientas que reconocen bien FTDI.
+Interfaz **FTDI**, referencia **FT232RNL**; en Linux suele usarse con los drivers del kernel.
 
 ## Gateway del testbed (TP-Link TL-WDR3500)
 
-Router **OpenWrt** en el trunk al switch: VLANs de DUTs, gateway `.254` por subred. Configuración viva: [gateway.md](gateway.md).
+Router **OpenWrt** en el trunk al switch: VLANs de DUTs, gateway `.254` por subred. Detalle en [gateway.md](gateway.md).
 
 ![TP-Link TL-WDR3500 (gateway del testbed)](../img/hardware/dut-tlwdr3500.jpg){: style="max-width: 420px; width: 100%; height: auto; display: block;" }
 
@@ -194,11 +192,11 @@ Router **OpenWrt** en el trunk al switch: VLANs de DUTs, gateway `.254` por subr
 
 ## DUTs y routers del banco (referencia de hardware)
 
-Estado en rack, puertos del switch, VLANs y firmware: [duts-config.md](duts-config.md). Abajo, **ficha técnica** de los modelos que usamos (datos revisados frente a [OpenWrt Techdata](https://openwrt.org/toh/start), wiki Banana Pi y documentación del proyecto; pueden variar según revisión de placa).
+Estado en rack, puertos del switch, VLANs y firmware: [duts-config.md](duts-config.md). Siguen fichas técnicas por modelo en uso; los datos pueden variar según revisión de placa. Referencia general: [OpenWrt Techdata](https://openwrt.org/toh/start).
 
 ### OpenWrt One
 
-Placa **oficial de la comunidad OpenWrt** fabricada con Banana Pi; muy buen soporte mainline y diseño orientado a desarrollo/recuperación (doble flash).
+Placa **oficial de la comunidad OpenWrt** (hardware Banana Pi); doble flash NAND + NOR orientada a recuperación.
 
 ![OpenWrt One](../img/hardware/dut-openwrt-one.jpg){: style="max-width: 420px; width: 100%; height: auto; display: block;" }
 
@@ -237,7 +235,7 @@ Router potente con **10G** y opción Wi-Fi 7 por módulos miniPCIe; usado en el 
 | Wi-Fi | Sin radio integrada en la placa base; **2× miniPCIe** (PCIe 3.0) para módulos (p. ej. Wi-Fi 7) |
 | PoE | No integrado en la placa base |
 | USB | 1× **USB 3.2** |
-| OpenWrt | **Sí** (`mediatek/filogic`), muy usado en escenarios avanzados |
+| OpenWrt | **Sí** (`mediatek/filogic`); en el lab como DUT con enlaces 10G |
 
 *Aporte **Banana Pi**.*
 
@@ -266,7 +264,7 @@ Hardware abierto orientado a **redes comunitarias** y LibreMesh; en el lab con c
 
 ### Belkin RT3200 / Linksys E8450
 
-Mismo hardware; Wi-Fi 6 estable y muy documentado en OpenWrt (instalación **UBI**). En el lab hay unidades bajo ambas marcas.
+Mismo hardware con marcas **Belkin** (RT3200) y **Linksys** (E8450). OpenWrt usa layout **UBI**.
 
 ![Belkin RT3200](../img/hardware/dut-belkinrt3200.png){: style="max-width: 360px; width: 100%; height: auto; display: block;" }
 
@@ -280,25 +278,9 @@ Mismo hardware; Wi-Fi 6 estable y muy documentado en OpenWrt (instalación **UBI
 | RAM | 512 MB DDR3 |
 | Flash | 128 MB SPI-NAND (layout **UBI** en OpenWrt) |
 | Ethernet | 5× **1 GbE** (1 WAN + 4 LAN) |
-| Wi-Fi | Doble banda **AX3200** (4×4 en conjunto 2,4 + 5 GHz según datasheet / marketing) |
+| Wi-Fi | Doble banda **AX3200** (según especificación del fabricante) |
 | PoE | No |
-| USB | 1× USB 2.0 (expuesto en router; el SoC admite más en otros diseños) |
-| OpenWrt | **Muy maduro**; seguir guía UBI en [TOH E8450 / RT3200](https://openwrt.org/toh/linksys/e8450) |
+| USB | 1× USB 2.0 en el chasis |
+| OpenWrt | Instalación y migración **UBI**: [TOH E8450 / RT3200](https://openwrt.org/toh/linksys/e8450) |
 
 *Aporte **INTI** (Instituto Nacional de Tecnología Industrial).*
-
-## Otros componentes (enlaces)
-
-El resto del lab (red, host, tests, CI) sigue descrito en las páginas dedicadas:
-
-| Componente | Documentación |
-|------------|---------------|
-| Host de orquestación | [host-config.md](host-config.md) |
-| Switch gestión / PoE | [switch-config.md](switch-config.md) |
-| Gateway (configuración) | [gateway.md](gateway.md) |
-| DUTs (estado, puertos, VLAN) | [duts-config.md](duts-config.md) |
-| TFTP / dnsmasq | [tftp-server.md](tftp-server.md) |
-| Ansible / Labgrid | [ansible-labgrid.md](ansible-labgrid.md) |
-| CI self-hosted runner | [ci-runner.md](ci-runner.md) |
-
-Se puede ir ampliando este catálogo con más fotos o fichas cuando entre hardware nuevo que valga la pena documentar aquí.
