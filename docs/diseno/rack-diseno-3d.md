@@ -44,20 +44,7 @@ En `3d_parts/`, las piezas con fuente OpenSCAD llevan un `.scad` homónimo del S
 
 ## Ventilador 120 mm (Bosser) y ensamble con conducto
 
-Abajo usamos un **axial de marco 120 mm** a **220 V** de red (no los 12 V del Arduino): va en la base del rack y empuja aire hacia el conducto curvo impreso.
-
-| Característica | Valor |
-|----------------|-------|
-| Marca | Bosser |
-| Línea | Coolers 220 V |
-| Modelo | **CBO-12038B-220** |
-| Alimentación | AC **220 V** |
-| Corriente | 0,09 A |
-| Frecuencia | 50 / 60 Hz |
-| Rodamiento | Ruleman |
-| Formato | Marco **120 × 120 mm** |
-
-![Ventilador Bosser 120 mm (referencia del producto)](../img/rack/cooler.png){: style="max-width: 420px; width: 100%; height: auto;" }
+Abajo va un **axial 120 mm** a **220 V** que empuja aire hacia el conducto curvo impreso. Ficha del modelo, tabla y foto de referencia del producto: [Catálogo de hardware - Ventilador Bosser 120 mm](../configuracion/catalogo-hardware.md#ventilador-bosser-120-mm-rack).
 
 El **conducto de admisión curvado** (`curved_intake_duct`) se atornilla a la brida del ventilador (cuatro tornillos) y encaja con la chimenea vertical.
 
