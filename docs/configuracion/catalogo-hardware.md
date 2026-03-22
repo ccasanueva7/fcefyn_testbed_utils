@@ -1,6 +1,6 @@
 # Catálogo de hardware del lab
 
-Se presentan **imágenes y datos de identificación** del equipamiento físico del banco de pruebas. Los enlaces en cada bloque y la tabla final apuntan a la configuración y operación.
+Se presentan **imágenes y datos de identificación** del equipamiento físico del banco de pruebas. Los enlaces en cada bloque apuntan a la configuración y operación.
 
 ## Aportes y agradecimientos
 
