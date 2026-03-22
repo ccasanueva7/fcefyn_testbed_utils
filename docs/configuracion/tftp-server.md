@@ -1,12 +1,14 @@
-# Servidor TFTP y dnsmasq – Banco de Pruebas HIL
+# Servidor TFTP y dnsmasq, Banco de Pruebas HIL
 
-El **host (Lenovo)** ejecuta **dnsmasq**, que actúa como servidor **DHCP** y **TFTP** en cada VLAN. Sirve para que los DUTs descarguen firmware durante el arranque (modo recovery) y para que la interfaz WAN obtenga IP cuando está conectada.
+El host de orquestación ejecuta **dnsmasq**, que actúa como servidor **DHCP** y **TFTP** en cada VLAN. Sirve para que los DUTs descarguen firmware durante el arranque (modo recovery) y para que la interfaz WAN obtenga IP cuando está conectada.
 
-**Rutas:** `/etc/dnsmasq.conf`, `/srv/tftp/` - ver [Rutas en el host](../index.md#rutas-en-el-host).
+**Rutas:** `/etc/dnsmasq.conf`, `/srv/tftp/`.
+
+**Índice:** 1. dnsmasq \| 2. configuración \| 3. directorios TFTP \| 4. Labgrid \| 5. firmware \| 6. verificación \| 7. retención \| 8. referencias (títulos numerados debajo; el TOC lateral de MkDocs enlaza cada sección).
 
 ---
 
-## 1. Qué hace dnsmasq aquí
+## 1. Para qué dnsmasq
 
 dnsmasq ofrece DNS, DHCP y TFTP. Aquí usamos solo **DHCP** y **TFTP** (DNS deshabilitado con `port=0`).
 
@@ -20,7 +22,7 @@ flowchart LR
     tftp --> flash["Flasheo y reboot"]
 ```
 
-El host debe tener DHCP y TFTP activos en **cada VLAN** donde hay un DUT. Si falta la VLAN en dnsmasq, el DUT no obtiene IP ni puede descargar. El gateway del testbed (OpenWrt) tampoco sirve DHCP en las VLANs de prueba; el host lo hace con dnsmasq. Contexto: [gateway.md](./gateway.md).
+El host debe tener DHCP y TFTP activos en **cada VLAN** donde hay un DUT. Si falta la VLAN en dnsmasq, el DUT no obtiene IP ni puede descargar. El gateway del testbed tampoco sirve DHCP en las VLANs de prueba; el host lo hace con dnsmasq. Contexto: [gateway.md](./gateway.md).
 
 | Componente | Relación |
 |------------|----------|
@@ -32,10 +34,10 @@ El host debe tener DHCP y TFTP activos en **cada VLAN** donde hay un DUT. Si fal
 
 ## 2. Configuración
 
-- **Archivo:** `/etc/dnsmasq.conf`
-- **Origen:** `openwrt-tests/ansible/files/exporter/labgrid-fcefyn/dnsmasq.conf`
+- **Archivo en el host:** `/etc/dnsmasq.conf`
+- **Origen al desplegar con Ansible:** `ansible/files/exporter/<inventory_hostname>/dnsmasq.conf` en el repositorio desde el que se ejecuta `playbook_labgrid.yml` (copia al host). Tabla de rutas: [ansible-labgrid](ansible-labgrid.md).
 
-Para FCEFyN: VLANs 100–108, una por DUT. Ejemplo:
+Para FCEFyN: VLANs 100-108, una por DUT. Ejemplo:
 
 ```
 port=0
@@ -46,7 +48,7 @@ enable-tftp
 tftp-root=/srv/tftp/
 ```
 
-Mapeo VLAN ↔ DUT: [rack-cheatsheets.md](../operar/rack-cheatsheets.md).
+Mapeo VLAN y DUT: [rack-cheatsheets.md](../operar/rack-cheatsheets.md).
 
 ---
 
@@ -98,12 +100,12 @@ El usuario que corre los tests debe tener **permiso de escritura** en cada carpe
 
 ### 5.1 Permisos (una vez)
 
-El usuario que ejecuta los tests (`laryc`) debe poder crear y modificar archivos en las carpetas DUT:
+El **usuario del host** que ejecuta Labgrid/pytest debe poder crear y modificar archivos en las carpetas DUT (sustituir `USUARIO`):
 
 ```bash
-sudo chown -R laryc:laryc /srv/tftp/belkin_rt3200_1/ /srv/tftp/belkin_rt3200_2/ /srv/tftp/belkin_rt3200_3/ \
+sudo chown -R USUARIO:USUARIO /srv/tftp/belkin_rt3200_1/ /srv/tftp/belkin_rt3200_2/ /srv/tftp/belkin_rt3200_3/ \
   /srv/tftp/bananapi_bpi-r4/ /srv/tftp/openwrt_one/ /srv/tftp/librerouter_1/
-# Añadir más carpetas DUT según el lab
+# Añadir más carpetas DUT según el lab; ver mapeo en rack-cheatsheets
 ```
 
 ### 5.2 Procedimiento
@@ -136,7 +138,7 @@ sudo chown -R laryc:laryc /srv/tftp/belkin_rt3200_1/ /srv/tftp/belkin_rt3200_2/ 
 - Archivos reales → siempre en `firmwares/<device>/`. Nunca en carpetas DUT.
 - Symlinks → solo en carpetas DUT. Usar rutas absolutas.
 - Verificar: `readlink -f /srv/tftp/<dut>/<symlink>` debe mostrar un archivo existente.
-- `tree -L 3 /srv/tftp` — symlinks en azul = ok, en rojo = roto.
+- `tree -L 3 /srv/tftp`: symlinks en azul = ok, en rojo = roto.
 
 ### 5.4 Borrar symlinks rotos
 
@@ -202,14 +204,16 @@ find /srv/tftp/firmwares/ -type f -printf '%T+ %p\n' | sort
 find /srv/tftp/ -type l -lname '*<filename>' -print
 # 2. Si no hay symlinks, borrar
 sudo rm /srv/tftp/firmwares/<device>/<filename>
-# 3. Limpiar symlinks rotos resultantes (ver §5.4)
+# 3. Limpiar symlinks rotos resultantes (ver sección 5.4)
 ```
 
-Ver también [ci-use-cases-proposal](../diseno/ci-use-cases-proposal.md) §4.5 para el contexto de diseño.
+Ver también [ci-use-cases-proposal](../diseno/ci-use-cases-proposal.md) sección 4.5 para el contexto de diseño.
 
 ---
 
 ## 8. Referencias
 
-- [SOM.md](../operar/SOM.md) – Ejecutar tests
-- [host-config.md](./host-config.md) – Host y PDUDaemon
+- [ansible-labgrid.md](./ansible-labgrid.md) - Despliegue de `dnsmasq.conf` y exporter
+- [SOM.md](../operar/SOM.md) - Ejecutar tests
+- [host-config.md](./host-config.md) - Host y PDUDaemon
+- [rack-cheatsheets.md](../operar/rack-cheatsheets.md) - Mapeo DUT ↔ carpetas TFTP

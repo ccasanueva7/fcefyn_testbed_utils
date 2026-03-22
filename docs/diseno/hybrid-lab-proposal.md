@@ -16,8 +16,8 @@ Un laboratorio HIL (Hardware-in-the-Loop) que dispone de varios DUTs ( routers O
 
 Permitir que un mismo lab contribuya a:
 
-- **openwrt-tests** — CI de OpenWrt vanilla (coordinator remoto, ej. Aparcar)
-- **libremesh-tests** — Fork para testing de LibreMesh (coordinator local en nuestro caso)
+- **openwrt-tests** - CI de OpenWrt vanilla (coordinator remoto, ej. Aparcar)
+- **libremesh-tests** - Fork para testing de LibreMesh (coordinator local en nuestro caso)
 
 con **conmutación entre modos** mediante un único comando CLI, o bien un **reparto simultáneo** de DUTs entre ambos proyectos en modo híbrido.
 
@@ -27,7 +27,7 @@ con **conmutación entre modos** mediante un único comando CLI, o bien un **rep
 
 ### 2.1 Por qué openwrt-tests requiere VLANs aisladas
 
-En openwrt-tests, cada DUT debe estar en su propia VLAN (100–108). La razón es que **OpenWrt vanilla asigna la misma IP a todos los dispositivos**:
+En openwrt-tests, cada DUT debe estar en su propia VLAN (100-108). La razón es que **OpenWrt vanilla asigna la misma IP a todos los dispositivos**:
 
 - **IP por defecto**: `192.168.1.1` en `br-lan`
 - **Servidor DHCP**: `odhcpd` activo en cada DUT ofreciendo IPs en 192.168.1.x
@@ -67,7 +67,7 @@ LibreMesh **no comparte** la premisa de OpenWrt vanilla. Está pensado para rede
 
 **Conclusión**: LibreMesh puede operar con todos los DUTs en una VLAN compartida (VLAN 200) porque asigna IPs únicas por diseño. La propuesta contempla:
 
-- **Modo isolated** (VLANs 100–108): para tests OpenWrt
+- **Modo isolated** (VLANs 100-108): para tests OpenWrt
 - **Modo mesh** (VLAN 200): para tests LibreMesh (single-node y multi-nodo)
 
 ---
@@ -88,7 +88,7 @@ LibreMesh **no comparte** la premisa de OpenWrt vanilla. Está pensado para rede
 
 | Tipo test | Topología | Uso |
 |-----------|-----------|-----|
-| **OpenWrt** | 1 DUT por VLAN (100–108) | Tests aislados |
+| **OpenWrt** | 1 DUT por VLAN (100-108) | Tests aislados |
 | **LibreMesh** | DUTs en VLAN 200 compartida | Tests single-node y multi-nodo |
 
 ### 4.1 Topología de red física
@@ -115,7 +115,7 @@ flowchart TB
 
 ### 4.2 Esquema de VLANs
 
-- **VLANs 100–108**: OpenWrt (una por DUT).
+- **VLANs 100-108**: OpenWrt (una por DUT).
 - **VLAN 200**: LibreMesh mesh compartida.
 
 ### 4.3 Direccionamiento IP

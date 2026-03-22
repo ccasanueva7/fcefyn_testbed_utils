@@ -1,4 +1,4 @@
-# Docs – Lab FCEFyN
+# Docs - Lab FCEFyN
 
 Documentación del banco de pruebas HIL para OpenWrt y LibreMesh.
 
@@ -55,7 +55,7 @@ flowchart TB
 ```
 
 **Host:** orquesta tests, control de alimentación, SSH a los DUTs. dnsmasq DHCP y TFTP en cada VLAN.  
-**Switch:** VLAN por DUT (100–108) o compartida (200 mesh).  
+**Switch:** VLAN por DUT (100-108) o compartida (200 mesh).  
 **Gateway:** OpenWrt en el trunk al switch; enruta entre VLANs del testbed e internet (vía uplink). No proporciona DHCP en las VLANs de prueba (lo hace el host). Detalle: [gateway](configuracion/gateway.md).
 
 ---
@@ -80,7 +80,7 @@ flowchart TB
 
 1. Ubuntu, interfaz Ethernet para trunk. Clonar `openwrt-tests` y `fcefyn-testbed-utils`.
 2. Netplan: copiar, ajustar `link`, `netplan apply`.
-3. dnsmasq, PDUDaemon, exporter: copiar, reiniciar. Override PoE si aplica; ver [host-config 5.2.1](configuracion/host-config.md#521-pdu-poe-fcefyn-poe-contraseña-para-pdudaemon-con-dynamicuser).
+3. dnsmasq, PDUDaemon, exporter: copiar, reiniciar. Override PoE si aplica; ver [host-config 5.2.1](configuracion/host-config.md#521-pdu-poe-contrasena-con-dynamicuser).
 4. Udev: copiar reglas, `udevadm control --reload-rules`.
 5. Scripts: instalar `scripts/arduino/arduino_relay_control.py`, `scripts/switch/poe_switch_control.py` en `/usr/local/bin/`. Servicio `arduino-relay-daemon`; ver [arduino-relay 6](configuracion/arduino-relay.md#6-arduino-relay-daemon-arduino_daemonpy).
 6. TFTP: crear `/srv/tftp/` y subcarpetas.
