@@ -2,7 +2,7 @@
 # Laboratorio FCEFyN - Reglas Udev para Dispositivos Seriales
 # =============================================================================
 # Archivo: /etc/udev/rules.d/99-serial-devices.rules
-# Hub USB: Nisuta NSUH113Q (10 puertos, compatible con uhubctl)
+# Hub USB: Nisuta NSUH113Q (10 puertos)
 #
 # Layout del hub USB:
 #   Puerto 1: Arduino Nano     | Puerto 6: Librerouter 1
