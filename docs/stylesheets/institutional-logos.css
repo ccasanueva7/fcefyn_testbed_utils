@@ -1,0 +1,49 @@
+/* Compact institutional strip above the site footer; keeps logos small and unobtrusive. */
+
+.md-institutional-bar {
+  border-top: 1px solid var(--md-default-fg-color--lightest);
+  padding: 0.4rem 0 0.35rem;
+  background-color: var(--md-default-bg-color);
+}
+
+.md-institutional-bar__inner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  max-width: 100%;
+}
+
+.md-institutional-bar__logos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(1rem, 4vw, 2rem);
+}
+
+.md-institutional-bar__link {
+  display: inline-flex;
+  align-items: center;
+  line-height: 0;
+  opacity: 0.9;
+  transition: opacity 0.15s ease;
+}
+
+.md-institutional-bar__link:hover,
+.md-institutional-bar__link:focus-visible {
+  opacity: 1;
+}
+
+/* Cap visual weight: height limit, width follows aspect ratio */
+.md-institutional-bar__link img {
+  display: block;
+  max-height: 32px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
+/* Slight lift on dark scheme if logos are dark-on-transparent */
+[data-md-color-scheme="slate"] .md-institutional-bar__link img {
+  filter: brightness(1.06);
+}
