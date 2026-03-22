@@ -96,7 +96,8 @@ Carcasas originales demasiado voluminosas para el rack; base impresa para ahorra
 
 Base / bandeja **abierta por delante** para el LibreRouter en el rack: fondo ranurado para paso de aire, laterales con ventilación y **standoffs** para la PCB. Encaja con la idea de no tapar el equipo y dejar que la chimenea alimente flujo en el cajón.
 
-**Archivo:** `3d_parts/CE3PRO_librerouter_rack.stl`. El nombre refleja que la orientación y soportes se probaron en **Creality Ender 3 Pro**; en otra impresora conviene revisar adherencia y orientación antes de tirar una pieza larga.
+!!! tip "STL y orientación de impresión"
+    Archivo: `3d_parts/CE3PRO_librerouter_rack.stl`. El nombre indica que la orientación y soportes se probaron en **Creality Ender 3 Pro**; en otra impresora conviene revisar adherencia y orientación antes de imprimir una pieza larga.
 
 ![Carcasa abierta impresa para LibreRouter](../img/rack/librerouter-opencase.jpeg){: style="max-width: 420px; width: 100%; height: auto;" }
 

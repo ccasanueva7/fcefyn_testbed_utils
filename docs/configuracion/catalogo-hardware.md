@@ -188,7 +188,8 @@ Router **OpenWrt** en el trunk al switch: VLANs de DUTs, gateway `.254` por subr
 | USB | 1× USB 2.0 |
 | OpenWrt | **ath79**; en el lab como gateway (p. ej. 24.x / 25.x). [TOH / techdata](https://openwrt.org/toh/hwdata/tp-link/tp-link_tl-wdr3500_v1) |
 
-*Nota:* Para estándares actuales el CPU y el Ethernet Fast-Ethernet son limitantes; basta como **router VLAN/gateway** del banco, no como DUT de alto rendimiento.
+!!! note "Rol del TL-WDR3500 en el banco"
+    Para estándares actuales el CPU y el Ethernet Fast Ethernet son limitantes; el equipo basta como **router VLAN/gateway** del banco, no como DUT de alto rendimiento.
 
 *Aporte **INTI** (Instituto Nacional de Tecnología Industrial).*
 

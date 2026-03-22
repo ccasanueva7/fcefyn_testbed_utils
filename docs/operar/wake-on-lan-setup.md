@@ -58,7 +58,8 @@ sudo ethtool -s enp0s25 wol g
 
 ### 3.3 Comportamiento tras reinicio
 
-**Importante:** Sin configuración adicional, el setting se pierde al reiniciar. Por eso se usa el servicio systemd de persistencia (sección 4) o el rol Ansible (sección 5).
+!!! warning "Persistencia de WoL"
+    Sin configuración adicional, el ajuste se pierde al reiniciar. Por eso se usa el servicio systemd de persistencia (sección 4) o el rol Ansible (sección 5).
 
 ---
 
@@ -90,10 +91,8 @@ RemainAfterExit=yes
 WantedBy=multi-user.target
 ```
 
-> **Nota:** El servicio debe correr **después** de NetworkManager. Si se usa
-> `After=network.target`, NM puede resetear `Wake-on` a `d` al configurar la
-> interfaz después de que el servicio ya la puso en `g`. El `ExecStartPre=sleep 5`
-> da margen para que NM termine.
+!!! note "Orden respecto de NetworkManager"
+    El servicio debe correr **después** de NetworkManager. Si se usa `After=network.target`, NM puede resetear `Wake-on` a `d` al configurar la interfaz después de que el servicio ya la puso en `g`. El `ExecStartPre=sleep 5` da margen para que NM termine.
 
 ### 4.2 Habilitar el servicio
 

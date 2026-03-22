@@ -23,7 +23,8 @@ El Arduino Nano controla **11 canales** por USB-Serial. Puerto: `/dev/arduino-re
 | **9** | D11 | Cooler Booster AC | Módulo SSR 4 canales, CH2 | Activo-bajo |
 | **10** | D12 | Fuente de alimentación | Fotek SSR-25DA (individual) | **Activo-alto** |
 
-**Nota:** Canal 10: HIGH = ON. Canales 0-9: LOW = ON.
+!!! note "Polaridad de los canales"
+    Canal 10: HIGH = ON. Canales 0-9: LOW = ON.
 
 ### 2.2 DUTs (relés mecánicos)
 
