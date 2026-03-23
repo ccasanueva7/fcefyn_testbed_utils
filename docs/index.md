@@ -20,7 +20,7 @@ La documentación cubre:
 - **Cubrir targets físicos y emulados**: permitir pruebas sobre **dispositivos físicos** dispuestos en un rack mediante enlaces físicos y sobre instancias [QEMU](https://www.qemu.org/) aprovisionadas con enlances WiFi simulados mediante [vwifi](https://github.com/sysprog21/vwifi).
 - **Operar un laboratorio compartido**: bajo distintos modos de trabajo, y brindando acceso remoto para los administradores.
 
-### Vista general del banco
+### Vista general del Banco de Pruebas
 
 Relación entre host de orquestación, switch, gateway, DUTs, alimentación y acceso serial:
 
@@ -40,12 +40,3 @@ El diagrama anterior resume la topología: host, switch, gateway y rack.
 | **Revisor o colaborador** | [Propuesta lab híbrido](diseno/hybrid-lab-proposal.md) | [Tracking](diseno/hybrid-lab-tracking.md), [CI](diseno/ci-use-cases-proposal.md) |
 | **Desarrollador (tests)** | [Enfoque de testing](tests/libremesh-testing-approach.md) | [Manual de operación](operar/SOM.md) para ejecución en el lab |
 
-
----
-
-## Secciones
-
-- **[Operar el lab](operar/SOM.md)** - Procedimientos diarios, cambio de modos, power cycle, troubleshooting. TUI de estado: [testbed-status](operar/testbed-status.md).
-- **[Configuración](configuracion/host-config.md)** - Detalle de cada componente: host, switch, gateway, DUTs, TFTP, Arduino, Ansible. Fotos y fichas breves: [catálogo hardware](configuracion/catalogo-hardware.md).
-- **[Tests y desarrollo](tests/libremesh-testing-approach.md)** - Enfoque de testing, proxy SSH, catálogo de firmware CI, troubleshooting Labgrid.
-- **[Diseño y propuestas](diseno/hybrid-lab-proposal.md)** - Propuestas técnicas, tracking de fases, CI, virtual mesh.
