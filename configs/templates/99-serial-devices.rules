@@ -40,7 +40,7 @@ SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", ATTRS{seria
 
 # Librerouter 2  - FTDI, serial BG01PX0W
 SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", ATTRS{serial}=="BG01PX0W", \
-  SYMLINK+="librerouter-1", MODE="0666", GROUP="dialout", ENV{ID_MM_DEVICE_IGNORE}="1"
+  SYMLINK+="librerouter-2", MODE="0666", GROUP="dialout", ENV{ID_MM_DEVICE_IGNORE}="1"
 
 # --- Por puerto: deben permanecer en el puerto asignado (KERNELS con wildcard) ---
 
