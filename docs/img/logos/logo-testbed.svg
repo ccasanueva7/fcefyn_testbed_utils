@@ -1,66 +1,117 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 680" width="100%">
-  <!-- Base -->
-  <circle cx="340" cy="340" r="310" fill="#0E2F28"/>
-  <circle cx="340" cy="340" r="286" fill="#1A9E82"/>
+  <defs>
+    <linearGradient id="bgRingGradient" x1="120" y1="100" x2="560" y2="580" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#102f29"/>
+      <stop offset="100%" stop-color="#081513"/>
+    </linearGradient>
 
-  <!-- WiFi symbol (thicker arcs +25%) -->
-  <g>
+    <linearGradient id="innerFillGradient" x1="170" y1="120" x2="520" y2="560" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#29c7a4"/>
+      <stop offset="100%" stop-color="#17856f"/>
+    </linearGradient>
+
+    <linearGradient id="routerGrad" x1="182" y1="446" x2="504" y2="528" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#34404d"/>
+      <stop offset="100%" stop-color="#212a34"/>
+    </linearGradient>
+
+    <linearGradient id="signalGradOuter" x1="145" y1="78" x2="535" y2="205" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#b6fff0"/>
+      <stop offset="100%" stop-color="#76d9c4"/>
+    </linearGradient>
+
+    <linearGradient id="signalGradMid" x1="185" y1="102" x2="495" y2="180" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#93e8d8"/>
+      <stop offset="100%" stop-color="#5fbba7"/>
+    </linearGradient>
+
+    <linearGradient id="signalGradInner" x1="225" y1="122" x2="455" y2="165" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#d6fff7"/>
+      <stop offset="100%" stop-color="#97d9cb"/>
+    </linearGradient>
+
+    <radialGradient id="screenGlow" cx="50%" cy="44%" r="62%">
+      <stop offset="0%" stop-color="rgba(255,255,255,.22)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Fondo -->
+  <circle cx="340" cy="340" r="310" fill="url(#bgRingGradient)"/>
+  <circle cx="340" cy="340" r="284" fill="url(#innerFillGradient)"/>
+
+  <!-- Brillo -->
+  <ellipse cx="300" cy="156" rx="180" ry="90" fill="rgba(255,255,255,0.08)"/>
+
+  <!-- WiFi: arcos más juntos -->
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
     <!-- outer -->
-    <path d="M 160 178 A 180 180 0 0 0 520 178"
-          fill="none" stroke="#0B0F14" stroke-width="26" stroke-linecap="round"/>
-    <path d="M 160 178 A 180 180 0 0 0 520 178"
-          fill="none" stroke="#2F3E4D" stroke-width="21" stroke-linecap="round"/>
+    <path d="M 145 182 A 195 195 0 0 0 535 182"
+          stroke="#0a1013" stroke-width="26"/>
+    <path d="M 145 182 A 195 195 0 0 0 535 182"
+          stroke="url(#signalGradOuter)" stroke-width="21"/>
 
     <!-- middle -->
-    <path d="M 205 148 A 135 135 0 0 0 475 148"
-          fill="none" stroke="#0B0F14" stroke-width="26" stroke-linecap="round"/>
-    <path d="M 205 148 A 135 135 0 0 0 475 148"
-          fill="none" stroke="#466176" stroke-width="21" stroke-linecap="round"/>
+    <path d="M 185 155 A 155 155 0 0 0 495 155"
+          stroke="#0a1013" stroke-width="26"/>
+    <path d="M 185 155 A 155 155 0 0 0 495 155"
+          stroke="url(#signalGradMid)" stroke-width="21"/>
 
     <!-- inner -->
-    <path d="M 250 118 A 90 90 0 0 0 430 118"
-          fill="none" stroke="#0B0F14" stroke-width="26" stroke-linecap="round"/>
-    <path d="M 250 118 A 90 90 0 0 0 430 118"
-          fill="none" stroke="#6E8DA3" stroke-width="21" stroke-linecap="round"/>
+    <path d="M 225 128 A 115 115 0 0 0 455 128"
+          stroke="#0a1013" stroke-width="26"/>
+    <path d="M 225 128 A 115 115 0 0 0 455 128"
+          stroke="url(#signalGradInner)" stroke-width="21"/>
 
     <!-- dot -->
-    <circle cx="340" cy="84" r="19" fill="#0B0F14"/>
-    <circle cx="340" cy="84" r="14" fill="#6E8DA3"/>
+    <circle cx="340" cy="100" r="20" fill="#0a1013"/>
+    <circle cx="340" cy="100" r="14" fill="#d7fff8"/>
   </g>
 
-  <!-- Router -->
-  <g transform="translate(340 474) scale(1.22) translate(-340 -474)" opacity="0.98">
-    <!-- antennas -->
-    <line x1="255" y1="440" x2="228" y2="385"
-          stroke="#0B0F14" stroke-width="11" stroke-linecap="round"/>
-    <line x1="425" y1="440" x2="452" y2="385"
-          stroke="#0B0F14" stroke-width="11" stroke-linecap="round"/>
+  <!-- Router: un poco más grande -->
+  <g transform="translate(340 470) scale(1.08) translate(-340 -470)">
+    <!-- sombras antenas -->
+    <line x1="250" y1="447" x2="220" y2="372"
+          stroke="#0a1013" stroke-width="13" stroke-linecap="round"/>
+    <line x1="430" y1="447" x2="460" y2="372"
+          stroke="#0a1013" stroke-width="13" stroke-linecap="round"/>
+
+    <!-- antenas -->
+    <line x1="252" y1="444" x2="224" y2="374"
+          stroke="#2a3641" stroke-width="9" stroke-linecap="round"/>
+    <line x1="428" y1="444" x2="456" y2="374"
+          stroke="#2a3641" stroke-width="9" stroke-linecap="round"/>
 
     <!-- joints -->
-    <circle cx="255" cy="440" r="5.5" fill="#0B0F14"/>
-    <circle cx="425" cy="440" r="5.5" fill="#0B0F14"/>
+    <circle cx="252" cy="444" r="7" fill="#12181d"/>
+    <circle cx="428" cy="444" r="7" fill="#12181d"/>
 
-    <!-- body -->
-    <rect x="175" y="440" width="330" height="78" rx="16"
-          fill="#2A3441" stroke="#0B0F14" stroke-width="11"/>
+    <!-- sombra -->
+    <rect x="174" y="440" width="332" height="84" rx="22" fill="#0a1013" opacity=".38"/>
 
-    <!-- top highlight -->
-    <line x1="202" y1="460" x2="478" y2="460"
-          stroke="#5B6B79" stroke-width="4.5" stroke-linecap="round" opacity="0.82"/>
+    <!-- cuerpo -->
+    <rect x="176" y="432" width="328" height="82" rx="20"
+          fill="url(#routerGrad)" stroke="#12181d" stroke-width="8"/>
+
+    <!-- highlight -->
+    <path d="M200 450 C240 440, 440 440, 478 450"
+          fill="none" stroke="rgba(255,255,255,.26)" stroke-width="5" stroke-linecap="round"/>
 
     <!-- LEDs -->
-    <circle cx="228" cy="480" r="7" fill="#E5533D"/>
-    <circle cx="255" cy="480" r="7" fill="#D1A72C"/>
-    <circle cx="282" cy="480" r="7" fill="#3FB950"/>
+    <circle cx="228" cy="475" r="8" fill="#ef5b4c"/>
+    <circle cx="258" cy="475" r="8" fill="#e1b534"/>
+    <circle cx="288" cy="475" r="8" fill="#44d26a"/>
 
-    <!-- ports -->
-    <rect x="395" y="468" width="32" height="24" rx="4"
-          fill="#1C252F" stroke="#5B6B79" stroke-width="2.2"/>
-    <rect x="440" y="468" width="32" height="24" rx="4"
-          fill="#1C252F" stroke="#5B6B79" stroke-width="2.2"/>
+    <!-- línea -->
+    <path d="M214 498 H324" stroke="#596877" stroke-width="6" stroke-linecap="round"/>
 
-    <!-- slot -->
-    <line x1="214" y1="505" x2="325" y2="505"
-          stroke="#4A5A68" stroke-width="6" stroke-linecap="round"/>
+    <!-- puertos -->
+    <rect x="394" y="463" width="34" height="25" rx="5"
+          fill="#172028" stroke="#718394" stroke-width="2.4"/>
+    <rect x="439" y="463" width="34" height="25" rx="5"
+          fill="#172028" stroke="#718394" stroke-width="2.4"/>
+
+    <!-- glow -->
+    <ellipse cx="340" cy="440" rx="118" ry="24" fill="url(#screenGlow)" opacity=".22"/>
   </g>
 </svg>
