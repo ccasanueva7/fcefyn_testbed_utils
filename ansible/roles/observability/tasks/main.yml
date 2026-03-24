@@ -51,7 +51,8 @@
 
 # Inline jobs under scrape_configs: via blockinfile break YAML: Ansible's literal
 # block strips common indentation, so "- job_name" loses the two spaces Prometheus needs.
-# Use scrape_config_files + a dedicated fragment (list of jobs) instead.
+# Use scrape_config_files + a dedicated fragment; each file must have root key scrape_configs:
+# (not a bare list — see promtool / Prometheus config).
 
 - name: Remove legacy inline openwrt-one block from prometheus.yml (if present)
   ansible.builtin.blockinfile:

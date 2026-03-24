@@ -1,8 +1,10 @@
 # OpenWrt One PoC — fragmento para scrape_config_files
 #
-# Ansible copia este archivo a /etc/prometheus/jobs.d/openwrt-one.yml y registra
-# scrape_config_files en /etc/prometheus/prometheus.yml (no se pega el job dentro
-# de scrape_configs: para evitar errores de indentación con blockinfile).
+# Cada archivo en scrape_config_files debe tener la clave raíz scrape_configs:
+# (no una lista suelta de jobs; ver promtool / upstream).
+#
+# Ansible copia este archivo a /etc/prometheus/jobs.d/openwrt-one.yml y declara
+# scrape_config_files en /etc/prometheus/prometheus.yml.
 #
 # Métricas vía túnel SSH: dut-metrics-tunnel-openwrt-one.service → 127.0.0.1:19100
 #
@@ -12,12 +14,13 @@
 #   uci commit prometheus-node-exporter-lua
 #   /etc/init.d/prometheus-node-exporter-lua enable && /etc/init.d/prometheus-node-exporter-lua start
 
-- job_name: 'openwrt-one'
-  scrape_interval: 30s
-  scrape_timeout: 10s
-  static_configs:
-    - targets: ['127.0.0.1:19100']
-      labels:
-        dut: 'openwrt-one'
-        firmware: 'openwrt-24.10.5'
-        target: 'mediatek-filogic'
+scrape_configs:
+  - job_name: 'openwrt-one'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    static_configs:
+      - targets: ['127.0.0.1:19100']
+        labels:
+          dut: 'openwrt-one'
+          firmware: 'openwrt-24.10.5'
+          target: 'mediatek-filogic'
