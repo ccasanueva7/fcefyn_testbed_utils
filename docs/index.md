@@ -9,6 +9,7 @@ La documentación cubre:
 * Componentes de hardware y software junto con sus configuraciones 
 * Topología de red
 * Integraciones con las suites de tests e infraestructura de pruebas de [openwrt-tests](https://github.com/aparcar/openwrt-tests) y su fork [libremesh-tests](https://github.com/francoriba/libremesh-tests)
+* [Demos en video](demos.md) del laboratorio (YouTube embebido)
 
 ---
 
@@ -38,3 +39,4 @@ El diagrama anterior resume la topología: host, switch, gateway y rack.
 |--------|-------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
 | **Administrador del lab** | [Manual de operación](operar/SOM.md) | [Dashboard testbed-status](operar/testbed-status.md), [Rack cheatsheets](operar/rack-cheatsheets.md), [Agregar un DUT](operar/adding-dut-guide.md) |
 | **Revisor o colaborador** | [Propuesta lab híbrido](diseno/hybrid-lab-proposal.md) | [CI-usecases-proposal](diseno/ci-use-cases-proposal.md)                                                                                            |
+| **Demos (vídeo)** | [Demos](demos.md) | Acceso remoto al banco HIL y otras grabaciones                                                                                                      |

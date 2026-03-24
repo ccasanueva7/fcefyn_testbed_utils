@@ -47,9 +47,11 @@ markdown_extensions:
 
 extra_css:
   - stylesheets/institutional-logos.css
+  - stylesheets/demos.css
 
 nav:
   - Inicio: index.md
+  - Demos: demos.md
   - Operar el lab:
       - Manual de operación: operar/SOM.md
       - Dashboard testbed-status: operar/testbed-status.md
