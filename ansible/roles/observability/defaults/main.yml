@@ -49,7 +49,7 @@ observability_duts:
     remote_port: 9100
     labels:
       dut: belkin-2
-      firmware: libremesh-2024.1
+      firmware: openwrt-23.05.5
       target: mediatek-mt7622
 
   - name: belkin-3
