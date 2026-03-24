@@ -16,6 +16,15 @@
 # ssh_alias must match pool-config.yaml. Label dut should match Grafana variable values.
 
 observability_duts:
+  - name: gateway-openwrt
+    ssh_alias: gateway-openwrt
+    local_port: 19106
+    remote_port: 9100
+    labels:
+      dut: gateway-wdr3500
+      firmware: openwrt-25.12.1
+      target: ath79-tplink
+
   - name: openwrt-one
     ssh_alias: dut-openwrt-one
     local_port: 19100
