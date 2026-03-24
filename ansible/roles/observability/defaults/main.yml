@@ -12,6 +12,8 @@
 #
 # local_port: host-side port for the SSH tunnel (unique per DUT, range 19100–19199)
 # remote_port: exporter port on the DUT loopback (default 9100)
+#
+# ssh_alias must match pool-config.yaml. Label dut should match Grafana variable values.
 
 observability_duts:
   - name: openwrt-one
@@ -22,3 +24,48 @@ observability_duts:
       dut: openwrt-one
       firmware: openwrt-24.10.5
       target: mediatek-filogic
+
+  - name: belkin-1
+    ssh_alias: dut-belkin-1
+    local_port: 19101
+    remote_port: 9100
+    labels:
+      dut: belkin-1
+      firmware: openwrt-23.05.5
+      target: mediatek-mt7622
+
+  - name: belkin-2
+    ssh_alias: dut-belkin-2
+    local_port: 19102
+    remote_port: 9100
+    labels:
+      dut: belkin-2
+      firmware: libremesh-2024.1
+      target: mediatek-mt7622
+
+  - name: belkin-3
+    ssh_alias: dut-belkin-3
+    local_port: 19103
+    remote_port: 9100
+    labels:
+      dut: belkin-3
+      firmware: openwrt-23.05.5
+      target: mediatek-mt7622
+
+  - name: bananapi
+    ssh_alias: dut-bananapi
+    local_port: 19104
+    remote_port: 9100
+    labels:
+      dut: bananapi
+      firmware: openwrt-24.10.5
+      target: mediatek-mt7988
+
+  - name: librerouter-1
+    ssh_alias: dut-librerouter-1
+    local_port: 19105
+    remote_port: 9100
+    labels:
+      dut: librerouter-1
+      firmware: librerouteros-23.05-libremesh
+      target: ipq4019
