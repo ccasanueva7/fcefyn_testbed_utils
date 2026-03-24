@@ -49,16 +49,18 @@
     state: present
     update_cache: yes
 
-# Inline jobs under scrape_configs: via blockinfile break YAML: Ansible's literal
-# block strips common indentation, so "- job_name" loses the two spaces Prometheus needs.
-# Use scrape_config_files + a dedicated fragment; each file must have root key scrape_configs:
-# (not a bare list — see promtool / Prometheus config).
+# Deploy a full prometheus.yml from template (avoids blockinfile YAML indent bugs).
+# scrape_config_files points to jobs.d/openwrt-one.yml; the main file has no DUT jobs.
 
-- name: Remove legacy inline openwrt-one block from prometheus.yml (if present)
-  ansible.builtin.blockinfile:
-    path: /etc/prometheus/prometheus.yml
-    marker: "# {mark} ANSIBLE MANAGED — openwrt-one DUT metrics"
-    state: absent
+- name: Deploy prometheus.yml from template
+  ansible.builtin.template:
+    src: prometheus.yml.j2
+    dest: /etc/prometheus/prometheus.yml
+    owner: prometheus
+    group: prometheus
+    mode: "0644"
+    validate: promtool check config %s
+  notify: Restart prometheus
 
 - name: Ensure Prometheus jobs.d directory exists
   ansible.builtin.file:
@@ -75,16 +77,6 @@
     owner: prometheus
     group: prometheus
     mode: "0644"
-  notify: Restart prometheus
-
-- name: Register jobs.d fragment in prometheus.yml (scrape_config_files)
-  ansible.builtin.blockinfile:
-    path: /etc/prometheus/prometheus.yml
-    marker: "# {mark} ANSIBLE MANAGED — scrape_config_files openwrt-one PoC"
-    block: |
-      scrape_config_files:
-        - /etc/prometheus/jobs.d/openwrt-one.yml
-    insertbefore: "^scrape_configs:"
   notify: Restart prometheus
 
 - name: Enable and start prometheus
