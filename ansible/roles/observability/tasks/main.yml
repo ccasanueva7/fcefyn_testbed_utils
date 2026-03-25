@@ -190,6 +190,15 @@
     mode: "0640"
   notify: Restart grafana
 
+- name: Deploy DUTs and gateway dashboard JSON
+  ansible.builtin.copy:
+    src: dashboards/duts-node.json
+    dest: /etc/grafana/provisioning/dashboards/json/duts-node.json
+    owner: root
+    group: grafana
+    mode: "0640"
+  notify: Restart grafana
+
 # -------------------------------------------------------------------------
 # Grafana config — grafana.ini settings (security, URL, registration)
 # -------------------------------------------------------------------------
