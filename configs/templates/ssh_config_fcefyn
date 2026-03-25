@@ -15,24 +15,24 @@
 #
 
 Host labgrid-fcefyn
-    HostName labgrid-fcefyn
-    User labgrid-dev
-    IdentityFile ~/.ssh/id_ed25519_fcefyn_lab
+   HostName labgrid-fcefyn
+   User labgrid-dev
+   IdentityFile ~/.ssh/id_ed25519_fcefyn_lab
 
-  Host oracle-vps
-  HostName 159.112.143.145
-  User ubuntu
-  IdentityFile ~/.ssh/id_rsa_oci
-
- Host gateway-openwrt
-    HostName 192.168.100.254
-    User root
+Host oracle-vps
+   HostName 159.112.143.145
+   User ubuntu
+   IdentityFile ~/.ssh/id_rsa_oci
 
 Host switch-fcefyn
     HostName 192.168.0.1
     User admin
     PreferredAuthentications password
     PubkeyAuthentication no
+
+Host gateway-openwrt
+    HostName 192.168.100.254
+    User root
 
 Host dut-belkin-1
     User root
