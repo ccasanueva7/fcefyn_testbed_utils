@@ -1,9 +1,4 @@
 {
-  "__inputs": [],
-  "__requires": [
-    { "type": "grafana", "id": "grafana", "name": "Grafana", "version": "9.0.0" },
-    { "type": "datasource", "id": "prometheus", "name": "Prometheus", "version": "1.0.0" }
-  ],
   "annotations": { "list": [] },
   "description": "FCEFyN Testbed - Orchestration host system metrics (prometheus-node-exporter)",
   "editable": false,
@@ -20,8 +15,8 @@
       "type": "row"
     },
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-      "fieldConfig": {
+"datasource": { "type": "prometheus", "uid": "prometheus" },
+    "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
           "mappings": [],
@@ -38,10 +33,10 @@
       "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
       "title": "Uptime",
       "type": "stat",
-      "targets": [{ "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }, "expr": "node_time_seconds{job=\"orchestrator-host\"} - node_boot_time_seconds{job=\"orchestrator-host\"}", "legendFormat": "uptime", "refId": "A" }]
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "node_time_seconds{job=\"orchestrator-host\"} - node_boot_time_seconds{job=\"orchestrator-host\"}", "legendFormat": "uptime", "refId": "A" }]
     },
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -59,10 +54,10 @@
       "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
       "title": "CPU Busy",
       "type": "stat",
-      "targets": [{ "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }, "expr": "100 - (avg by (instance) (rate(node_cpu_seconds_total{job=\"orchestrator-host\",mode=\"idle\"}[2m])) * 100)", "legendFormat": "cpu %", "refId": "A" }]
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "100 - (avg by (instance) (rate(node_cpu_seconds_total{job=\"orchestrator-host\",mode=\"idle\"}[2m])) * 100)", "legendFormat": "cpu %", "refId": "A" }]
     },
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -80,10 +75,10 @@
       "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
       "title": "RAM Used",
       "type": "stat",
-      "targets": [{ "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }, "expr": "100 - (node_memory_MemAvailable_bytes{job=\"orchestrator-host\"} / node_memory_MemTotal_bytes{job=\"orchestrator-host\"} * 100)", "legendFormat": "ram %", "refId": "A" }]
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "100 - (node_memory_MemAvailable_bytes{job=\"orchestrator-host\"} / node_memory_MemTotal_bytes{job=\"orchestrator-host\"} * 100)", "legendFormat": "ram %", "refId": "A" }]
     },
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -101,10 +96,10 @@
       "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
       "title": "Root Disk Used",
       "type": "stat",
-      "targets": [{ "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }, "expr": "100 - (node_filesystem_avail_bytes{job=\"orchestrator-host\",mountpoint=\"/\",fstype!=\"tmpfs\"} / node_filesystem_size_bytes{job=\"orchestrator-host\",mountpoint=\"/\",fstype!=\"tmpfs\"} * 100)", "legendFormat": "disk %", "refId": "A" }]
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "100 - (node_filesystem_avail_bytes{job=\"orchestrator-host\",mountpoint=\"/\",fstype!=\"tmpfs\"} / node_filesystem_size_bytes{job=\"orchestrator-host\",mountpoint=\"/\",fstype!=\"tmpfs\"} * 100)", "legendFormat": "disk %", "refId": "A" }]
     },
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -120,11 +115,11 @@
       "title": "CPU Usage by Mode",
       "type": "timeseries",
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }, "expr": "rate(node_cpu_seconds_total{job=\"orchestrator-host\",mode!=\"idle\"}[2m]) * 100", "legendFormat": "{{mode}}", "refId": "A" }
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "rate(node_cpu_seconds_total{job=\"orchestrator-host\",mode!=\"idle\"}[2m]) * 100", "legendFormat": "{{mode}}", "refId": "A" }
       ]
     },
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -140,9 +135,9 @@
       "title": "Memory",
       "type": "timeseries",
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }, "expr": "node_memory_MemTotal_bytes{job=\"orchestrator-host\"}", "legendFormat": "total", "refId": "A" },
-        { "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }, "expr": "node_memory_MemAvailable_bytes{job=\"orchestrator-host\"}", "legendFormat": "available", "refId": "B" },
-        { "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }, "expr": "node_memory_MemTotal_bytes{job=\"orchestrator-host\"} - node_memory_MemAvailable_bytes{job=\"orchestrator-host\"}", "legendFormat": "used", "refId": "C" }
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "node_memory_MemTotal_bytes{job=\"orchestrator-host\"}", "legendFormat": "total", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "node_memory_MemAvailable_bytes{job=\"orchestrator-host\"}", "legendFormat": "available", "refId": "B" },
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "node_memory_MemTotal_bytes{job=\"orchestrator-host\"} - node_memory_MemAvailable_bytes{job=\"orchestrator-host\"}", "legendFormat": "used", "refId": "C" }
       ]
     },
     {
@@ -153,7 +148,7 @@
       "type": "row"
     },
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -169,13 +164,13 @@
       "title": "Load Average",
       "type": "timeseries",
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }, "expr": "node_load1{job=\"orchestrator-host\"}", "legendFormat": "1m", "refId": "A" },
-        { "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }, "expr": "node_load5{job=\"orchestrator-host\"}", "legendFormat": "5m", "refId": "B" },
-        { "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }, "expr": "node_load15{job=\"orchestrator-host\"}", "legendFormat": "15m", "refId": "C" }
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "node_load1{job=\"orchestrator-host\"}", "legendFormat": "1m", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "node_load5{job=\"orchestrator-host\"}", "legendFormat": "5m", "refId": "B" },
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "node_load15{job=\"orchestrator-host\"}", "legendFormat": "15m", "refId": "C" }
       ]
     },
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
@@ -191,8 +186,8 @@
       "title": "Network Traffic",
       "type": "timeseries",
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }, "expr": "rate(node_network_receive_bytes_total{job=\"orchestrator-host\",device!~\"lo|vlan.*|docker.*\"}[2m])", "legendFormat": "rx {{device}}", "refId": "A" },
-        { "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }, "expr": "-rate(node_network_transmit_bytes_total{job=\"orchestrator-host\",device!~\"lo|vlan.*|docker.*\"}[2m])", "legendFormat": "tx {{device}}", "refId": "B" }
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "rate(node_network_receive_bytes_total{job=\"orchestrator-host\",device!~\"lo|vlan.*|docker.*\"}[2m])", "legendFormat": "rx {{device}}", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "-rate(node_network_transmit_bytes_total{job=\"orchestrator-host\",device!~\"lo|vlan.*|docker.*\"}[2m])", "legendFormat": "tx {{device}}", "refId": "B" }
       ]
     }
   ],
