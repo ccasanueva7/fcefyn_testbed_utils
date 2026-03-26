@@ -1,0 +1,177 @@
+/*
+ * Catálogo hardware: tabla a la izquierda, imagen(es) a la derecha (--balanced, foto acotada).
+ * DUTs: --dut-board (una placa) o --double-img (tabla + dos fotos a la derecha).
+ */
+.catalog-hardware-row.catalog-hardware-row--balanced {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.5rem;
+  align-items: flex-start;
+  margin: 0.75rem 0 1.25rem;
+}
+
+.catalog-hardware-row.catalog-hardware-row--balanced > p {
+  flex: 0 0 auto;
+  margin: 0 !important;
+  max-width: min(280px, 40vw);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.catalog-hardware-row.catalog-hardware-row--balanced > p img {
+  display: block;
+  max-width: 100%;
+  width: auto;
+  max-height: min(240px, 42vh);
+  height: auto;
+  object-fit: contain;
+}
+
+/* Switch: foto frontal algo más alta, tabla ~5 filas */
+.catalog-hardware-row.catalog-hardware-row--balanced.catalog-hardware-row--switch-photo > p img {
+  max-height: min(280px, 48vh);
+  max-width: min(100%, 300px);
+}
+
+/* Relé de 8 canales: foto de módulo suele ser más alta que tablas de 3 filas */
+.catalog-hardware-row.catalog-hardware-row--balanced.catalog-hardware-row--relay8 > p img {
+  max-height: min(200px, 38vh);
+}
+
+/* Fotek: tabla muy corta (3 filas) */
+.catalog-hardware-row.catalog-hardware-row--balanced.catalog-hardware-row--micro-photo > p img {
+  max-height: min(200px, 38vh);
+  max-width: min(100%, 220px);
+}
+
+.catalog-hardware-row.catalog-hardware-row--balanced > table {
+  flex: 1 1 260px;
+  margin: 0 !important;
+  min-width: min(100%, 220px);
+}
+
+/* DUT una sola foto: tabla larga; imagen legible pero acotada en alto */
+.catalog-hardware-row.catalog-hardware-row--balanced.catalog-hardware-row--dut-board > p {
+  max-width: min(360px, 42vw);
+}
+
+.catalog-hardware-row.catalog-hardware-row--balanced.catalog-hardware-row--dut-board > p img {
+  max-height: min(300px, 52vh);
+  max-width: min(100%, 380px);
+}
+
+/* Fuente metálica (tabla ~6 filas) */
+.catalog-hardware-row.catalog-hardware-row--balanced.catalog-hardware-row--psu-photo > p {
+  max-width: min(300px, 36vw);
+}
+
+.catalog-hardware-row.catalog-hardware-row--balanced.catalog-hardware-row--psu-photo > p img {
+  max-height: min(220px, 46vh);
+  max-width: min(100%, 280px);
+}
+
+/* Ventilador (packaging cuadrado) */
+.catalog-hardware-row.catalog-hardware-row--balanced.catalog-hardware-row--cooler-photo > p {
+  max-width: min(320px, 38vw);
+}
+
+.catalog-hardware-row.catalog-hardware-row--balanced.catalog-hardware-row--cooler-photo > p img {
+  max-height: min(240px, 44vh);
+  max-width: min(100%, 300px);
+}
+
+/* Hub USB */
+.catalog-hardware-row.catalog-hardware-row--balanced.catalog-hardware-row--hub-photo > p {
+  max-width: min(300px, 38vw);
+}
+
+.catalog-hardware-row.catalog-hardware-row--balanced.catalog-hardware-row--hub-photo > p img {
+  max-height: min(260px, 48vh);
+  max-width: min(100%, 300px);
+}
+
+/* Gateway TL-WDR3500 (foto trasera) */
+.catalog-hardware-row.catalog-hardware-row--balanced.catalog-hardware-row--gateway-photo > p {
+  max-width: min(360px, 40vw);
+}
+
+.catalog-hardware-row.catalog-hardware-row--balanced.catalog-hardware-row--gateway-photo > p img {
+  max-height: min(280px, 50vh);
+  max-width: min(100%, 380px);
+}
+
+/*
+ * Tabla izquierda, dos fotos a la derecha en un solo bloque flex (column).
+ * Evita grid de 2 filas: el span de la tabla estiraba las filas y separaba las imágenes.
+ */
+.catalog-hardware-row.catalog-hardware-row--double-img {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  align-items: flex-start;
+  margin: 0.75rem 0 1.25rem;
+}
+
+.catalog-hardware-row.catalog-hardware-row--double-img > table {
+  flex: 1 1 260px;
+  margin: 0 !important;
+  min-width: min(100%, 220px);
+}
+
+.catalog-hardware-row.catalog-hardware-row--double-img .catalog-hardware-row__stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 0 0 auto;
+  width: min(360px, 100%);
+  max-width: min(360px, 100%);
+  align-items: stretch;
+}
+
+.catalog-hardware-row.catalog-hardware-row--double-img .catalog-hardware-row__stack > p {
+  margin: 0 !important;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.catalog-hardware-row.catalog-hardware-row--double-img .catalog-hardware-row__stack img {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  max-height: min(260px, 48vh);
+  object-fit: contain;
+}
+
+/* Pantallas anchas: una sola fila (reglas al final para no pisar --double-img base). */
+@media (min-width: 48em) {
+  .catalog-hardware-row.catalog-hardware-row--balanced,
+  .catalog-hardware-row.catalog-hardware-row--double-img {
+    flex-wrap: nowrap;
+  }
+
+  .catalog-hardware-row.catalog-hardware-row--balanced > table,
+  .catalog-hardware-row.catalog-hardware-row--double-img > table {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: min(100%, 62%);
+  }
+}
+
+@media (max-width: 44.99em) {
+  .catalog-hardware-row.catalog-hardware-row--balanced {
+    flex-direction: column;
+  }
+
+  .catalog-hardware-row.catalog-hardware-row--balanced > p {
+    max-width: min(320px, 100%);
+  }
+
+  .catalog-hardware-row.catalog-hardware-row--double-img {
+    flex-direction: column;
+    flex-wrap: wrap;
+  }
+}

@@ -30,6 +30,7 @@ theme:
 
 markdown_extensions:
   - attr_list
+  - md_in_html
   - tables
   - admonition
   - pymdownx.superfences:
@@ -49,6 +50,7 @@ extra_css:
   - stylesheets/institutional-logos.css
   - stylesheets/demos.css
   - stylesheets/rack-gallery.css
+  - stylesheets/catalog-hardware.css
 
 extra_javascript:
   - javascripts/rack-gallery.js

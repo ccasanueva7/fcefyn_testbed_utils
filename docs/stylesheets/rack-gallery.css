@@ -14,6 +14,24 @@
   max-height: min(520px, 72vh);
 }
 
+/* Catálogo hardware: fotos USB-TTL (JPEG, retrato) */
+.rack-gallery--catalog-ttl {
+  --rack-gallery-max: 640px;
+}
+
+.rack-gallery--catalog-ttl .rack-gallery__slide img {
+  max-height: min(480px, 72vh);
+}
+
+/* Catálogo: seguridad eléctrica / borneras / jacks DC */
+.rack-gallery--catalog-safety {
+  --rack-gallery-max: 560px;
+}
+
+.rack-gallery--catalog-safety .rack-gallery__slide img {
+  max-height: min(440px, 68vh);
+}
+
 .rack-gallery__viewport {
   position: relative;
   overflow: hidden;
