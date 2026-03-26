@@ -175,3 +175,41 @@
     flex-wrap: wrap;
   }
 }
+
+/* Logos bajo tabla de aportes (catálogo hardware) */
+.catalog-sponsors {
+  margin: 0.85rem 0 0.15rem;
+}
+
+.catalog-sponsors__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.75rem, 3vw, 1.5rem);
+}
+
+.catalog-sponsors__link {
+  display: inline-flex;
+  line-height: 0;
+  opacity: 0.9;
+  transition: opacity 0.15s ease;
+}
+
+.catalog-sponsors__link:hover,
+.catalog-sponsors__link:focus-visible {
+  opacity: 1;
+}
+
+.catalog-sponsors__link img {
+  display: block;
+  max-height: 36px;
+  max-width: min(100px, 26vw);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
+[data-md-color-scheme="slate"] .catalog-sponsors__link img {
+  filter: brightness(1.06);
+}
