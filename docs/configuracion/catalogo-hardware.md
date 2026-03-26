@@ -2,16 +2,27 @@
 
 Se presentan **imágenes y datos de identificación** del equipamiento físico del banco de pruebas. Los enlaces en cada bloque apuntan a la configuración y operación.
 
-## Aportes y agradecimientos
+## Aportes y agradecimientos {: #aportes-y-agradecimientos }
 
 Parte del equipamiento llegó como **aporte** de fabricantes e instituciones:
 
-| Aportante | Equipamiento |
-|-----------|----------------|
-| [**Banana Pi**](https://banana-pi.org/) | Placas **OpenWrt One** y **Banana Pi R4** (y material asociado). |
-| [**Nisuta**](https://nisuta.com/) | **Hub USB** usado en el host (sección Hub). |
-| [**AlterMundi**](https://altermundi.net/) | Unidades **LibreRouter** del proyecto comunitario. |
-| [**INTI**](https://www.argentina.gob.ar/inti) (Instituto Nacional de Tecnología Industrial) | Notebook **Lenovo ThinkPad T430** (host); routers **Belkin RT3200**; router gateway **TP-Link TL-WDR3500**. |
+| Aportante | Equipamiento                                                                                                    |
+|-----------|-----------------------------------------------------------------------------------------------------------------|
+| [**Banana Pi**](https://banana-pi.org/) | Placas **OpenWrt One** y **Banana Pi R4** (y material asociado).                                                |
+| [**Nisuta**](https://nisuta.com/) | **Hub USB** usado en el host (sección Hub).                                                                     |
+| [**AlterMundi**](https://altermundi.net/) | Unidades **LibreRouter**..                                                                                      |
+| [**INTI**](https://www.argentina.gob.ar/inti) (Instituto Nacional de Tecnología Industrial) | Notebook **Lenovo ThinkPad T430** (host); routers **Belkin RT3200**; router gateway **TP-Link TL-WDR3500**.     |
+| [**GL.iNet**](https://www.gl-inet.com/) | Router **Mango**; **aún no** integrado al rack (hardware muy limitado para el rol habitual de DUT en el banco). |
+
+<div class="catalog-sponsors" markdown="0">
+<div class="catalog-sponsors__row">
+<a href="https://banana-pi.org/" class="catalog-sponsors__link" title="Banana Pi"><img src="../../img/logos/bananapi.png" alt="Logo Banana Pi" loading="lazy" decoding="async"></a>
+<a href="https://nisuta.com/" class="catalog-sponsors__link" title="Nisuta"><img src="../../img/logos/nisuta.png" alt="Logo Nisuta" loading="lazy" decoding="async"></a>
+<a href="https://altermundi.net/" class="catalog-sponsors__link" title="AlterMundi"><img src="../../img/logos/altermundi.png" alt="Logo AlterMundi" loading="lazy" decoding="async"></a>
+<a href="https://www.argentina.gob.ar/inti" class="catalog-sponsors__link" title="INTI"><img src="../../img/logos/inti.png" alt="Logo INTI" loading="lazy" decoding="async"></a>
+<a href="https://www.gl-inet.com/" class="catalog-sponsors__link" title="GL.iNet"><img src="../../img/logos/glinet.png" alt="Logo GL.iNet" loading="lazy" decoding="async"></a>
+</div>
+</div>
 
 ## Relés Arduino (rack)
 
