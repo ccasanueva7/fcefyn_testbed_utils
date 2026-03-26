@@ -1,6 +1,6 @@
 # Catálogo de hardware del lab
 
-Se presentan **imágenes y datos de identificación** del equipamiento físico del banco de pruebas. Los enlaces en cada bloque apuntan a la configuración y operación.
+Se presentan **imágenes y características principales** del equipamiento físico del banco de pruebas.
 
 ## Aportes y agradecimientos {: #aportes-y-agradecimientos }
 
@@ -24,7 +24,7 @@ Parte del equipamiento llegó como **aporte** de fabricantes e instituciones:
 </div>
 </div>
 
-## Relés Arduino (rack)
+## Relés controlados por microcontrolador Arduino
 
 El **Arduino Nano** controla la potencia de los DUTs y de cargas de infra del rack (cooler, fuente) vía **11 canales** USB-Serial; **no** conmuta la alimentación del switch de red. Detalle: [arduino-relay.md](arduino-relay.md).
 
