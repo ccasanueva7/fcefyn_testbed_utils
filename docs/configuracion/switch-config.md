@@ -86,7 +86,7 @@ La configuración de VLAN del testbed **no se realiza manualmente** en el switch
 | **switch_vlan_preset.py** | Presets `isolated` o `mesh` al switch por SSH; guarda `~/.config/labgrid-vlan-mode`. |
 | **pool-manager.py** | Modo híbrido: lee `configs/pool-config.yaml`, VLANs mixtas en el switch, exporters. |
 
-Operación diaria: [SOM 2](../operar/SOM.md#2-cambio-de-modo) y [SOM 5](../operar/SOM.md#5-pool-manager-modo-hibrido).
+Operación diaria: [procedimientos-lab §2](../operar/procedimientos-lab.md#2-cambio-de-modo) y [§5](../operar/procedimientos-lab.md#5-pool-manager-modo-hibrido).
 
 !!! note "Configuración manual (referencia)"
     Para recuperación o depuración: una VLAN de prueba por puerto access (untagged); puertos trunk con todas las VLANs en tagged; PVID e ingress como en §2 (Admit All).

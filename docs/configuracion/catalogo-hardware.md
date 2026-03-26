@@ -147,9 +147,17 @@ El host de orquestación del laboratorio es un **Lenovo ThinkPad T430** con **Ub
 
 | Característica | Detalle |
 |----------------|---------|
-| Modelo | **Lenovo ThinkPad T430** |
-| Rol en el lab | Orquestación HIL, DHCP/TFTP por VLAN, SSH a DUTs, exporter Labgrid |
-| Red | Trunk 802.1Q al switch (Netplan + NetworkManager); ver host-config |
+| Modelo | **Lenovo ThinkPad T430** (chasis 14", generación **T430**) |
+| Plataforma | Chipset Intel **QM77**; CPU **Ivy Bridge** móvil dual-core (SKU según unidad) |
+| RAM | **DDR3L** 1600 MHz; hasta **16 GB** (2× SO-DIMM) |
+| Almacenamiento | Bahía **2,5" SATA** (SSD/HDD según el equipo del lab) |
+| Ethernet | **1× GbE** Intel (p. ej. **82579LM**), RJ-45 al switch (trunk 802.1Q; interfaz típica `enp0s25`) |
+| USB | **2× USB 3.0** + **2× USB 2.0** |
+| Pantalla | **14"** (resolución según panel) |
+| Salidas de video | VGA, **Mini DisplayPort** |
+| Expansión | **ExpressCard/54** |
+| SO en el lab | **Ubuntu** (LTS); Netplan + NetworkManager: [host-config](host-config.md) |
+| Rol en el lab | Labgrid, dnsmasq/TFTP, scripts del switch, PDUDaemon, SSH a DUTs, runners CI |
 
 *Aporte **INTI** (Instituto Nacional de Tecnología Industrial).*
 

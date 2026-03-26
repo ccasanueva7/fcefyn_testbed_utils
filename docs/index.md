@@ -37,6 +37,7 @@ El diagrama anterior resume la topología: host, switch, gateway y rack.
 
 | Perfil | Empezar por | Luego                                                                                                                                              |
 |--------|-------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Administrador del lab** | [Manual de operación](operar/SOM.md) | [Dashboard testbed-status](operar/testbed-status.md), [Rack cheatsheets](operar/rack-cheatsheets.md), [Agregar un DUT](operar/adding-dut-guide.md) |
+| **Administrador del lab** | [SOM](operar/SOM.md) | [Procedimientos del lab](operar/procedimientos-lab.md), [testbed-status](operar/testbed-status.md), [Rack cheatsheets](operar/rack-cheatsheets.md), [Agregar un DUT](operar/adding-dut-guide.md), [Build firmware](tests/build-firmware-manual.md) |
 | **Revisor o colaborador** | [Propuesta lab híbrido](diseno/hybrid-lab-proposal.md) | [CI-usecases-proposal](diseno/ci-use-cases-proposal.md)                                                                                            |
+| **Métricas (Grafana HTTPS)** | [URL y acceso](configuracion/grafana-publico.md#url-y-acceso) | Invitación requerida; contactos en [SOM - Propiedad y soporte](operar/SOM.md#propiedad-y-soporte). Técnica del túnel: [grafana-publico](configuracion/grafana-publico.md). |
 | **Demos (vídeo)** | [Demos](demos.md) | Acceso remoto al banco HIL y otras grabaciones                                                                                                      |

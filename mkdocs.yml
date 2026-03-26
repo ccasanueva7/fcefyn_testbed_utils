@@ -54,8 +54,9 @@ nav:
   - Demos: demos.md
   - Operar el lab:
       - Manual de operación: operar/SOM.md
+      - Procedimientos del lab: operar/procedimientos-lab.md
       - Dashboard testbed-status: operar/testbed-status.md
-      - Rack (referencia rápida): operar/rack-cheatsheets.md
+      - Rack cheatsheet: operar/rack-cheatsheets.md
       - Agregar un DUT: operar/adding-dut-guide.md
       - Wake-on-LAN: operar/wake-on-lan-setup.md
       - ZeroTier (acceso remoto): operar/zerotier-acceso.md
@@ -69,7 +70,10 @@ nav:
       - Arduino relay: configuracion/arduino-relay.md
       - Ansible / Labgrid: configuracion/ansible-labgrid.md
       - CI Runner: configuracion/ci-runner.md
+      - Grafana Público: configuracion/grafana-publico.md
+      - Observabilidad: configuracion/observabilidad.md
   - Tests y desarrollo:
+      - Build manual firmware: tests/build-firmware-manual.md
       - Enfoque de testing LibreMesh: tests/libremesh-testing-approach.md
       - DUT proxy por modo: tests/dut-proxy-por-modo.md
       - SSH dual-mode: tests/ssh-dual-mode-flow.md

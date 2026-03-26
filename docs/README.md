@@ -8,15 +8,15 @@ Documentación del banco de pruebas HIL para OpenWrt y LibreMesh.
 
 | Rol | Lee primero | Luego |
 |-----|-------------|-------|
-| **Administrador del lab** | [SOM](operar/SOM.md) | [testbed-status](operar/testbed-status.md), [rack-cheatsheets](operar/rack-cheatsheets.md), [adding-dut-guide](operar/adding-dut-guide.md), referencias según necesidad |
+| **Administrador del lab** | [SOM](operar/SOM.md) | [procedimientos-lab](operar/procedimientos-lab.md), [testbed-status](operar/testbed-status.md), [rack-cheatsheets](operar/rack-cheatsheets.md), [adding-dut-guide](operar/adding-dut-guide.md), [build-firmware-manual](tests/build-firmware-manual.md) |
 | **Revisor (tesis/propuesta)** | [hybrid-lab-proposal](diseno/hybrid-lab-proposal.md) | [hybrid-lab-tracking](diseno/hybrid-lab-tracking.md) para estado, [ci-use-cases-proposal](diseno/ci-use-cases-proposal.md) para CI |
-| **Desarrollador (tests)** | [libremesh-testing-approach](tests/libremesh-testing-approach.md) | [SOM](operar/SOM.md) para ejecutar |
+| **Desarrollador (tests)** | [libremesh-testing-approach](tests/libremesh-testing-approach.md) | [procedimientos-lab](operar/procedimientos-lab.md), [build-firmware-manual](tests/build-firmware-manual.md) |
 
 ---
 
 ## Referencias técnicas (consulta según necesidad)
 
-[host-config](configuracion/host-config.md) · [switch-config](configuracion/switch-config.md) · [duts-config](configuracion/duts-config.md) · [gateway](configuracion/gateway.md) · [arduino-relay](configuracion/arduino-relay.md) · [tftp-server](configuracion/tftp-server.md) · [ansible-labgrid](configuracion/ansible-labgrid.md) · [ci-runner](configuracion/ci-runner.md) · [rack-diseno-3d](diseno/rack-diseno-3d.md) · [dut-proxy-por-modo](tests/dut-proxy-por-modo.md) · [labgrid-troubleshooting](tests/labgrid-troubleshooting.md) · [ssh-dual-mode](tests/ssh-dual-mode-flow.md) · [adding-dut-guide](operar/adding-dut-guide.md) · [testbed-status](operar/testbed-status.md) · [wake-on-lan-setup](operar/wake-on-lan-setup.md) · [zerotier-acceso](operar/zerotier-acceso.md)
+[host-config](configuracion/host-config.md) · [switch-config](configuracion/switch-config.md) · [duts-config](configuracion/duts-config.md) · [gateway](configuracion/gateway.md) · [arduino-relay](configuracion/arduino-relay.md) · [tftp-server](configuracion/tftp-server.md) · [ansible-labgrid](configuracion/ansible-labgrid.md) · [ci-runner](configuracion/ci-runner.md) · [observabilidad](configuracion/observabilidad.md) · [grafana-publico](configuracion/grafana-publico.md) · [rack-diseno-3d](diseno/rack-diseno-3d.md) · [procedimientos-lab](operar/procedimientos-lab.md) · [build-firmware-manual](tests/build-firmware-manual.md) · [dut-proxy-por-modo](tests/dut-proxy-por-modo.md) · [labgrid-troubleshooting](tests/labgrid-troubleshooting.md) · [ssh-dual-mode](tests/ssh-dual-mode-flow.md) · [adding-dut-guide](operar/adding-dut-guide.md) · [testbed-status](operar/testbed-status.md) · [wake-on-lan-setup](operar/wake-on-lan-setup.md) · [zerotier-acceso](operar/zerotier-acceso.md)
 
 ---
 
@@ -87,4 +87,4 @@ flowchart TB
 7. SSH: bloque `ssh_config_fcefyn`, `labgrid-bound-connect`, sudoers.
 8. Coordinator: `places.yaml`, systemd.
 
-Detalle: [SOM](operar/SOM.md), [ansible-labgrid](configuracion/ansible-labgrid.md).
+Detalle: [SOM](operar/SOM.md), [procedimientos-lab](operar/procedimientos-lab.md), [ansible-labgrid](configuracion/ansible-labgrid.md).
