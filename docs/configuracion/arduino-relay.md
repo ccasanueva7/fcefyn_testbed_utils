@@ -58,9 +58,7 @@ UTP Cat5e/6, ~2 m: señales y GND común.
 | Marrón | Marrón | Señal fuente | D12 | Borne 3 (Fotek) |
 | | Blanco/Marrón | GND | GND | Borne 4 (Fotek) |
 
-### Esquemas eléctricos (referencia) {: #esquemas-electricos-referencia }
-
-Figuras generadas localmente (`scripts/diagrams/`; ver `README.md` en esa carpeta). Vista contextual del rack: [Rack físico](../diseno/rack-diseno-3d.md#conexiones-y-cableado-electrico).
+### Esquemas eléctricos {: #esquemas-electricos-referencia }
 
 <div class="rack-gallery rack-gallery--schematics" data-rack-gallery tabindex="0">
   <div class="rack-gallery__viewport">
