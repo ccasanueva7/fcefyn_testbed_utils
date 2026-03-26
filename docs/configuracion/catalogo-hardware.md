@@ -78,7 +78,7 @@ Este relé corta la fase hacia la carga en **CA** del canal 10 (la fuente del ra
 
 </div>
 
-### Módulo de 8 relés (DUTs 0-7)
+### Módulo de 8 relés
 
 Sirve para los canales **0 a 7** (pines **D2-D9** del Arduino): relés electromecánicos optoacoplados, alimentación **5 V DC**.
 
@@ -132,7 +132,7 @@ Piezas de referencia para **AC** (toma), **12 V DC** positivo desde relés DUT h
 
 ## Fuente AC (carga canal 10)
 
-La fuente que alimenta esa rama de **CA** se enchufa detrás del **Fotek**; el papel del canal 10 en el rack se explica en [arduino-relay](arduino-relay.md). Datos de la unidad **Coper Light** metálica:
+La fuente que alimenta esa rama de **CA** se enchufa detrás del **Fotek**; el papel del canal 10 en el rack se explica en [arduino-relay](arduino-relay.md).
 
 <div class="catalog-hardware-row catalog-hardware-row--balanced catalog-hardware-row--psu-photo" markdown="block">
 
@@ -216,7 +216,7 @@ Switch **L2+** del lab: trunk al host y al gateway, puertos access a DUTs, parte
 
 ## Host de orquestación (Lenovo ThinkPad T430)
 
-El host de orquestación del laboratorio es un **Lenovo ThinkPad T430** con **Ubuntu**: Labgrid, dnsmasq/TFTP, scripts del switch, PDUDaemon y runner de CI. Documentación: [host-config.md](host-config.md).
+El host de orquestación del laboratorio es una notebook **Lenovo ThinkPad T430** con **Ubuntu**: Labgrid, dnsmasq/TFTP, scripts del switch, PDUDaemon y runner de CI. Documentación: [host-config.md](host-config.md).
 
 <div class="catalog-hardware-row catalog-hardware-row--balanced catalog-hardware-row--dut-board" markdown="block">
 
@@ -240,7 +240,7 @@ El host de orquestación del laboratorio es un **Lenovo ThinkPad T430** con **Ub
 
 *Aporte **INTI** (Instituto Nacional de Tecnología Industrial).*
 
-## Adaptadores USB-TTL (serial)
+## Adaptadores seriales USB-TTL
 
 Conversores **USB-UART TTL** para consola en DUTs. Symlinks bajo `/dev/` y reglas **udev**: [host-config](host-config.md#7-reglas-udev-para-adaptadores-seriales).
 
@@ -308,7 +308,7 @@ Router **OpenWrt** en el trunk al switch: VLANs de DUTs, gateway `.254` por subr
 
 *Aporte **INTI** (Instituto Nacional de Tecnología Industrial).*
 
-## DUTs y routers del banco (referencia de hardware)
+## Dispositivos de prueba (DUTs)
 
 Estado en rack, puertos del switch, VLANs y firmware: [duts-config.md](duts-config.md). Siguen fichas técnicas por modelo en uso; los datos pueden variar según revisión de placa. Referencia general: [OpenWrt Techdata](https://openwrt.org/toh/start).
 
