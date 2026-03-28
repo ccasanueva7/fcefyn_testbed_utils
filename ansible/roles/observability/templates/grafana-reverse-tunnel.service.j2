@@ -1,0 +1,26 @@
+[Unit]
+Description=Grafana reverse SSH tunnel to Oracle VPS (public HTTPS relay)
+Documentation=https://ccasanueva7.github.io/fcefyn_testbed_utils/configuracion/grafana-publico/
+After=network.target grafana-server.service
+Wants=network.target
+
+[Service]
+# Run as the lab user so that ~/.ssh/config (Host oracle-vps) is available.
+User=laryc
+
+# -M 0: disable autossh monitoring port (uses SSH keepalives instead)
+# -R: bind 127.0.0.1:grafana_port on the VPS and forward to 127.0.0.1:grafana_port on this host
+# ExitOnForwardFailure: fail fast if the remote port forward cannot be established
+ExecStart=/usr/bin/autossh -M 0 -N \
+    -R 127.0.0.1:{{ grafana_public_tunnel.grafana_port }}:127.0.0.1:{{ grafana_public_tunnel.grafana_port }} \
+    {{ grafana_public_tunnel.ssh_alias }} \
+    -o ExitOnForwardFailure=yes \
+    -o ServerAliveInterval=30 \
+    -o ServerAliveCountMax=3
+
+# Restart automatically; short delay avoids tight loops if VPS is unreachable.
+Restart=on-failure
+RestartSec=15
+
+[Install]
+WantedBy=multi-user.target

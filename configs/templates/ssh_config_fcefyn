@@ -13,10 +13,33 @@
 # labgrid-fcefyn: for local testing. Labgrid connects as labgrid-dev to create
 # TFTP symlinks. See host-config.md section 3.5 (fcefyn-lab key).
 #
+
 Host labgrid-fcefyn
-    HostName labgrid-fcefyn
-    User labgrid-dev
-    IdentityFile ~/.ssh/id_ed25519_fcefyn_lab
+   HostName labgrid-fcefyn
+   User labgrid-dev
+   IdentityFile ~/.ssh/id_ed25519_fcefyn_lab
+
+Host oracle-vps
+   HostName 159.112.143.145
+   User ubuntu
+   IdentityFile ~/.ssh/id_rsa_oci
+
+Host switch-fcefyn
+    HostName 192.168.0.1
+    User admin
+    PreferredAuthentications password
+    PubkeyAuthentication no
+
+Host gateway-openwrt
+    HostName 192.168.100.254
+    User root
+
+# DUTs get reflashed frequently (different firmware = different host key).
+# Disable host key checking for all dut-* aliases to avoid known_hosts errors
+# when switching between OpenWrt and LibreMesh modes.
+Host dut-*
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
 
 Host dut-belkin-1
     User root
@@ -49,9 +72,3 @@ Host dut-librerouter-2
 Host dut-librerouter-3
     User root
     ProxyCommand sudo labgrid-dut-proxy librerouter-3 192.168.1.1 22
-
-Host switch-fcefyn
-    HostName 192.168.0.1
-    User admin
-    PreferredAuthentications password
-    PubkeyAuthentication no

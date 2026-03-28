@@ -1,0 +1,108 @@
+---
+# DUTs with active metrics observability.
+# Each entry generates:
+#   - a systemd autossh tunnel unit (dut-metrics-tunnel-<name>.service)
+#   - a Prometheus scrape job fragment (/etc/prometheus/jobs.d/<name>.yml)
+#
+# Prerequisite per DUT (manual, one-time — see docs/configuracion/observabilidad.md):
+#   opkg install prometheus-node-exporter-lua prometheus-node-exporter-lua-openwrt
+#   uci set prometheus-node-exporter-lua.main.listen_interface='loopback'
+#   uci commit prometheus-node-exporter-lua
+#   /etc/init.d/prometheus-node-exporter-lua enable && /etc/init.d/prometheus-node-exporter-lua start
+#
+# local_port: host-side port for the SSH tunnel (unique per DUT, range 19100–19199)
+# remote_port: exporter port on the DUT loopback (default 9100)
+#
+# ssh_alias must match pool-config.yaml. Label dut should match Grafana variable values.
+
+observability_duts:
+  - name: gateway-openwrt
+    ssh_alias: gateway-openwrt
+    local_port: 19106
+    remote_port: 9100
+    labels:
+      dut: gateway-wdr3500
+      firmware: openwrt-25.12.1
+      target: ath79-tplink
+
+  - name: openwrt-one
+    ssh_alias: dut-openwrt-one
+    local_port: 19100
+    remote_port: 9100
+    labels:
+      dut: openwrt-one
+      firmware: openwrt-24.10.5
+      target: mediatek-filogic
+
+  - name: belkin-1
+    ssh_alias: dut-belkin-1
+    local_port: 19101
+    remote_port: 9100
+    labels:
+      dut: belkin-1
+      firmware: openwrt-23.05.5
+      target: mediatek-mt7622
+
+  - name: belkin-2
+    ssh_alias: dut-belkin-2
+    local_port: 19102
+    remote_port: 9100
+    labels:
+      dut: belkin-2
+      firmware: openwrt-23.05.5
+      target: mediatek-mt7622
+
+  - name: belkin-3
+    ssh_alias: dut-belkin-3
+    local_port: 19103
+    remote_port: 9100
+    labels:
+      dut: belkin-3
+      firmware: openwrt-23.05.5
+      target: mediatek-mt7622
+
+  - name: bananapi
+    ssh_alias: dut-bananapi
+    local_port: 19104
+    remote_port: 9100
+    labels:
+      dut: bananapi
+      firmware: openwrt-24.10.5
+      target: mediatek-mt7988
+
+  - name: librerouter-1
+    ssh_alias: dut-librerouter-1
+    local_port: 19105
+    remote_port: 9100
+    labels:
+      dut: librerouter-1
+      firmware: librerouteros-23.05-libremesh
+      target: ipq4019
+
+# Reverse SSH tunnel: exposes Grafana publicly via Oracle VPS.
+# Requires Host oracle-vps in ~/.ssh/config on the lab host (manual prerequisite).
+# Set enabled: true to deploy and start the unit.
+grafana_public_tunnel:
+  enabled: false
+  ssh_alias: oracle-vps
+  grafana_port: 3000
+
+# Prometheus node exporter on the orchestration host.
+# Listens only on loopback to avoid exposing metrics on the lab LAN.
+# label dut matches the Grafana dashboard variable so the host appears
+# alongside DUTs in the same dashboard.
+orchestrator_node_exporter:
+  enabled: true
+  listen_address: "127.0.0.1"
+  listen_port: 9100
+  scrape_job_name: orchestrator-host
+  labels:
+    dut: lab-orchestrator
+    role: orchestration-host
+
+# Grafana server settings applied to /etc/grafana/grafana.ini.
+grafana_config:
+  root_url: "https://fcefyn-testbed.duckdns.org/"
+  cookie_secure: "true"
+  cookie_samesite: "lax"
+  allow_sign_up: "false"

@@ -1,0 +1,27 @@
+[Unit]
+Description=SSH metrics tunnel - {{ item.name }} DUT (Prometheus port forward)
+Documentation=https://ccasanueva7.github.io/fcefyn_testbed_utils/configuracion/observabilidad/
+After=network.target
+Wants=network.target
+
+[Service]
+# Run as the lab user so that ~/.ssh/config and dut-proxy routing are available.
+User=laryc
+
+# -M 0: disable autossh monitoring port (uses SSH keepalives instead)
+# -L: forward host 127.0.0.1:{{ item.local_port }} to 127.0.0.1:{{ item.remote_port }} on the DUT (loopback-only exporter)
+# {{ item.ssh_alias }}: SSH alias defined in ~/.ssh/config, routed by labgrid-dut-proxy
+# ExitOnForwardFailure: fail fast if the port forward cannot be established
+ExecStart=/usr/bin/autossh -M 0 -N \
+    -L 127.0.0.1:{{ item.local_port }}:127.0.0.1:{{ item.remote_port }} \
+    {{ item.ssh_alias }} \
+    -o ExitOnForwardFailure=yes \
+    -o ServerAliveInterval=30 \
+    -o ServerAliveCountMax=3
+
+# Restart automatically; short delay avoids tight loops when DUT is powered off.
+Restart=on-failure
+RestartSec=15
+
+[Install]
+WantedBy=multi-user.target

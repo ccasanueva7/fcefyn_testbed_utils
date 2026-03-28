@@ -18,7 +18,7 @@
  *    Canales 0-7: D2..D9   (módulo 8 relés mecánicos, DUTs)
  *    Canal 8:     D10      (SSR Switch, módulo 4ch)
  *    Canal 9:     D11      (SSR Cooler, módulo 4ch)
- *    Canal 10:    D12      (SSR Fuente, Fotek SSR25DA)
+ *    Canal 10:    D12      (SSR Fuente, Fotek SSR25DA) — activo en alto
  *
  *  Comandos disponibles por Serial:
  *    ON n [n ...]      : enciende uno o varios relés (0..10)
@@ -32,8 +32,8 @@
  *    ID                : identificación del dispositivo
  *
  *  Notas:
- *    - La mayoría de módulos son activos en bajo (LOW = ON).
- *    - Si tu módulo es activo en alto, cambia RELAY_ACTIVE_LOW a false.
+ *    - Canales 0-9: activos en bajo (LOW = ON).
+ *    - Canal 10 (Fuente): activo en alto (HIGH = ON), invertido respecto al resto.
  * ------------------------------------------------------------
  */
 
@@ -51,18 +51,24 @@ enum RelayState : uint8_t { R_OFF = 0, R_ON = 1 };
 RelayState states[RELAY_COUNT];
 
 /**
+ * @brief Returns true if channel uses active-low logic (LOW = ON).
+ * Channel 10 (power source) is active-high; others follow RELAY_ACTIVE_LOW.
+ */
+bool channelActiveLow(uint8_t ch) {
+  if (ch == 10) return false;  // Fuente SSR: active-high
+  return RELAY_ACTIVE_LOW;
+}
+
+/**
  * @brief Aplica el estado a un relé individual.
  */
 void applyRelay(uint8_t ch, RelayState s) {
   if (ch >= RELAY_COUNT) return;
   states[ch] = s;
 
-  // Activo-bajo: LOW = ON, HIGH = OFF
-  if (RELAY_ACTIVE_LOW) {
-    digitalWrite(RELAY_PINS[ch], (s == R_ON) ? LOW : HIGH);
-  } else {
-    digitalWrite(RELAY_PINS[ch], (s == R_ON) ? HIGH : LOW);
-  }
+  bool activeLow = channelActiveLow(ch);
+  uint8_t level = (s == R_ON) ? (activeLow ? LOW : HIGH) : (activeLow ? HIGH : LOW);
+  digitalWrite(RELAY_PINS[ch], level);
 }
 
 /**

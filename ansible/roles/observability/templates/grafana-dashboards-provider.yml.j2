@@ -1,0 +1,12 @@
+# Grafana dashboard file provider — managed by Ansible (observability role).
+# Loads JSON dashboards from /etc/grafana/provisioning/dashboards/json/.
+apiVersion: 1
+
+providers:
+  - name: fcefyn-testbed
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: false
+    options:
+      path: /etc/grafana/provisioning/dashboards/json

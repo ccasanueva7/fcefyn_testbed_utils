@@ -222,14 +222,36 @@ def _ssh_alias_for_dut(dut_name: str, hw: dict) -> str:
     )
 
 
-def generate_dut_proxy_config(dut_names: list[str], duts_db: dict) -> str:
-    """Generate dut-proxy.yaml for labgrid-dut-proxy (SSH alias -> vlan/ip per mode)."""
-    lines = [
-        "# labgrid-dut-proxy device map. Generated from pool-config.",
-        "# device_id = SSH alias (e.g. belkin-1). Used by ProxyCommand in ~/.ssh/config.",
-        "",
-        "devices:",
-    ]
+def generate_dut_proxy_config(
+    dut_names: list[str],
+    duts_db: dict,
+    openwrt_duts: list[str] | None = None,
+    libremesh_duts: list[str] | None = None,
+) -> str:
+    """Generate dut-proxy.yaml for labgrid-dut-proxy (SSH alias -> vlan/ip per mode).
+
+    When both openwrt_duts and libremesh_duts are provided (hybrid mode), each device
+    entry includes an `active` key reflecting its current pool assignment.  labgrid-dut-proxy
+    uses `active` with priority over the global labgrid-vlan-mode file, so SSH works
+    transparently across both pools without manual mode changes.
+    """
+    is_hybrid = bool(openwrt_duts) and bool(libremesh_duts)
+    openwrt_set = set(openwrt_duts or [])
+    libremesh_set = set(libremesh_duts or [])
+
+    header_comment = (
+        "# labgrid-dut-proxy device map. Generated from pool-config.\n"
+        "# device_id = SSH alias (e.g. belkin-1). Used by ProxyCommand in ~/.ssh/config.\n"
+    )
+    if is_hybrid:
+        header_comment += (
+            "# hybrid mode: 'active' key reflects current pool assignment and takes\n"
+            "# priority over labgrid-vlan-mode in labgrid-dut-proxy.\n"
+        )
+
+    lines = header_comment.splitlines()
+    lines += ["", "devices:"]
+
     for dut_name in dut_names:
         hw = duts_db[dut_name]
         alias = _ssh_alias_for_dut(dut_name, hw)
@@ -238,6 +260,11 @@ def generate_dut_proxy_config(dut_names: list[str], duts_db: dict) -> str:
         lines.append(f"  {alias}:")
         lines.append(f"    isolated: {{ vlan: {vlan}, ip: \"192.168.1.1\" }}")
         lines.append(f"    mesh: {{ vlan: {VLAN_MESH}, ip: \"{fixed_ip}\" }}")
+        if is_hybrid:
+            if dut_name in openwrt_set:
+                lines.append(f"    active: {{ vlan: {vlan}, ip: \"192.168.1.1\" }}")
+            elif dut_name in libremesh_set:
+                lines.append(f"    active: {{ vlan: {VLAN_MESH}, ip: \"{fixed_ip}\" }}")
         lines.append("")
     return "\n".join(lines)
 
@@ -718,7 +745,14 @@ def main() -> int:
     lm_exporter = generate_libremesh_exporter(libremesh_duts, duts_db) if libremesh_duts else ""
     ow_exporter = generate_openwrt_exporter(openwrt_duts, duts_db) if openwrt_duts else ""
     all_pool_duts = sorted(set(openwrt_duts + libremesh_duts))
-    dut_proxy_yaml = generate_dut_proxy_config(all_pool_duts, duts_db) if all_pool_duts else ""
+    dut_proxy_yaml = (
+        generate_dut_proxy_config(
+            all_pool_duts, duts_db,
+            openwrt_duts=openwrt_duts,
+            libremesh_duts=libremesh_duts,
+        )
+        if all_pool_duts else ""
+    )
     desired_ports, desired_uplink_vlans = compute_desired_hybrid_state(
         openwrt_duts, libremesh_duts, duts_db, uplink_ports
     )

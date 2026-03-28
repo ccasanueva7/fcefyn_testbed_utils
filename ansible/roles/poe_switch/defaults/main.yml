@@ -1,0 +1,3 @@
+---
+# Ethernet interface for switch management (same as host netplan link)
+poe_switch_interface: enp0s25

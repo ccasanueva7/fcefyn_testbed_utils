@@ -1,0 +1,307 @@
+---
+# Role: observability
+# Installs and configures Prometheus + Grafana + autossh tunnels for DUT metrics.
+#
+# Each DUT in observability_duts (defaults/main.yml) gets:
+#   - a systemd autossh tunnel unit forwarding DUT loopback:remote_port → host:local_port
+#   - a Prometheus scrape job fragment in /etc/prometheus/jobs.d/<name>.yml
+#
+# The SSH tunnel uses the dut-<name> SSH alias from ~/.ssh/config, which
+# labgrid-dut-proxy resolves to the correct VLAN/IP regardless of testbed mode.
+#
+# Prerequisite per DUT (manual, one-time — see docs/configuracion/observabilidad.md):
+#   opkg install prometheus-node-exporter-lua prometheus-node-exporter-lua-openwrt
+#   uci set prometheus-node-exporter-lua.main.listen_interface='loopback'
+#   uci commit prometheus-node-exporter-lua
+#   /etc/init.d/prometheus-node-exporter-lua enable && /etc/init.d/prometheus-node-exporter-lua start
+
+# -------------------------------------------------------------------------
+# autossh — keep metrics SSH tunnels to DUTs alive
+# -------------------------------------------------------------------------
+
+- name: Install autossh
+  ansible.builtin.apt:
+    name: autossh
+    state: present
+    update_cache: yes
+
+- name: Deploy metrics tunnel systemd unit per DUT
+  ansible.builtin.template:
+    src: dut-metrics-tunnel.service.j2
+    dest: "/etc/systemd/system/dut-metrics-tunnel-{{ item.name }}.service"
+    mode: "0644"
+  loop: "{{ observability_duts }}"
+  notify:
+    - Reload systemd
+    - Restart metrics tunnels
+
+- name: Enable and start metrics tunnel per DUT
+  ansible.builtin.systemd:
+    name: "dut-metrics-tunnel-{{ item.name }}"
+    enabled: yes
+    state: started
+    daemon_reload: yes
+  loop: "{{ observability_duts }}"
+
+# -------------------------------------------------------------------------
+# Prometheus — scrape and store DUT metrics
+# -------------------------------------------------------------------------
+
+- name: Install prometheus
+  ansible.builtin.apt:
+    name: prometheus
+    state: present
+    update_cache: yes
+
+# Full prometheus.yml from template: avoids blockinfile YAML indent issues.
+# scrape_config_files uses a glob (jobs.d/*.yml) so adding a DUT only
+# requires deploying a new fragment; the main config is never touched.
+
+- name: Deploy prometheus.yml from template
+  ansible.builtin.template:
+    src: prometheus.yml.j2
+    dest: /etc/prometheus/prometheus.yml
+    owner: prometheus
+    group: prometheus
+    mode: "0644"
+    validate: promtool check config %s
+  notify: Restart prometheus
+
+- name: Ensure Prometheus jobs.d directory exists
+  ansible.builtin.file:
+    path: /etc/prometheus/jobs.d
+    state: directory
+    owner: prometheus
+    group: prometheus
+    mode: "0755"
+
+- name: Deploy scrape job fragment per DUT
+  ansible.builtin.template:
+    src: dut-scrape-job.yml.j2
+    dest: "/etc/prometheus/jobs.d/{{ item.name }}.yml"
+    owner: prometheus
+    group: prometheus
+    mode: "0644"
+  loop: "{{ observability_duts }}"
+  notify: Restart prometheus
+
+- name: Enable and start prometheus
+  ansible.builtin.systemd:
+    name: prometheus
+    enabled: yes
+    state: started
+
+# -------------------------------------------------------------------------
+# Grafana — visualize DUT metrics
+# -------------------------------------------------------------------------
+
+- name: Install dependencies for Grafana APT repo
+  ansible.builtin.apt:
+    name:
+      - apt-transport-https
+      - software-properties-common
+      - gnupg
+    state: present
+
+- name: Add Grafana APT key
+  ansible.builtin.apt_key:
+    url: "https://apt.grafana.com/gpg.key"
+    state: present
+
+- name: Add Grafana APT repository
+  ansible.builtin.apt_repository:
+    repo: "deb https://apt.grafana.com stable main"
+    filename: grafana
+    state: present
+
+- name: Install grafana
+  ansible.builtin.apt:
+    name: grafana
+    state: present
+    update_cache: yes
+
+- name: Create Grafana provisioning datasources directory
+  ansible.builtin.file:
+    path: /etc/grafana/provisioning/datasources
+    state: directory
+    owner: root
+    group: grafana
+    mode: "0750"
+
+- name: Provision Prometheus datasource in Grafana
+  ansible.builtin.copy:
+    content: |
+      apiVersion: 1
+      datasources:
+        - name: Prometheus
+          uid: prometheus
+          type: prometheus
+          url: http://127.0.0.1:9090
+          access: proxy
+          isDefault: true
+          editable: false
+    dest: /etc/grafana/provisioning/datasources/prometheus.yml
+    owner: root
+    group: grafana
+    mode: "0640"
+  notify: Restart grafana
+
+- name: Enable and start grafana-server
+  ansible.builtin.systemd:
+    name: grafana-server
+    enabled: yes
+    state: started
+
+# -------------------------------------------------------------------------
+# Grafana dashboard provisioning — file-based provider + versioned JSONs
+# -------------------------------------------------------------------------
+
+- name: Create Grafana provisioning dashboards directory
+  ansible.builtin.file:
+    path: /etc/grafana/provisioning/dashboards
+    state: directory
+    owner: root
+    group: grafana
+    mode: "0750"
+
+- name: Create Grafana provisioning dashboards JSON directory
+  ansible.builtin.file:
+    path: /etc/grafana/provisioning/dashboards/json
+    state: directory
+    owner: root
+    group: grafana
+    mode: "0750"
+
+- name: Deploy Grafana dashboard file provider
+  ansible.builtin.template:
+    src: grafana-dashboards-provider.yml.j2
+    dest: /etc/grafana/provisioning/dashboards/dashboards.yml
+    owner: root
+    group: grafana
+    mode: "0640"
+  notify: Restart grafana
+
+- name: Deploy orchestrator host dashboard JSON
+  ansible.builtin.copy:
+    src: dashboards/orchestrator-node.json
+    dest: /etc/grafana/provisioning/dashboards/json/orchestrator-node.json
+    owner: root
+    group: grafana
+    mode: "0640"
+  notify: Restart grafana
+
+- name: Deploy DUTs and gateway dashboard JSON
+  ansible.builtin.copy:
+    src: dashboards/duts-node.json
+    dest: /etc/grafana/provisioning/dashboards/json/duts-node.json
+    owner: root
+    group: grafana
+    mode: "0640"
+  notify: Restart grafana
+
+# -------------------------------------------------------------------------
+# Grafana config — grafana.ini settings (security, URL, registration)
+# -------------------------------------------------------------------------
+
+- name: Configure grafana.ini - root_url
+  community.general.ini_file:
+    path: /etc/grafana/grafana.ini
+    section: server
+    option: root_url
+    value: "{{ grafana_config.root_url }}"
+    mode: "0640"
+  notify: Restart grafana
+
+- name: Configure grafana.ini - cookie_secure
+  community.general.ini_file:
+    path: /etc/grafana/grafana.ini
+    section: security
+    option: cookie_secure
+    value: "{{ grafana_config.cookie_secure }}"
+    mode: "0640"
+  notify: Restart grafana
+
+- name: Configure grafana.ini - cookie_samesite
+  community.general.ini_file:
+    path: /etc/grafana/grafana.ini
+    section: security
+    option: cookie_samesite
+    value: "{{ grafana_config.cookie_samesite }}"
+    mode: "0640"
+  notify: Restart grafana
+
+- name: Configure grafana.ini - allow_sign_up
+  community.general.ini_file:
+    path: /etc/grafana/grafana.ini
+    section: users
+    option: allow_sign_up
+    value: "{{ grafana_config.allow_sign_up }}"
+    mode: "0640"
+  notify: Restart grafana
+
+# -------------------------------------------------------------------------
+# Orchestrator node exporter — metrics from the orchestration host itself
+# -------------------------------------------------------------------------
+# Listens only on 127.0.0.1 so metrics are not exposed on the lab LAN.
+# Prometheus scrapes it via the jobs.d fragment (same mechanism as DUTs).
+
+- name: Install prometheus-node-exporter on orchestration host
+  ansible.builtin.apt:
+    name: prometheus-node-exporter
+    state: present
+    update_cache: yes
+  when: orchestrator_node_exporter.enabled | default(false)
+
+- name: Configure prometheus-node-exporter listen address
+  ansible.builtin.copy:
+    content: |
+      # Managed by Ansible (observability role). Do not edit manually.
+      ARGS='--web.listen-address={{ orchestrator_node_exporter.listen_address }}:{{ orchestrator_node_exporter.listen_port }}'
+    dest: /etc/default/prometheus-node-exporter
+    owner: root
+    group: root
+    mode: "0644"
+  when: orchestrator_node_exporter.enabled | default(false)
+  notify: Restart prometheus-node-exporter
+
+- name: Enable and start prometheus-node-exporter
+  ansible.builtin.systemd:
+    name: prometheus-node-exporter
+    enabled: yes
+    state: started
+    daemon_reload: yes
+  when: orchestrator_node_exporter.enabled | default(false)
+
+- name: Deploy orchestrator scrape job fragment
+  ansible.builtin.template:
+    src: orchestrator-scrape-job.yml.j2
+    dest: "/etc/prometheus/jobs.d/{{ orchestrator_node_exporter.scrape_job_name }}.yml"
+    owner: prometheus
+    group: prometheus
+    mode: "0644"
+  when: orchestrator_node_exporter.enabled | default(false)
+  notify: Restart prometheus
+
+# -------------------------------------------------------------------------
+# Grafana public tunnel — reverse SSH to Oracle VPS (optional)
+# -------------------------------------------------------------------------
+# Prerequisite: Host oracle-vps entry in ~/.ssh/config on the lab host.
+# Activate by setting grafana_public_tunnel.enabled: true in defaults/main.yml.
+
+- name: Deploy Grafana public reverse tunnel unit
+  ansible.builtin.template:
+    src: grafana-reverse-tunnel.service.j2
+    dest: /etc/systemd/system/grafana-reverse-tunnel.service
+    mode: "0644"
+  when: grafana_public_tunnel.enabled | default(false)
+  notify:
+    - Reload systemd
+    - Restart grafana reverse tunnel
+
+- name: Enable and start Grafana public reverse tunnel
+  ansible.builtin.systemd:
+    name: grafana-reverse-tunnel
+    enabled: yes
+    state: started
+    daemon_reload: yes
+  when: grafana_public_tunnel.enabled | default(false)

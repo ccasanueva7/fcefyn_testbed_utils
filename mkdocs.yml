@@ -1,0 +1,95 @@
+site_name: FCEFyN Testbed Utils
+site_description: Documentación del banco de pruebas HIL para OpenWrt y LibreMesh
+site_url: https://fcefyn-testbed.github.io/fcefyn_testbed_utils/
+docs_dir: docs
+
+theme:
+  name: material
+  custom_dir: overrides
+  language: es
+  logo: img/logos/fcefyn-testbed-org.png
+  palette:
+    - scheme: default
+      primary: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Modo oscuro
+    - scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Modo claro
+  features:
+    - navigation.tabs
+    - navigation.top
+    - navigation.sections
+    - search.highlight
+    - search.suggest
+    - toc.integrate
+    - content.code.copy
+
+markdown_extensions:
+  - attr_list
+  - md_in_html
+  - tables
+  - admonition
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - toc:
+      permalink: true
+
+extra_css:
+  - stylesheets/institutional-logos.css
+  - stylesheets/demos.css
+  - stylesheets/rack-gallery.css
+  - stylesheets/catalog-hardware.css
+  - stylesheets/content-images.css
+
+extra_javascript:
+  - javascripts/rack-gallery.js
+
+nav:
+  - Inicio: index.md
+  - Demos: demos.md
+  - Operar el lab:
+      - Manual de operación: operar/SOM.md
+      - Procedimientos del lab: operar/procedimientos-lab.md
+      - Dashboard testbed-status: operar/testbed-status.md
+      - Rack cheatsheet: operar/rack-cheatsheets.md
+      - Agregar un DUT: operar/adding-dut-guide.md
+      - Wake-on-LAN: operar/wake-on-lan-setup.md
+      - ZeroTier (acceso remoto): operar/zerotier-acceso.md
+  - Configuración de componentes:
+      - Catálogo hardware: configuracion/catalogo-hardware.md
+      - Host: configuracion/host-config.md
+      - Switch: configuracion/switch-config.md
+      - Gateway: configuracion/gateway.md
+      - DUTs: configuracion/duts-config.md
+      - TFTP / dnsmasq: configuracion/tftp-server.md
+      - Arduino relay: configuracion/arduino-relay.md
+      - Ansible / Labgrid: configuracion/ansible-labgrid.md
+      - CI Runner: configuracion/ci-runner.md
+      - Grafana Público: configuracion/grafana-publico.md
+      - Observabilidad: configuracion/observabilidad.md
+  - Tests y desarrollo:
+      - Build manual firmware: tests/build-firmware-manual.md
+      - Enfoque de testing LibreMesh: tests/libremesh-testing-approach.md
+      - DUT proxy por modo: tests/dut-proxy-por-modo.md
+      - SSH dual-mode: tests/ssh-dual-mode-flow.md
+      - Catálogo de firmware CI: tests/ci-firmware-catalog.md
+      - Troubleshooting Labgrid: tests/labgrid-troubleshooting.md
+  - Diseño y propuestas:
+      - Lab híbrido: diseno/hybrid-lab-proposal.md
+      - Tracking lab híbrido: diseno/hybrid-lab-tracking.md
+      - Onboarding openwrt-tests: diseno/openwrt-tests-onboarding.md
+      - Casos de uso CI: diseno/ci-use-cases-proposal.md
+      - Virtual mesh: diseno/virtual-mesh-proposal.md
+      - Rack físico: diseno/rack-diseno-3d.md

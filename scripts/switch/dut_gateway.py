@@ -7,7 +7,8 @@ pool-manager.py (hybrid: each DUT in its own pool/mode).
 For each DUT, builds a shell script that:
   - Persists gateway and DNS in UCI (survives reboot)
   - Applies the route immediately via ip route replace (no network restart)
-  - In mesh mode: ensures 192.168.200.x/24 is on br-lan and uses it as src
+  - Ensures an IP in the gateway's subnet exists on br-lan so the upstream/gateway
+    router can route replies back to the DUT
   - Stops the firewall (fw3/fw4) since test DUTs don't need it
 """
 
@@ -40,7 +41,8 @@ DEFAULT_SETTLE_SECONDS = 5
 def load_duts(config_path: Path) -> list[dict]:
     """Load DUT info from pool-config.yaml.
 
-    Returns list of dicts with keys: id, vlan, ssh_alias, mesh_src_ip.
+    Returns list of dicts with keys: id, vlan, ssh_alias, mesh_src_ip,
+    ip_last_octet.
     """
     if yaml is None or not config_path.exists():
         return []
@@ -59,17 +61,23 @@ def load_duts(config_path: Path) -> list[dict]:
                 "vlan": vlan,
                 "ssh_alias": ssh_alias,
                 "mesh_src_ip": f"192.168.200.{last_octet}" if last_octet else "",
+                "ip_last_octet": last_octet,
             })
     return result
 
 
-def build_gateway_script(mode: str, vlan: int, mesh_src_ip: str = "") -> str:
+def build_gateway_script(
+    mode: str, vlan: int, mesh_src_ip: str = "", ip_last_octet: str = ""
+) -> str:
     """Build a shell script that updates the gateway on a DUT instantly.
 
     Args:
         mode: "mesh" or "isolated".
         vlan: The DUT's isolated VLAN number (used to derive the isolated gateway).
         mesh_src_ip: The DUT's 192.168.200.x IP for mesh mode source routing.
+        ip_last_octet: Last octet derived from libremesh_fixed_ip, used to
+            build a per-DUT IP in the isolated VLAN subnet so the upstream
+            router can route replies back.
     """
     if mode == "mesh":
         gateway = MESH_GATEWAY
@@ -92,10 +100,18 @@ def build_gateway_script(mode: str, vlan: int, mesh_src_ip: str = "") -> str:
     ]
 
     if mode == "mesh" and mesh_src_ip:
+        src_ip = mesh_src_ip
         lines += [
-            f"ip addr show dev br-lan | grep -q '{mesh_src_ip}/' || "
-            f"ip addr add {mesh_src_ip}/24 dev br-lan",
-            f"ip route replace default via {gateway} dev br-lan src {mesh_src_ip}",
+            f"ip addr show dev br-lan | grep -q '{src_ip}/' || "
+            f"ip addr add {src_ip}/24 dev br-lan",
+            f"ip route replace default via {gateway} dev br-lan src {src_ip}",
+        ]
+    elif ip_last_octet:
+        src_ip = f"192.168.{vlan}.{ip_last_octet}"
+        lines += [
+            f"ip addr show dev br-lan | grep -q '{src_ip}/' || "
+            f"ip addr add {src_ip}/24 dev br-lan",
+            f"ip route replace default via {gateway} dev br-lan src {src_ip}",
         ]
     else:
         lines.append(f"ip route replace default via {gateway} dev br-lan onlink")
@@ -150,7 +166,9 @@ def update_dut_gateways(
     if dry_run:
         for dut in duts:
             mode = dut_modes[dut["id"]]
-            script = build_gateway_script(mode, dut["vlan"], dut.get("mesh_src_ip", ""))
+            script = build_gateway_script(
+                mode, dut["vlan"], dut.get("mesh_src_ip", ""), dut.get("ip_last_octet", ""),
+            )
             logger.info("  [DRY-RUN] %s (%s, %s):\n%s", dut["id"], dut["ssh_alias"], mode, script)
         return
 
@@ -162,7 +180,9 @@ def update_dut_gateways(
             continue
 
         mode = dut_modes[dut["id"]]
-        script = build_gateway_script(mode, dut["vlan"], dut.get("mesh_src_ip", ""))
+        script = build_gateway_script(
+            mode, dut["vlan"], dut.get("mesh_src_ip", ""), dut.get("ip_last_octet", ""),
+        )
         cmd = SSH_BASE_CMD + [ssh_alias, script]
         logger.debug("  Launching SSH to %s (%s, mode=%s)", dut["id"], ssh_alias, mode)
         proc = subprocess.Popen(

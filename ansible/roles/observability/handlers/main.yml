@@ -1,0 +1,31 @@
+---
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: yes
+
+- name: Restart metrics tunnels
+  ansible.builtin.systemd:
+    name: "dut-metrics-tunnel-{{ item.name }}"
+    state: restarted
+  loop: "{{ observability_duts }}"
+
+- name: Restart prometheus
+  ansible.builtin.systemd:
+    name: prometheus
+    state: restarted
+
+- name: Restart grafana
+  ansible.builtin.systemd:
+    name: grafana-server
+    state: restarted
+
+- name: Restart prometheus-node-exporter
+  ansible.builtin.systemd:
+    name: prometheus-node-exporter
+    state: restarted
+
+- name: Restart grafana reverse tunnel
+  ansible.builtin.systemd:
+    name: grafana-reverse-tunnel
+    state: restarted
+  when: grafana_public_tunnel.enabled | default(false)

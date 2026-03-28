@@ -1,0 +1,15 @@
+/*
+ * Documentation site images (MkDocs Material / GitHub Pages): rounded corners.
+ * Main column, theme logo (header + drawer), institutional strip; Twemoji excluded globally.
+ */
+.md-content img,
+.md-header__button.md-logo img,
+.md-nav__button.md-logo img,
+.md-institutional-bar img {
+  border-radius: 0.5rem;
+}
+
+/* Twemoji inline images: keep square sprite edges */
+img.twemoji {
+  border-radius: 0;
+}

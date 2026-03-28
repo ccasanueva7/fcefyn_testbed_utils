@@ -1,4 +1,4 @@
 ---
 # ZeroTier role: configures ZeroTier on the orchestration host for remote lab access.
 # Network ID for FCEFyN lab (same as DUTs).
-zerotier_network_id: "93afae5963ea9881"
+zerotier_network_id: "b103a835d2ead2b6"

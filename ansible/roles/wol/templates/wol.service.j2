@@ -1,10 +1,12 @@
 [Unit]
 Description=Enable Wake On LAN
-After=network.target
+After=NetworkManager.service
+Wants=NetworkManager.service
 
 [Service]
 Type=oneshot
-ExecStart=/usr/sbin/ethtool -s {{ wol_interface }} wol g
+ExecStartPre=/bin/sleep 5
+ExecStart=/usr/sbin/ethtool -s enp0s25 wol g
 RemainAfterExit=yes
 
 [Install]

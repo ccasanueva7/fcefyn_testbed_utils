@@ -1,0 +1,135 @@
+/* Rack photo carousel: arrows over image (MkDocs Material) */
+.rack-gallery {
+  --rack-gallery-max: 560px;
+  max-width: var(--rack-gallery-max);
+  margin: 1rem auto 1.25rem;
+}
+
+/* Wider viewport for electrical schematic SVGs */
+.rack-gallery--schematics {
+  --rack-gallery-max: 720px;
+}
+
+.rack-gallery--schematics .rack-gallery__slide img {
+  max-height: min(520px, 72vh);
+}
+
+/* Catálogo hardware: fotos USB-TTL (JPEG, retrato) */
+.rack-gallery--catalog-ttl {
+  --rack-gallery-max: 640px;
+}
+
+.rack-gallery--catalog-ttl .rack-gallery__slide img {
+  max-height: min(480px, 72vh);
+}
+
+/* Catálogo: seguridad eléctrica / borneras / jacks DC */
+.rack-gallery--catalog-safety {
+  --rack-gallery-max: 560px;
+}
+
+.rack-gallery--catalog-safety .rack-gallery__slide img {
+  max-height: min(440px, 68vh);
+}
+
+.rack-gallery__viewport {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid var(--md-default-fg-color--lightest, rgba(0, 0, 0, 0.08));
+  background: var(--md-default-bg-color);
+}
+
+.rack-gallery__slide {
+  margin: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.rack-gallery__slide[hidden] {
+  display: none !important;
+}
+
+/* Cap portrait shots so vertical photos match perceived size of landscape slides */
+.rack-gallery__slide img {
+  display: block;
+  max-width: 100%;
+  max-height: min(420px, 65vh);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  vertical-align: middle;
+}
+
+/* Overlay: Instagram-style nav on top of the photo */
+.rack-gallery__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0.2rem;
+  pointer-events: none;
+}
+
+.rack-gallery__overlay .rack-gallery__btn {
+  pointer-events: auto;
+}
+
+.rack-gallery__counter {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.5rem;
+  z-index: 3;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.45);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+
+.rack-gallery__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.35rem;
+  line-height: 1;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.35);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.rack-gallery__btn:hover {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.rack-gallery__btn:active {
+  transform: scale(0.96);
+}
+
+.rack-gallery__btn:focus-visible {
+  outline: 2px solid var(--md-accent-fg-color, #fff);
+  outline-offset: 2px;
+}
+
+.rack-gallery__caption {
+  margin: 0.55rem 0 0;
+  font-size: 0.85rem;
+  opacity: 0.92;
+  text-align: center;
+  font-style: italic;
+}

@@ -1,0 +1,88 @@
+/*
+ * Site logo in header / drawer (theme.logo). Material defaults are small; widen the button
+ * and raise image height so custom PNG/SVG reads clearly.
+ * Extra 15% size uses transform so the header bar height does not grow (layout box unchanged).
+ */
+.md-header__button.md-logo {
+  width: auto;
+  max-width: min(42vw, 11rem);
+  padding: 0.15rem 0.35rem;
+  overflow: visible;
+}
+
+.md-header__button.md-logo img,
+.md-nav__button.md-logo img {
+  display: block;
+  height: 2.75rem;
+  width: auto;
+  max-height: 3rem;
+  object-fit: contain;
+  /* +15% visual size without increasing header bar height (layout box unchanged) */
+  transform: scale(1.25);
+  transform-origin: center center;
+}
+
+/* Let scaled pixels paint outside the inner bar when needed (avoids top/bottom clip) */
+.md-header__inner {
+  overflow: visible;
+}
+
+.md-nav__button.md-logo {
+  width: auto;
+  justify-content: flex-start;
+}
+
+/* Compact institutional strip above the site footer; keeps logos small and unobtrusive. */
+
+.md-institutional-bar {
+  border-top: 1px solid var(--md-default-fg-color--lightest);
+  padding: 0.4rem 0 0.35rem;
+  background-color: var(--md-default-bg-color);
+}
+
+.md-institutional-bar__inner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  max-width: 100%;
+}
+
+.md-institutional-bar__logos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(1rem, 4vw, 2rem);
+}
+
+.md-institutional-bar__link {
+  display: inline-flex;
+  align-items: center;
+  line-height: 0;
+  opacity: 0.9;
+  transition: opacity 0.15s ease;
+}
+
+.md-institutional-bar__link:hover,
+.md-institutional-bar__link:focus-visible {
+  opacity: 1;
+}
+
+/* Cap visual weight: height limit, width follows aspect ratio */
+.md-institutional-bar__link img {
+  display: block;
+  max-height: 32px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
+/* UNC logo only: 15% larger than FCEFyN strip default (see overrides/main.html) */
+.md-institutional-bar__link--unc img {
+  max-height: calc(38px * 1.40);
+}
+
+/* Slight lift on dark scheme if logos are dark-on-transparent */
+[data-md-color-scheme="slate"] .md-institutional-bar__link img {
+  filter: brightness(1.06);
+}
