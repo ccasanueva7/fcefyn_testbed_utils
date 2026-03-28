@@ -34,6 +34,13 @@ Host gateway-openwrt
     HostName 192.168.100.254
     User root
 
+# DUTs get reflashed frequently (different firmware = different host key).
+# Disable host key checking for all dut-* aliases to avoid known_hosts errors
+# when switching between OpenWrt and LibreMesh modes.
+Host dut-*
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+
 Host dut-belkin-1
     User root
     ProxyCommand sudo labgrid-dut-proxy belkin-1 192.168.1.1 22
