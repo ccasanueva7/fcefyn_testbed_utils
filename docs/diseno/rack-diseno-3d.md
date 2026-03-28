@@ -4,7 +4,7 @@ title: Rack físico
 
 # Rack físico
 
-Vista general del **rack en torre** del lab: cajoneras, caja de control, enlace a esquemáticos eléctricos en [arduino-relay](../configuracion/arduino-relay.md) y piezas impresas para conductos y soportes. Fuentes CAD: carpeta **`3d_parts/`** en la raíz del repo (OpenSCAD homónimo del STL cuando aplica).
+Vista general del **rack DIY** del lab: cajoneras, caja de control, enlace a esquemáticos eléctricos en [arduino-relay](../configuracion/arduino-relay.md) y piezas impresas para conductos y soportes. Fuentes CAD: carpeta **`3d_parts/`** en la raíz del repo (OpenSCAD homónimo del STL cuando aplica).
 
 ## Fotos del rack
 
