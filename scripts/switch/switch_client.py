@@ -253,27 +253,50 @@ class SwitchClient:
 
     def poe_on(self, port: int) -> bool:
         """Enable PoE on a switch port."""
-        driver = get_switch_driver()
-        cmds = driver.build_poe_commands(port, "on")
-        success = self.send_config_commands(cmds)
-        if success:
-            logger.info("PoE enabled on port %d", port)
-        return success
+        return self.poe_on_multi([port])
 
     def poe_off(self, port: int) -> bool:
         """Disable PoE on a switch port."""
-        driver = get_switch_driver()
-        cmds = driver.build_poe_commands(port, "off")
-        success = self.send_config_commands(cmds)
-        if success:
-            logger.info("PoE disabled on port %d", port)
-        return success
+        return self.poe_off_multi([port])
 
     def poe_cycle(self, port: int, delay_sec: float = 3.0) -> bool:
         """Power cycle a PoE port: off, wait, on — in a single locked session."""
+        return self.poe_cycle_multi([port], delay_sec)
+
+    def poe_on_multi(self, ports: list[int]) -> bool:
+        """Enable PoE on one or more switch ports in a single SSH session."""
         driver = get_switch_driver()
-        off_cmds = driver.build_poe_commands(port, "off")
-        on_cmds = driver.build_poe_commands(port, "on")
+        cmds: list[str] = []
+        for port in ports:
+            cmds.extend(driver.build_poe_commands(port, "on"))
+        success = self.send_config_commands(cmds)
+        if success:
+            logger.info("PoE enabled on port(s) %s", ports)
+        return success
+
+    def poe_off_multi(self, ports: list[int]) -> bool:
+        """Disable PoE on one or more switch ports in a single SSH session."""
+        driver = get_switch_driver()
+        cmds: list[str] = []
+        for port in ports:
+            cmds.extend(driver.build_poe_commands(port, "off"))
+        success = self.send_config_commands(cmds)
+        if success:
+            logger.info("PoE disabled on port(s) %s", ports)
+        return success
+
+    def poe_cycle_multi(self, ports: list[int], delay_sec: float = 3.0) -> bool:
+        """Power cycle one or more PoE ports: off all, wait, on all.
+
+        All commands are sent in a single locked SSH session to avoid
+        opening multiple connections to the switch.
+        """
+        driver = get_switch_driver()
+        off_cmds: list[str] = []
+        on_cmds: list[str] = []
+        for port in ports:
+            off_cmds.extend(driver.build_poe_commands(port, "off"))
+            on_cmds.extend(driver.build_poe_commands(port, "on"))
 
         with switch_lock():
             try:
@@ -284,14 +307,14 @@ class SwitchClient:
 
             try:
                 conn.send_config_set(off_cmds, cmd_verify=False)
-                logger.info("PoE off on port %d, waiting %.1fs", port, delay_sec)
+                logger.info("PoE off on port(s) %s, waiting %.1fs", ports, delay_sec)
                 time.sleep(delay_sec)
 
                 conn.send_config_set(on_cmds, cmd_verify=False)
-                logger.info("PoE cycle on port %d completed successfully", port)
+                logger.info("PoE cycle on port(s) %s completed successfully", ports)
                 return True
             except Exception as e:
-                logger.error("PoE cycle failed on port %d: %s", port, e)
+                logger.error("PoE cycle failed on port(s) %s: %s", ports, e)
                 return False
             finally:
                 conn.disconnect()
