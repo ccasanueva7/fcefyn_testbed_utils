@@ -1,11 +1,11 @@
 /*
  * Documentation site images (MkDocs Material / GitHub Pages): rounded corners.
- * Main column, theme logo (header + drawer), institutional strip; Twemoji excluded globally.
+ * Main column, theme logo (header + drawer), footer institutional logos; Twemoji excluded globally.
  */
 .md-content img,
 .md-header__button.md-logo img,
 .md-nav__button.md-logo img,
-.md-institutional-bar img {
+.md-footer-institutional__link img {
   border-radius: 0.5rem;
 }
 

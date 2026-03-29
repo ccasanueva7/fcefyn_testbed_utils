@@ -32,57 +32,72 @@
   justify-content: flex-start;
 }
 
-/* Compact institutional strip above the site footer; keeps logos small and unobtrusive. */
-
-.md-institutional-bar {
-  border-top: 1px solid var(--md-default-fg-color--lightest);
-  padding: 0.4rem 0 0.35rem;
-  background-color: var(--md-default-bg-color);
-}
-
-.md-institutional-bar__inner {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  max-width: 100%;
-}
-
-.md-institutional-bar__logos {
+/*
+ * Institutional row inside Material's dark footer meta bar (overrides/partials/footer.html).
+ * Logos + Latin motto share the same strip as "Made with Material for MkDocs".
+ */
+.md-footer-meta__inner--fcefyn {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
-  gap: clamp(1rem, 4vw, 2rem);
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
 }
 
-.md-institutional-bar__link {
+.md-footer-institutional {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 1.25rem;
+}
+
+.md-footer-institutional__logos {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: clamp(0.75rem, 3vw, 1.5rem);
+}
+
+.md-footer-institutional__link {
   display: inline-flex;
   align-items: center;
   line-height: 0;
-  opacity: 0.9;
+  opacity: 0.92;
   transition: opacity 0.15s ease;
 }
 
-.md-institutional-bar__link:hover,
-.md-institutional-bar__link:focus-visible {
+.md-footer-institutional__link:hover,
+.md-footer-institutional__link:focus-visible {
   opacity: 1;
 }
 
-/* Cap visual weight: height limit, width follows aspect ratio */
-.md-institutional-bar__link img {
+.md-footer-institutional__link img {
   display: block;
-  max-height: 32px;
+  max-height: 28px;
   width: auto;
   height: auto;
   object-fit: contain;
 }
 
-/* UNC logo only: 15% larger than FCEFyN strip default (see overrides/main.html) */
-.md-institutional-bar__link--unc img {
-  max-height: calc(38px * 1.40);
+.md-footer-institutional__link--unc img {
+  max-height: calc(28px * 1.4);
 }
 
-/* Slight lift on dark scheme if logos are dark-on-transparent */
-[data-md-color-scheme="slate"] .md-institutional-bar__link img {
-  filter: brightness(1.06);
+.md-footer-institutional__motto {
+  margin: 0;
+  font-size: 0.7rem;
+  line-height: 1.3;
+  font-style: italic;
+  letter-spacing: 0.02em;
+  opacity: 0.88;
+  color: inherit;
+}
+
+/* Logos tuned for dark footer bar (both default and slate content themes) */
+.md-footer-meta .md-footer-institutional__link img {
+  filter: brightness(1.08);
+}
+
+[data-md-color-scheme="slate"] .md-footer-meta .md-footer-institutional__link img {
+  filter: brightness(1.12);
 }

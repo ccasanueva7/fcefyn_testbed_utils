@@ -10,12 +10,14 @@ theme:
   logo: img/logos/fcefyn-testbed-org.png
   palette:
     - scheme: default
-      primary: indigo
+      primary: custom
+      accent: amber
       toggle:
         icon: material/brightness-7
         name: Modo oscuro
     - scheme: slate
-      primary: indigo
+      primary: custom
+      accent: amber
       toggle:
         icon: material/brightness-4
         name: Modo claro
@@ -47,6 +49,7 @@ markdown_extensions:
       permalink: true
 
 extra_css:
+  - stylesheets/theme-colors.css
   - stylesheets/institutional-logos.css
   - stylesheets/demos.css
   - stylesheets/rack-gallery.css
