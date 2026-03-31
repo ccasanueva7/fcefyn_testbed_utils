@@ -1,19 +1,19 @@
-# Demos en video
+# Video demos
 
-En esta sección reunimos videos demo que muestran diversas operaciones llevadas a cabo en el banco de pruebas.
+This section collects demo videos showing various operations on the testbed.
 
 ---
 
-## Acceso remoto al banco de pruebas HIL
+## Remote access to the HIL testbed
 
-Demostración del **acceso remoto** al banco de pruebas
+Demonstration of **remote access** to the testbed.
 
-**Ver en YouTube:** [Demo Acceso Remoto a Banco de Pruebas HIL](https://www.youtube.com/watch?v=QeCQGfZZQgE)
+**Watch on YouTube:** [Demo Remote Access to HIL Testbed](https://www.youtube.com/watch?v=QeCQGfZZQgE)
 
 <div class="video-embed">
   <iframe
     src="https://www.youtube.com/embed/QeCQGfZZQgE"
-    title="Demo Acceso Remoto a Banco de Pruebas HIL"
+    title="Demo Remote Access to HIL Testbed"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
     allowfullscreen
     loading="lazy"

@@ -1,52 +1,52 @@
-# Docs - Lab FCEFyN
+# Docs - FCEFyN lab
 
-Documentación del banco de pruebas HIL para OpenWrt y LibreMesh.
-
----
-
-## Guía por rol
-
-| Rol | Lee primero | Luego |
-|-----|-------------|-------|
-| **Administrador del lab** | [SOM](operar/SOM.md) | [procedimientos-lab](operar/procedimientos-lab.md), [testbed-status](operar/testbed-status.md), [rack-cheatsheets](operar/rack-cheatsheets.md), [adding-dut-guide](operar/adding-dut-guide.md), [build-firmware-manual](tests/build-firmware-manual.md) |
-| **Revisor (tesis/propuesta)** | [hybrid-lab-proposal](diseno/hybrid-lab-proposal.md) | [hybrid-lab-tracking](diseno/hybrid-lab-tracking.md) para estado, [ci-use-cases-proposal](diseno/ci-use-cases-proposal.md) para CI |
-| **Desarrollador (tests)** | [libremesh-testing-approach](tests/libremesh-testing-approach.md) | [procedimientos-lab](operar/procedimientos-lab.md), [build-firmware-manual](tests/build-firmware-manual.md) |
+Documentation for the OpenWrt and LibreMesh HIL testbed.
 
 ---
 
-## Referencias técnicas (consulta según necesidad)
+## Guide by role
 
-[host-config](configuracion/host-config.md) · [switch-config](configuracion/switch-config.md) · [duts-config](configuracion/duts-config.md) · [gateway](configuracion/gateway.md) · [arduino-relay](configuracion/arduino-relay.md) · [tftp-server](configuracion/tftp-server.md) · [ansible-labgrid](configuracion/ansible-labgrid.md) · [ci-runner](configuracion/ci-runner.md) · [observabilidad](configuracion/observabilidad.md) · [grafana-publico](configuracion/grafana-publico.md) · [rack-diseno-3d](diseno/rack-diseno-3d.md) · [procedimientos-lab](operar/procedimientos-lab.md) · [build-firmware-manual](tests/build-firmware-manual.md) · [dut-proxy-por-modo](tests/dut-proxy-por-modo.md) · [labgrid-troubleshooting](tests/labgrid-troubleshooting.md) · [ssh-dual-mode](tests/ssh-dual-mode-flow.md) · [adding-dut-guide](operar/adding-dut-guide.md) · [testbed-status](operar/testbed-status.md) · [wake-on-lan-setup](operar/wake-on-lan-setup.md) · [zerotier-acceso](operar/zerotier-acceso.md)
+| Role | Read first | Then |
+|------|------------|------|
+| **Lab admin** | [SOM](operar/SOM.md) | [Lab procedures](operar/lab-procedures.md), [testbed-status](operar/testbed-status.md), [rack-cheatsheets](operar/rack-cheatsheets.md), [adding-dut-guide](operar/adding-dut-guide.md), [build-firmware-manual](tests/build-firmware-manual.md) |
+| **Test developer** | [dut-proxy-by-mode](tests/dut-proxy-by-mode.md), [labgrid-troubleshooting](tests/labgrid-troubleshooting.md) | [Lab procedures](operar/lab-procedures.md), [build-firmware-manual](tests/build-firmware-manual.md); [LibreMesh testing approach](https://github.com/francoriba/libremesh-tests/blob/main/docs/libremesh-testing-approach.md), [CI firmware catalog](https://github.com/francoriba/libremesh-tests/blob/main/docs/ci-firmware-catalog.md) (libremesh-tests repo) |
+| **Reviewer (thesis/proposal)** | [hybrid-lab-proposal](diseno/hybrid-lab-proposal.md) | [hybrid-lab-tracking](diseno/hybrid-lab-tracking.md) for status, [ci-use-cases-proposal](diseno/ci-use-cases-proposal.md) for CI |
 
 ---
 
-## Arquitectura
+## Technical references (as needed)
+
+[host-config](configuracion/host-config.md) · [switch-config](configuracion/switch-config.md) · [duts-config](configuracion/duts-config.md) · [gateway](configuracion/gateway.md) · [arduino-relay](configuracion/arduino-relay.md) · [tftp-server](configuracion/tftp-server.md) · [ansible-labgrid](configuracion/ansible-labgrid.md) · [ci-runner](configuracion/ci-runner.md) · [observabilidad](configuracion/observabilidad.md) · [grafana-public-access](configuracion/grafana-public-access.md) · [rack-diseno-3d](diseno/rack-diseno-3d.md) · [Lab procedures](operar/lab-procedures.md) · [build-firmware-manual](tests/build-firmware-manual.md) · [dut-proxy-by-mode](tests/dut-proxy-by-mode.md) · [labgrid-troubleshooting](tests/labgrid-troubleshooting.md) · [adding-dut-guide](operar/adding-dut-guide.md) · [testbed-status](operar/testbed-status.md) · [wake-on-lan-setup](operar/wake-on-lan-setup.md) · [zerotier-remote-access](operar/zerotier-remote-access.md)
+
+---
+
+## Architecture
 
 ```mermaid
 flowchart TB
     subgraph Uplink [" "]
-        MT["MikroTik (uplink opcional)\nWAN hacia OpenWrt"]
+        MT["MikroTik (optional uplink)\nWAN to OpenWrt"]
     end
 
     subgraph Gateway [" "]
-        OW["OpenWrt (gateway del testbed)\ntrunk al switch · .254 por VLAN"]
+        OW["OpenWrt (testbed gateway)\ntrunk to switch · .254 per VLAN"]
     end
 
     subgraph Switch [" "]
-        SW["TP-Link SG2016P (Switch)"]
+        SW["TP-Link SG2016P (switch)"]
     end
 
     subgraph Host [" "]
-        H["Lenovo T430 (Host)\nLabgrid · dnsmasq · PDUDaemon"]
+        H["Lenovo T430 (host)\nLabgrid · dnsmasq · PDUDaemon"]
     end
 
-    subgraph DUTs ["DUTs · access (1 por puerto)"]
+    subgraph DUTs ["DUTs · access (1 per port)"]
         D1["Belkin #1\nVLAN 100 · 192.168.1.1"]
         D2["OpenWrt One\nVLAN 104 · 192.168.1.1"]
         DN["..."]
     end
 
-    MT -->|WAN / punto a punto| OW
+    MT -->|WAN / point-to-point| OW
     OW -->|trunk 802.1Q| SW
     H -->|trunk| SW
     SW -->|access| D1
@@ -54,37 +54,37 @@ flowchart TB
     SW -->|access| DN
 ```
 
-**Host:** orquesta tests, control de alimentación, SSH a los DUTs. dnsmasq DHCP y TFTP en cada VLAN.  
-**Switch:** VLAN por DUT (100-108) o compartida (200 mesh).  
-**Gateway:** OpenWrt en el trunk al switch; enruta entre VLANs del testbed e internet (vía uplink). No proporciona DHCP en las VLANs de prueba (lo hace el host). Detalle: [gateway](configuracion/gateway.md).
+**Host:** runs tests, power control, SSH to DUTs. dnsmasq DHCP and TFTP per VLAN.  
+**Switch:** VLAN per DUT (100-108) or shared (200 mesh).  
+**Gateway:** OpenWrt on trunk to switch; routes between testbed VLANs and Internet (via uplink). Does not provide DHCP on test VLANs (host does). Detail: [gateway](configuracion/gateway.md).
 
 ---
 
-## Rutas en el host
+## Paths on the host
 
-| Componente | Ruta | Origen |
-|------------|------|--------|
+| Component | Path | Source |
+|-----------|------|--------|
 | Exporter | `/etc/labgrid/exporter.yaml` | Ansible |
 | PDUDaemon | `/etc/pdudaemon/pdudaemon.conf` | Ansible |
 | dnsmasq | `/etc/dnsmasq.conf` | Ansible |
 | Netplan | `/etc/netplan/labnet.yaml` | Ansible |
-| Coordinator | `/etc/labgrid/places.yaml` | Ansible o `generate_places_yaml.py` |
-| dut-proxy | `/etc/labgrid/dut-proxy.yaml` | Ansible o pool-manager. Ver [dut-proxy-por-modo](tests/dut-proxy-por-modo.md). |
+| Coordinator | `/etc/labgrid/places.yaml` | Ansible or `generate_places_yaml.py` |
+| dut-proxy | `/etc/labgrid/dut-proxy.yaml` | Ansible role `dut_proxy` (fcefyn_testbed_utils). See [dut-proxy-by-mode](tests/dut-proxy-by-mode.md). |
 | TFTP root | `/srv/tftp/` | Manual |
-| PoE config | `~/.config/poe_switch_control.conf` | `configs/templates/poe_switch_control.conf.example` |
+| Switch config | `~/.config/switch.conf` | `configs/templates/switch.conf.example` |
 | Udev serial | `/etc/udev/rules.d/99-serial-devices.rules` | `configs/templates/99-serial-devices.rules` |
 
 ---
 
-## Migración a otro host
+## Migrating to another host
 
-1. Ubuntu, interfaz Ethernet para trunk. Clonar `openwrt-tests` y `fcefyn-testbed-utils`.
-2. Netplan: copiar, ajustar `link`, `netplan apply`.
-3. dnsmasq, PDUDaemon, exporter: copiar, reiniciar. Override PoE si aplica; ver [host-config 5.2.1](configuracion/host-config.md#521-pdu-poe-contrasena-con-dynamicuser).
-4. Udev: copiar reglas, `udevadm control --reload-rules`.
-5. Scripts: instalar `scripts/arduino/arduino_relay_control.py`, `scripts/switch/poe_switch_control.py` en `/usr/local/bin/`. Servicio `arduino-relay-daemon`; ver [arduino-relay 6](configuracion/arduino-relay.md#6-arduino-relay-daemon-arduino_daemonpy).
-6. TFTP: crear `/srv/tftp/` y subcarpetas.
-7. SSH: bloque `ssh_config_fcefyn`, `labgrid-bound-connect`, sudoers.
+1. Ubuntu, Ethernet interface for trunk. Clone `openwrt-tests` and `fcefyn-testbed-utils`.
+2. Netplan: copy, adjust `link`, `netplan apply`.
+3. dnsmasq, PDUDaemon, exporter: copy, restart. PoE override if applicable; see [host-config 5.2.1](configuracion/host-config.md#521-poe-pdu-password-with-dynamicuser).
+4. Udev: copy rules, `udevadm control --reload-rules`.
+5. Scripts: install `scripts/arduino/arduino_relay_control.py`, `scripts/switch/poe_switch_control.py` to `/usr/local/bin/`. Service `arduino-relay-daemon`; see [arduino-relay daemon](configuracion/arduino-relay.md#arduino-relay-daemon).
+6. TFTP: create `/srv/tftp/` and subfolders.
+7. SSH: `ssh_config_fcefyn` block, `labgrid-bound-connect`, sudoers.
 8. Coordinator: `places.yaml`, systemd.
 
-Detalle: [SOM](operar/SOM.md), [procedimientos-lab](operar/procedimientos-lab.md), [ansible-labgrid](configuracion/ansible-labgrid.md).
+Detail: [SOM](operar/SOM.md), [Lab procedures](operar/lab-procedures.md), [ansible-labgrid](configuracion/ansible-labgrid.md).

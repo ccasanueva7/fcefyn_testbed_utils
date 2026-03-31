@@ -9,9 +9,9 @@ Infraestructura complementaria del banco de pruebas HIL (Hardware-in-the-Loop) d
 ```mermaid
 flowchart TB
   R["fcefyn-testbed-utils"]
-  R --> cfg["configs\ndut-config.yaml · templates/"]
+  R --> cfg["configs\ndut-config.yaml · dut-proxy.yaml · templates/"]
   R --> doc["docs\níndice: docs/README.md"]
-  R --> scr["scripts\nswitch · arduino · testbed_status · utilidades"]
+  R --> scr["scripts\nswitch · arduino · testbed_status · labgrid-dut-proxy"]
   R --> fw["firmwares\nimágenes por dispositivo"]
   R --> ard["arduino\nfirmware controlador relés"]
   R --> parts["3d_parts\nOpenSCAD · STL"]
@@ -24,7 +24,7 @@ flowchart TB
   cfg --> tmpl
 ```
 
-En **templates/**: servicios `arduino-relay-daemon`, `labgrid-exporter-*`, `99-serial-devices.rules`, etc.
+En **templates/**: servicios `arduino-relay-daemon`, `99-serial-devices.rules`, `switch.conf.example`, etc.
 
 **CAD del rack (solo modelos):** carpeta **`3d_parts/`**. Descripción e imágenes: [docs/diseno/rack-diseno-3d.md](docs/diseno/rack-diseno-3d.md).
 
@@ -56,6 +56,7 @@ El playbook despliega exporter, PDUDaemon, dnsmasq, netplan, places.yaml, etc. V
 | `scripts/generate_places_yaml.py` | Genera `places.yaml` desde labnet.yaml. |
 | `scripts/provision_mesh_ip.py` | Provisiona 10.13.200.x + ruta 10.13.0.0/16 por serial para SSH en mesh. Ver host-config §3.6. |
 | `scripts/resolve_target.py` | Resuelve target file desde device name. |
+| `scripts/labgrid-dut-proxy` | SSH ProxyCommand que consulta el PVID del puerto en el switch para resolver VLAN/IP. Desplegado a `/usr/local/sbin/` por Ansible (role: `dut_proxy`). |
 
 Los scripts de control deben estar en `/usr/local/bin/` o en el PATH; el playbook puede copiarlos.
 

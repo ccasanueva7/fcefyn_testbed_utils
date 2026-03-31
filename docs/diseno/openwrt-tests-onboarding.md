@@ -1,28 +1,28 @@
-# Onboarding a openwrt-tests
+# Onboarding to openwrt-tests
 
-Proceso para contribuir hardware de un lab local al ecosistema [openwrt-tests](https://github.com/openwrt/openwrt-tests). Cubre arquitectura, conexión del exporter, claves SSH, Ansible y la secuencia de pasos para integrar DUTs al coordinator de upstream.
+Process for contributing hardware from a local lab to the [openwrt-tests](https://github.com/openwrt/openwrt-tests) ecosystem. Covers architecture, exporter connection, SSH keys, Ansible, and the step sequence to integrate DUTs with the upstream coordinator.
 
 ---
 
-## 1. Arquitectura del Global-Coordinator
+## 1. Global-coordinator architecture
 
-El **global-coordinator** de openwrt-tests es una **VM en un datacenter** con IP pública, mantenida por Paul (aparcar). Todos los labs remotos se conectan a ella mediante **WireGuard**. Los **GitHub Actions self-hosted runners** también corren en esa VM y acceden a los labs a través del túnel WireGuard para ejecutar tests.
+The openwrt-tests **global-coordinator** is a **VM in a datacenter** with a public IP, maintained by Paul (aparcar). All remote labs connect to it over **WireGuard**. **GitHub Actions self-hosted runners** also run on that VM and reach labs through the WireGuard tunnel to run tests.
 
 ```mermaid
 flowchart TB
-    subgraph datacenter ["VM datacenter (global-coordinator)"]
+    subgraph datacenter ["Datacenter VM (global-coordinator)"]
         GC["labgrid-coordinator<br/>(websocket + SSH jump)"]
         RUNNERS["GitHub Actions<br/>self-hosted runners (x5)"]
     end
-    subgraph lab_aparcar ["Lab Aparcar"]
+    subgraph lab_aparcar ["Aparcar lab"]
         EXP_A["labgrid-exporter"]
         DUT_A["DUTs"]
     end
-    subgraph lab_fcefyn ["Lab FCEFyN"]
+    subgraph lab_fcefyn ["FCEFyN lab"]
         EXP_F["labgrid-exporter"]
         DUT_F["DUTs"]
     end
-    subgraph dev_pc ["PC desarrollador"]
+    subgraph dev_pc ["Developer PC"]
         DEV["labgrid-client"]
     end
     EXP_A -->|"ws (WebSocket)"| GC
@@ -37,218 +37,219 @@ flowchart TB
     EXP_F --> DUT_F
 ```
 
-| Componente | Ubicación | Función |
-|------------|-----------|---------|
-| **Coordinator** | VM datacenter (IP pública) | Servicio central que registra places, coordina locks y actúa como jump host SSH. |
-| **GitHub runners** | Misma VM | 5 self-hosted runners que ejecutan los workflows de CI sobre los DUTs remotos. |
-| **WireGuard** | Entre cada lab y la VM | Túnel que permite al coordinator alcanzar los labs por SSH (proxy a DUTs). Configurado manualmente con el mantenedor. |
-| **Exporter** | Host del lab | Proceso que publica los DUTs locales hacia el coordinator vía WebSocket. |
-| **Place** | Configuración | Abstracción de un DUT: recursos (serial, power, SSH), estrategia de boot, firmware. |
+| Component | Location | Role |
+|-----------|----------|------|
+| **Coordinator** | Datacenter VM (public IP) | Central service that registers places, coordinates locks, and acts as SSH jump host. |
+| **GitHub runners** | Same VM | 5 self-hosted runners running CI workflows against remote DUTs. |
+| **WireGuard** | Between each lab and the VM | Tunnel so the coordinator can reach labs over SSH (proxy to DUTs). Configured manually with the maintainer. |
+| **Exporter** | Lab host | Process that publishes local DUTs to the coordinator over WebSocket. |
+| **Place** | Configuration | Abstraction of one DUT: resources (serial, power, SSH), boot strategy, firmware. |
 
-!!! note "Latencia WireGuard"
-    Si la conexión WireGuard entre el datacenter y el lab es mala (alta latencia), los tests pueden fallar por timeout. El mantenedor mencionó esto como un problema conocido con labs en Europa del Este.
+!!! note "WireGuard latency"
+    If the WireGuard link between the datacenter and the lab is poor (high latency), tests may fail on timeout. The maintainer cited this as a known issue with labs in Eastern Europe.
 
 ---
 
-## 2. Conexión del Exporter al Coordinator
+## 2. Exporter connection to the coordinator
 
-El exporter inicia la conexión *hacia* el coordinator.
+The exporter initiates the connection *toward* the coordinator.
 
 ```bash
 labgrid-exporter --coordinator ws://<coordinator_host>:<port> /etc/labgrid/exporter.yaml
 ```
 
-En la práctica, el exporter corre como servicio systemd (`labgrid-exporter.service`) y el coordinator se define en la configuración o variables de entorno (`LG_COORDINATOR`).
+In practice the exporter runs as a systemd service (`labgrid-exporter.service`) and the coordinator is set in config or environment (`LG_COORDINATOR`).
 
-**Lo que se requiere del mantenedor upstream:**
+**What you need from the upstream maintainer:**
 
-- URL del coordinator (host y puerto WebSocket).
-- Clave pública SSH del coordinator para agregarla a `authorized_keys` del usuario `labgrid-dev` en el lab (ya incluida en el playbook de Ansible de openwrt-tests).
+- Coordinator URL (host and WebSocket port).
+- Coordinator SSH public key to add to `authorized_keys` for user `labgrid-dev` on the lab (already included in the openwrt-tests Ansible playbook).
 
-**Firewalls / NAT:** El lab debe poder conectar *hacia* el coordinator (websocket saliente). El coordinator luego usa SSH proxy a través del mismo canal para alcanzar los DUTs.
+**Firewalls / NAT:** The lab must be able to connect *outbound* to the coordinator (outgoing WebSocket). The coordinator then uses SSH proxy over the same path to reach DUTs.
 
 ---
 
-## 3. Acceso SSH y Proxy
+## 3. SSH access and proxy
 
-Cuando un desarrollador o CI ejecuta `labgrid-client console` o `labgrid-client ssh`, el flujo es:
+When a developer or CI runs `labgrid-client console` or `labgrid-client ssh`, the flow is:
 
 ```
-cliente → SSH al coordinator (jump host) → SSH al exporter → serial/SSH al DUT
+client → SSH to coordinator (jump host) → SSH to exporter → serial/SSH to DUT
 ```
 
-El coordinator necesita poder conectar por SSH al host del lab. Esto se logra con la clave pública del coordinator en `authorized_keys` del usuario `labgrid-dev`.
+The coordinator must SSH to the lab host. That is done with the coordinator public key in `authorized_keys` for user `labgrid-dev`.
 
-### 3.1 Claves involucradas
+### 3.1 Keys involved
 
-| Clave | Dónde se configura | Propósito |
-|-------|--------------------|-----------|
-| Clave pública del **coordinator** | `~labgrid-dev/.ssh/authorized_keys` en el lab | Permite al coordinator conectar por SSH al lab (proxy a DUTs). Desplegada por Ansible. |
-| Clave pública de cada **developer** | `labnet.yaml → developers.<github_user>.sshkey` | Permite al developer acceder a los DUTs del lab vía `LG_PROXY`. |
-| Clave pública de **WireGuard** del lab | Intercambio manual con el mantenedor | Establece el túnel VPN entre el lab y el coordinator. |
+| Key | Where it is configured | Purpose |
+|-----|------------------------|---------|
+| **Coordinator** public key | `~labgrid-dev/.ssh/authorized_keys` on the lab | Lets the coordinator SSH to the lab (proxy to DUTs). Deployed by Ansible. |
+| Each **developer** public key | `labnet.yaml → developers.<github_user>.sshkey` | Lets the developer reach lab DUTs via `LG_PROXY`. |
+| Lab **WireGuard** public key | Manual exchange with maintainer | Establishes VPN tunnel between lab and coordinator. |
 
-La clave del coordinator ya está en el playbook de Ansible de openwrt-tests; se despliega automáticamente al ejecutar el playbook.
+The coordinator key is already in the openwrt-tests Ansible playbook; it deploys when you run the playbook.
 
-#### Claves de developer en `labnet.yaml`
+#### Developer keys in `labnet.yaml`
 
-Cada developer que quiere acceder remotamente a DUTs de un lab necesita:
+Each developer who needs remote DUT access needs:
 
-1. Su **clave pública SSH personal** (ed25519) en la sección `developers:` del `labnet.yaml`.
-2. Su **username de GitHub** como identificador.
-3. Estar listado en `labs.<lab>.developers` del lab al que quiere acceder.
+1. Their **personal SSH public key** (ed25519) in the `developers:` section of `labnet.yaml`.
+2. Their **GitHub username** as identifier.
+3. To be listed in `labs.<lab>.developers` for the target lab.
 
-El playbook de Ansible de openwrt-tests itera sobre `labs.<lab>.developers`, busca la `sshkey` de cada uno en `developers:`, y la agrega a `~labgrid-dev/.ssh/authorized_keys` en el host del lab. Así cada developer puede hacer SSH como `labgrid-dev` para usar `labgrid-client`.
-
----
-
-## 4. Ansible: Control Node y Managed Node
-
-| Rol | En openwrt-tests upstream |
-|-----|---------------------------|
-| **Control Node** | Máquina del mantenedor (Paul/Aparcar) que ejecuta `ansible-playbook`. |
-| **Managed Node** | El host del lab (la Lenovo en nuestro caso). |
-
-Para que el mantenedor upstream aplique el playbook sobre el lab FCEFyN, necesita:
-
-1. **SSH al host del lab** (acceso a `labgrid-dev` o al usuario del inventario).
-2. **Clave pública de su control node** en `authorized_keys` del managed node.
-
-Esto se coordina manualmente: el mantenedor proporciona su clave pública y el lab owner la agrega a `authorized_keys`, o bien el lab owner ejecuta el playbook localmente (si tiene acceso al inventario).
+The openwrt-tests Ansible playbook iterates `labs.<lab>.developers`, looks up each `sshkey` in `developers:`, and appends to `~labgrid-dev/.ssh/authorized_keys` on the lab host. Each developer can then SSH as `labgrid-dev` to use `labgrid-client`.
 
 ---
 
-## 5. Contenido de una PR para Contribuir Hardware
+## 4. Ansible: control node and managed node
 
-Una PR a openwrt-tests para agregar un nuevo lab incluye:
+| Role | In upstream openwrt-tests |
+|------|---------------------------|
+| **Control node** | Maintainer machine (Paul/Aparcar) that runs `ansible-playbook`. |
+| **Managed node** | The lab host (the Lenovo in our case). |
 
-| Archivo | Descripción |
-|---------|-------------|
-| `labnet.yaml` | Entrada del lab en `labs:`, devices, instances, developer SSH key. |
-| `ansible/files/exporter/<lab>/exporter.yaml` | Configuración del exporter: places con recursos (serial, power, SSH target). |
-| `ansible/files/exporter/<lab>/netplan.yaml` | Configuración de red del host (VLANs). |
-| `ansible/files/exporter/<lab>/dnsmasq.conf` | DHCP/TFTP para las VLANs del lab. |
-| `ansible/files/exporter/<lab>/pdudaemon.conf` | Configuración de PDUDaemon (power control). |
-| `docs/labs/<lab>.md` | Documentación del lab: hardware, DUTs, maintainers. |
+For the upstream maintainer to apply the playbook to the FCEFyN lab:
 
-### 5.1 Developers en labnet.yaml
+1. **SSH to the lab host** (access as `labgrid-dev` or inventory user).
+2. **Control node public key** in `authorized_keys` on the managed node.
 
-Cada developer se registra con su **username de GitHub** y su **clave pública SSH personal** (ed25519). Se recomienda incluir al mantenedor upstream (`aparcar`) para que pueda debuggear.
+This is coordinated manually: the maintainer shares their public key and the lab owner adds it to `authorized_keys`, or the lab owner runs the playbook locally (if they have inventory access).
+
+---
+
+## 5. PR contents to contribute hardware
+
+A PR to openwrt-tests to add a new lab includes:
+
+| File | Description |
+|------|-------------|
+| `labnet.yaml` | Lab entry under `labs:`, devices, instances, developer SSH keys. |
+| `ansible/files/exporter/<lab>/exporter.yaml` | Exporter config: places with resources (serial, power, SSH target). |
+| `ansible/files/exporter/<lab>/netplan.yaml` | Host network config (VLANs). |
+| `ansible/files/exporter/<lab>/dnsmasq.conf` | DHCP/TFTP for lab VLANs. |
+| `ansible/files/exporter/<lab>/pdudaemon.conf` | PDUDaemon config (power control). |
+| `docs/labs/<lab>.md` | Lab documentation: hardware, DUTs, maintainers. |
+
+### 5.1 Developers in labnet.yaml
+
+Each developer registers with their **GitHub username** and **personal SSH public key** (ed25519). Include the upstream maintainer (`aparcar`) so they can debug.
 
 ```yaml
 labs:
   labgrid-fcefyn:
     developers:
-      - francoriba     # username de GitHub
-      - aparcar         # mantenedor upstream (debugging)
+      - francoriba     # GitHub username
+      - aparcar         # upstream maintainer (debugging)
 
 developers:
   francoriba:
-    sshkey: ssh-ed25519 AAAA...  # clave personal del developer
+    sshkey: ssh-ed25519 AAAA...  # developer personal key
 ```
 
+### 5.2 Generate SSH key for a new developer {: #52-generate-ssh-key-for-new-developer }
 
 ```bash
 ssh-keygen -t ed25519 -C "github_username" -f ~/.ssh/id_ed25519
 cat ~/.ssh/id_ed25519.pub
 ```
 
-La clave pública (salida de `cat`) se agrega a `labnet.yaml` en `developers.<github_user>.sshkey`. La clave privada permanece en la PC del developer.
+Add the public key (`cat` output) to `labnet.yaml` under `developers.<github_user>.sshkey`. The private key stays on the developer PC.
 
-Para acceder desde otra PC, copiar el par de claves (`id_ed25519` + `id_ed25519.pub`) a `~/.ssh/` de la nueva máquina con `chmod 600` en la privada. Una sola entrada en `labnet.yaml` sirve para todas las PCs del mismo developer.
+To use another PC, copy the key pair (`id_ed25519` + `id_ed25519.pub`) to `~/.ssh/` on the new machine with `chmod 600` on the private key. One `labnet.yaml` entry covers all PCs for the same developer.
 
-!!! warning "No confundir con la clave del host"
-    La clave del host de orquestación (`/etc/wireguard/public.key`, claves en `~labgrid-dev/.ssh/`) tiene otro propósito. En `labnet.yaml → developers` van únicamente claves **personales** de quienes operarán `labgrid-client` desde sus laptops.
+!!! warning "Do not confuse with host keys"
+    Orchestration host keys (`/etc/wireguard/public.key`, keys in `~labgrid-dev/.ssh/`) serve other purposes. Under `labnet.yaml → developers` only put **personal** keys for people who will run `labgrid-client` from laptops.
 
 ---
 
-## 6. Secuencia de Onboarding
+## 6. Onboarding sequence
 
-Orden orientativo: primero el túnel **WireGuard** (la VM del coordinator necesita registrar el peer del lab; sin túnel no hay SSH de vuelta desde la VM). En paralelo se prepara la **PR** con inventario, exporter y claves **SSH personales** de developers ([5.2](#52-generar-clave-ssh-para-un-nuevo-developer)). Tras el merge, el **playbook_labgrid** de openwrt-tests despliega `authorized_keys` y servicios en el host.
+Suggested order: first the **WireGuard** tunnel (the coordinator VM must register the lab peer; without the tunnel there is no return SSH from the VM). In parallel prepare the **PR** with inventory, exporter, and developers' **personal** SSH keys ([5.2](#52-generate-ssh-key-for-new-developer)). After merge, the openwrt-tests **playbook_labgrid** deploys `authorized_keys` and services on the host.
 
 ```mermaid
 sequenceDiagram
     participant Lab as Lab_owner_host
-    participant Maint as Mantenedor_upstream
+    participant Maint as Upstream_maintainer
     participant DC as VM_coordinator_runners
     participant PR as PR_openwrt_tests
 
-    Lab->>Lab: Keypair WireGuard en host del lab
-    Lab->>Maint: Clave publica WireGuard
-    Maint->>Lab: Config peer IP endpoint pubkey servidor
-    Maint->>DC: Registrar peer del lab en servidor WireGuard
-    Lab->>Lab: Desplegar wg0 Ansible wireguard o manual
-    Lab->>DC: Tunel WireGuard activo handshake
-    Lab->>Lab: Claves SSH ed25519 developers seccion_5_2
-    Lab->>PR: PR labnet developers individuales exporter netplan dnsmasq pdu docs
-    Maint->>PR: Review y merge
-    Maint->>Lab: URL WebSocket coordinator si aplica
+    Lab->>Lab: WireGuard keypair on lab host
+    Lab->>Maint: WireGuard public key
+    Maint->>Lab: Peer config IP endpoint server pubkey
+    Maint->>DC: Register lab peer on WireGuard server
+    Lab->>Lab: Deploy wg0 Ansible wireguard or manual
+    Lab->>DC: WireGuard tunnel active handshake
+    Lab->>Lab: Developer SSH ed25519 keys section_5_2
+    Lab->>PR: PR labnet developers exporter netplan dnsmasq pdu docs
+    Maint->>PR: Review and merge
+    Maint->>Lab: WebSocket coordinator URL if needed
     Lab->>Lab: playbook_labgrid openwrt_tests authorized_keys exporter
-    Lab->>DC: Exporter WebSocket saliente
-    DC->>Lab: SSH al lab via tunel proxy DUTs
-    DC->>DC: Places registrados runners CI en VM
+    Lab->>DC: Outbound exporter WebSocket
+    DC->>Lab: SSH to lab via tunnel proxy DUTs
+    DC->>DC: Places registered CI runners on VM
 ```
 
 ### 6.1 Checklist
 
-* Generar keypair WireGuard en el host del lab y enviar la clave pública al mantenedor (Matrix)
-* Recibir del mantenedor la config WireGuard (IP asignada, endpoint, clave pública del servidor)
-* Aplicar túnel en el host: role Ansible `wireguard` en `fcefyn_testbed_utils` o configuración manual de `wg0`. Ver [sección 9](#wireguard-ansible-fcefyn)
-* Verificar túnel: `sudo wg show wg0` (handshake reciente)
-* Por cada developer: generar clave ed25519 personal ([5.2](#52-generar-clave-ssh-para-un-nuevo-developer)) y listar `labs.<lab>.developers` + `developers.<github_user>.sshkey` en `labnet.yaml`
-* Preparar archivos del lab: `exporter.yaml`, `netplan.yaml`, `dnsmasq.conf`, `pdudaemon.conf`
-* Documentar el lab en `docs/labs/<lab>.md` (upstream)
-* Abrir PR a openwrt-tests con los cambios anteriores
-* Tras merge: aplicar `playbook_labgrid.yml` desde openwrt-tests en el host (o que el mantenedor lo haga): queda la clave SSH del coordinator en `~labgrid-dev/.ssh/authorized_keys` y el exporter configurado
-* Confirmar `labgrid-exporter` apuntando al WebSocket del coordinator
-* Verificar places: `labgrid-client places` (con `LG_PROXY` segun README upstream)
+* Generate WireGuard keypair on the lab host and send the public key to the maintainer (Matrix)
+* Receive WireGuard config from the maintainer (assigned IP, endpoint, server public key)
+* Apply tunnel on the host: Ansible role `wireguard` in `fcefyn_testbed_utils` or manual `wg0` config. See [section 9](#wireguard-ansible-fcefyn)
+* Verify tunnel: `sudo wg show wg0` (recent handshake)
+* Per developer: generate personal ed25519 key ([5.2](#52-generate-ssh-key-for-new-developer)) and list `labs.<lab>.developers` + `developers.<github_user>.sshkey` in `labnet.yaml`
+* Prepare lab files: `exporter.yaml`, `netplan.yaml`, `dnsmasq.conf`, `pdudaemon.conf`
+* Document the lab in `docs/labs/<lab>.md` (upstream)
+* Open PR to openwrt-tests with the above
+* After merge: run `playbook_labgrid.yml` from openwrt-tests on the host (or have the maintainer run it): coordinator SSH key ends up in `~labgrid-dev/.ssh/authorized_keys` and exporter is configured
+* Confirm `labgrid-exporter` points at the coordinator WebSocket
+* Verify places: `labgrid-client places` (with `LG_PROXY` per upstream README)
 
 ---
 
-## 7. Coordinación con el Mantenedor
+## 7. Maintainer coordination
 
-| Qué se necesita | Cómo obtenerlo |
-|-----------------|----------------|
-| Config WireGuard (IP, endpoint, peer key) | Enviar clave pública WireGuard al mantenedor vía; recibir los datos de vuelta. |
-| URL del coordinator | Preguntar al mantenedor o ver documentación del proyecto. |
-| Clave SSH del coordinator | Ya incluida en el playbook de Ansible; se despliega al aplicarlo. Alternativamente, el mantenedor la proporciona. |
-| Acceso Ansible al lab | El lab owner proporciona acceso SSH al mantenedor (clave pública del control node de Ansible), o bien aplica el playbook localmente. |
-| Configuración de VLANs | Definida por el lab owner según su hardware; los archivos van en la PR. |
-
----
-
-## 8. Diferencias con libremesh-tests
-
-| Aspecto | openwrt-tests (upstream) | libremesh-tests (fork) |
-|---------|--------------------------|------------------------|
-| Coordinator | Remoto (`global-coordinator`) | Local (en el mismo host del lab) |
-| Control Node Ansible | Infraestructura de Aparcar | El propio lab (self-setup) |
-| VLANs | Una por DUT (isolated, 192.168.1.1) | Compartida (VLAN 200, 10.13.x.x) |
-| Tests multi-nodo | No soportado | Implementado en `conftest_mesh.py` |
-
-Para detalles sobre el modo híbrido que permite usar el mismo lab para ambos proyectos, ver [hybrid-lab-proposal](hybrid-lab-proposal.md).
+| What you need | How to get it |
+|---------------|---------------|
+| WireGuard config (IP, endpoint, peer key) | Send lab WireGuard public key to the maintainer; receive data back. |
+| Coordinator URL | Ask the maintainer or see project docs. |
+| Coordinator SSH key | Already in Ansible playbook; deploys when applied. Alternatively the maintainer provides it. |
+| Ansible access to lab | Lab owner gives SSH to the maintainer (Ansible control node public key), or runs the playbook locally. |
+| VLAN configuration | Defined by the lab owner for their hardware; files go in the PR. |
 
 ---
 
-## 9. WireGuard en Ansible (fcefyn_testbed_utils) {: #wireguard-ansible-fcefyn }
+## 8. Differences from libremesh-tests
 
-Role en `fcefyn_testbed_utils` para levantar el túnel del host del lab hacia el **global-coordinator**. No sustituye el intercambio de claves con el mantenedor upstream: solo automatiza instalación, `wg0.conf` y `systemd` en Debian/Ubuntu.
+| Aspect | openwrt-tests (upstream) | libremesh-tests (fork) |
+|--------|--------------------------|------------------------|
+| Coordinator | Remote (`global-coordinator`) | Local (same host as lab) |
+| Ansible control node | Aparcar infrastructure | The lab itself (self-setup) |
+| VLANs | One per DUT (isolated, 192.168.1.1) | Shared (VLAN 200, 10.13.x.x) |
+| Multi-node tests | Not supported | Implemented in `conftest_mesh.py` |
 
-| Elemento | Ubicacion |
-|----------|-----------|
+For the unified pool that lets the same lab serve both projects with dynamic VLAN per test, see [unified-pool-proposal](unified-pool-proposal.md).
+
+---
+
+## 9. WireGuard in Ansible (fcefyn_testbed_utils) {: #wireguard-ansible-fcefyn }
+
+Role in `fcefyn_testbed_utils` to bring up the lab host tunnel toward the **global-coordinator**. It does not replace key exchange with the upstream maintainer: it only automates install, `wg0.conf`, and systemd on Debian/Ubuntu.
+
+| Item | Location |
+|------|----------|
 | Role | `ansible/roles/wireguard/` |
-| Playbook que lo invoca | `ansible/playbook_testbed.yml` (comentarios y tag `wireguard`) |
+| Playbook that uses it | `ansible/playbook_testbed.yml` (comments and tag `wireguard`) |
 | Variables (placeholders) | `ansible/roles/wireguard/defaults/main.yml` |
-| Plantilla | `ansible/roles/wireguard/templates/wg0.conf.j2` |
-| Servicio | `wg-quick@wg0` (habilitado y arrancado por el role) |
+| Template | `ansible/roles/wireguard/templates/wg0.conf.j2` |
+| Service | `wg-quick@wg0` (enabled and started by the role) |
 
-**Variables a completar** (valores reales los entrega el mantenedor tras enviar la clave pública del lab): `wireguard_address`, `wireguard_peer_public_key`, `wireguard_peer_endpoint`, `wireguard_peer_allowed_ips` (por defecto `10.0.0.0/24`), `wireguard_peer_keepalive`. La clave privada **no** va al repositorio: el role puede generarla en el host si no existe (`/etc/wireguard/private.key`) y muestra en salida de Ansible la clave pública para compartir.
+**Variables to fill** (real values come from the maintainer after you send the lab public key): `wireguard_address`, `wireguard_peer_public_key`, `wireguard_peer_endpoint`, `wireguard_peer_allowed_ips` (default `10.0.0.0/24`), `wireguard_peer_keepalive`. The **private** key does not go in the repo: the role can generate it on the host if missing (`/etc/wireguard/private.key`) and prints the public key in Ansible output to share.
 
-**Ejecución orientativa** (desde el directorio `ansible/` del repo, con inventario adecuado):
+**Example run** (from repo `ansible/` directory, with proper inventory):
 
 ```bash
-ansible-playbook playbook_testbed.yml --tags wireguard -l <host_del_lab>
+ansible-playbook playbook_testbed.yml --tags wireguard -l <lab_host>
 ```
 
-Para túnel manual o detalles del lado servidor, seguir lo acordado con el mantenedor upstream.
+For manual tunnel or server-side detail, follow what was agreed with the upstream maintainer.
 
 ---

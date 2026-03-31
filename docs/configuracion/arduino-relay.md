@@ -1,135 +1,135 @@
-# Control de Relés mediante microcontrolador Arduino
+# Relay control via Arduino microcontroller
 
-Interfaz de control de potencia automatizada por USB-Serial (**115200** baudios): DUTs e infraestructura del rack (cooler, fuente). El **switch de red no se alimenta ni se conmuta** desde este Arduino; queda en red de forma continua.
+Automated power control over USB-serial (**115200** baud): DUTs and rack infrastructure (cooler, PSU). The **network switch is neither fed nor switched** from this Arduino; it stays on mains continuously.
 
-## 1. Descripción del sistema
+## 1. System overview
 
-El Arduino Nano controla **11 canales** por USB-Serial. Puerto: `/dev/arduino-relay` (udev). El daemon `arduino_daemon.py` mantiene serial abierto para evitar resets del bootloader; `arduino_relay_control.py` habla con el daemon o con el puerto.
+The Arduino Nano controls **11 channels** over USB-serial. Device: `/dev/arduino-relay` (udev). The `arduino_daemon.py` daemon keeps serial open to avoid bootloader resets; `arduino_relay_control.py` talks to the daemon or the port directly.
 
-| Rango | Rol |
-|-------|-----|
-| 0-7 | Relés electromecánicos (módulo 8 ch, 5 V, opto) para DUTs |
-| 8-10 | SSR / Fotek: infraestructura (canal 8 cableado sin carga; cooler; fuente) |
+| Range | Role |
+|-------|------|
+| 0-7 | Electromechanical relays (8-ch module, 5 V, opto) for DUTs |
+| 8-10 | SSR / Fotek: infrastructure (channel 8 wired no-load; cooler; PSU) |
 
-## 2. Hardware y asignación de canales
+## 2. Hardware and channel map
 
-**Fotos de módulos y PSU del canal 10:** [Catálogo de hardware - Relés Arduino](catalogo-hardware.md#reles-arduino-rack) y [Fuente AC (canal 10)](catalogo-hardware.md#fuente-ac-carga-canal-10).
+**Module and channel 10 PSU photos:** [Hardware catalog - Arduino relays](catalogo-hardware.md#arduino-rack-relays) and [AC supply (channel 10)](catalogo-hardware.md#ac-supply-channel-10-load).
 
-### 2.1 Infraestructura (SSR)
+### 2.1 Infrastructure (SSR)
 
-| Canal | Pin | Dispositivo | Hardware | Lógica |
-|-------|-----|-------------|----------|--------|
-| **8** | D10 | Sin carga (CH1 del SSR 4ch; señal cableada en UTP) | Módulo SSR 4 canales, CH1 | Activo-bajo |
-| **9** | D11 | Cooler Booster AC | Módulo SSR 4 canales, CH2 | Activo-bajo |
-| **10** | D12 | Fuente de alimentación | Fotek SSR-25DA (individual) | **Activo-alto** |
+| Channel | Pin | Device | Hardware | Logic |
+|---------|-----|--------|----------|-------|
+| **8** | D10 | No load (CH1 on 4-ch SSR; signal wired on UTP) | 4-ch SSR module, CH1 | Active low |
+| **9** | D11 | Booster AC cooler | 4-ch SSR module, CH2 | Active low |
+| **10** | D12 | Power supply | Fotek SSR-25DA (standalone) | **Active high** |
 
-!!! note "Polaridad de los canales"
-    Canal 10: HIGH = ON. Canales 0-9: LOW = ON.
+!!! note "Channel polarity"
+    Channel 10: HIGH = ON. Channels 0-9: LOW = ON.
 
-### 2.2 DUTs (relés mecánicos)
+### 2.2 DUTs (mechanical relays)
 
-| Canales | Pines | Hardware |
-|---------|-------|---------|
-| 0-7 | D2-D9 | Módulo de 8 relés electromecánicos (5 V DC, optoacoplado) |
+| Channels | Pins | Hardware |
+|----------|------|----------|
+| 0-7 | D2-D9 | 8-channel electromechanical relay module (5 V DC, optocoupled) |
 
-### 2.3 Especificaciones de los módulos
+### 2.3 Module specifications
 
-Tablas de fabricante, límites de carga y datos de placa: [Catálogo de hardware - Relés Arduino](catalogo-hardware.md#reles-arduino-rack).
+Manufacturer tables, load limits, and board data: [Hardware catalog - Arduino relays](catalogo-hardware.md#arduino-rack-relays).
 
-## 3. Esquema de conexión física (DUTs - potencia DC)
+## 3. Physical wiring (DUTs - DC power)
 
-Corte de **12 V DC** por relé electromecánico (canales 0-7):
+**12 V DC** cut by electromechanical relay (channels 0-7):
 
-| Conductor | Recorrido |
-|-----------|-----------|
-| 12 V+ (PSU) | PSU V+ → bus COM de los relés → contacto NO de cada relé → conector DC+ del DUT |
-| GND (PSU) | PSU GND → bus GND común → conector GND de cada DUT (no conmutado) |
+| Conductor | Path |
+|-----------|------|
+| 12 V+ (PSU) | PSU V+ → relay COM bus → NO contact → DUT DC+ |
+| GND (PSU) | PSU GND → common GND bus → DUT GND (not switched) |
 
-## 4. Cableado de señal (UTP)
+## 4. Signal wiring (UTP)
 
-UTP Cat5e/6, ~2 m: señales y GND común.
+UTP Cat5e/6, ~2 m: signals and common GND.
 
-| Par | Color | Función | Pin Arduino | Borne relé |
-|-----|-------|---------|-------------|------------|
-| Naranja | Naranja | Señal canal 8 (CH1, sin carga) | D10 | CH1 (SSR 4ch) |
-| | Blanco/Naranja | GND | GND | DC- |
-| Verde | Verde | Señal cooler | D11 | CH2 (SSR 4ch) |
-| | Blanco/Verde | GND | GND | DC- |
-| Marrón | Marrón | Señal fuente | D12 | Borne 3 (Fotek) |
-| | Blanco/Marrón | GND | GND | Borne 4 (Fotek) |
+| Pair | Color | Function | Arduino pin | Relay terminal |
+|------|-------|----------|-------------|----------------|
+| Orange | Orange | Channel 8 signal (CH1, no load) | D10 | CH1 (4-ch SSR) |
+| | White/Orange | GND | GND | DC- |
+| Green | Green | Cooler signal | D11 | CH2 (4-ch SSR) |
+| | White/Green | GND | GND | DC- |
+| Brown | Brown | PSU signal | D12 | Terminal 3 (Fotek) |
+| | White/Brown | GND | GND | Terminal 4 (Fotek) |
 
-### Esquemas eléctricos {: #esquemas-electricos-referencia }
+### Electrical schematics {: #electrical-schematics-reference }
 
 <div class="rack-gallery rack-gallery--schematics" data-rack-gallery tabindex="0">
   <div class="rack-gallery__viewport">
-    <figure class="rack-gallery__slide" data-caption="Cableado de señal UTP: D10/D11 → SSR 4ch (CH1 sin carga, CH2 cooler), D12 → Fotek, GND común.">
-      <img src="../../img/rack/schematics/rack-signal-utp.svg" alt="Esquema cableado señal UTP Arduino SSR Fotek" loading="lazy" decoding="async">
+    <figure class="rack-gallery__slide" data-caption="UTP signal wiring: D10/D11 to 4-ch SSR (CH1 no load, CH2 cooler), D12 to Fotek, common GND.">
+      <img src="../../img/rack/schematics/rack-signal-utp.svg" alt="UTP signal wiring Arduino SSR Fotek" loading="lazy" decoding="async">
     </figure>
-    <figure class="rack-gallery__slide" data-caption="Infraestructura 230 V AC (unifilar): SSR 4ch, cooler, canal sin señal Arduino, Fotek y fuente Coper Light.">
-      <img src="../../img/rack/schematics/rack-ac-infra.svg" alt="Esquema unifilar AC rack SSR y cargas" loading="lazy" decoding="async">
+    <figure class="rack-gallery__slide" data-caption="230 V AC infrastructure (single-line): 4-ch SSR, cooler, channel without Arduino signal, Fotek and Coper Light PSU.">
+      <img src="../../img/rack/schematics/rack-ac-infra.svg" alt="AC single-line rack SSR and loads" loading="lazy" decoding="async">
     </figure>
-    <figure class="rack-gallery__slide" data-caption="DUTs 0-7: Arduino D2-D9, módulo de 8 relés, PSU 12 V DC y alimentación a cada DUT.">
-      <img src="../../img/rack/schematics/rack-dut-relays.svg" alt="Esquema DC DUTs relés 8 canales y fuente 12 V" loading="lazy" decoding="async">
+    <figure class="rack-gallery__slide" data-caption="DUTs 0-7: Arduino D2-D9, 8-relay module, 12 V DC PSU and feed per DUT.">
+      <img src="../../img/rack/schematics/rack-dut-relays.svg" alt="DC DUTs 8-channel relays and 12 V PSU" loading="lazy" decoding="async">
     </figure>
     <div class="rack-gallery__overlay">
       <span class="rack-gallery__counter" data-rack-counter aria-live="polite"></span>
-      <button type="button" class="rack-gallery__btn" data-rack-prev aria-label="Imagen anterior">&#8249;</button>
-      <button type="button" class="rack-gallery__btn" data-rack-next aria-label="Imagen siguiente">&#8250;</button>
+      <button type="button" class="rack-gallery__btn" data-rack-prev aria-label="Previous image">&#8249;</button>
+      <button type="button" class="rack-gallery__btn" data-rack-next aria-label="Next image">&#8250;</button>
     </div>
   </div>
   <p class="rack-gallery__caption" data-rack-caption></p>
 </div>
 
-## 5. Comandos serial
+## 5. Serial commands
 
-Baudrate: **115200** bps.
+Baud rate: **115200** bps.
 
-| Comando | Descripción | Ejemplo |
+| Command | Description | Example |
 |---------|-------------|---------|
-| `ON n [n ...]` | Enciende canal(es) | `ON 9 10` |
-| `OFF n [n ...]` | Apaga | `OFF 10` |
-| `TOGGLE n [n ...]` | Alterna | `TOGGLE 9` |
-| `PULSE n ms` | Pulso ms | `PULSE 0 500` |
-| `ALLON` / `ALLOFF` | Todos on/off | |
-| `STATUS` | Estado 11 canales | |
-| `HELP` / `ID` | Ayuda / ID | |
+| `ON n [n ...]` | Turn channel(s) on | `ON 9 10` |
+| `OFF n [n ...]` | Turn off | `OFF 10` |
+| `TOGGLE n [n ...]` | Toggle | `TOGGLE 9` |
+| `PULSE n ms` | Pulse ms | `PULSE 0 500` |
+| `ALLON` / `ALLOFF` | All on/off | |
+| `STATUS` | State of 11 channels | |
+| `HELP` / `ID` | Help / ID | |
 
 ```bash
-# Con arduino_relay_control.py (usa daemon si está activo)
+# With arduino_relay_control.py (uses daemon if running)
 arduino_relay_control.py on 9 10
 arduino_relay_control.py off 10
 arduino_relay_control.py pulse 0 3000
 arduino_relay_control.py status
 
-# Serial directo (sin daemon)
+# Direct serial (no daemon)
 stty -F /dev/arduino-relay 115200 raw -echo && echo "ON 9 10" > /dev/arduino-relay
 ```
 
-## 6. Arduino Relay Daemon (`arduino_daemon.py`)
+## 6. Arduino Relay Daemon (`arduino_daemon.py`) {: #arduino-relay-daemon }
 
-Evita reset del Arduino al abrir/cerrar el puerto: conexión serial persistente, socket Unix `/tmp/arduino-relay.sock`. `arduino_relay_control.py` y PDUDaemon se benefician si el servicio está activo.
+Avoids Arduino reset when opening/closing the port: persistent serial connection, Unix socket `/tmp/arduino-relay.sock`. `arduino_relay_control.py` and PDUDaemon benefit when the service is enabled.
 
-### 6.1 Servicio systemd (recomendado)
+### 6.1 systemd service (recommended)
 
-Unit de origen: `configs/templates/arduino-relay-daemon.service` → `/etc/systemd/system/`.
+Unit source: `configs/templates/arduino-relay-daemon.service` → `/etc/systemd/system/`.
 
 ```bash
-# Desde la raíz de fcefyn-testbed-utils:
+# From fcefyn-testbed-utils repo root:
 sudo cp scripts/arduino/arduino_daemon.py /usr/local/bin/ && sudo chmod +x /usr/local/bin/arduino_daemon.py
 sudo cp configs/templates/arduino-relay-daemon.service /etc/systemd/system/
 sudo systemctl daemon-reload && sudo systemctl enable --now arduino-relay-daemon
 ```
 
-### 6.2 Manual (pruebas)
+### 6.2 Manual (testing)
 
 ```bash
 ./scripts/arduino/start_daemon.sh
-# o: python3 scripts/arduino/arduino_daemon.py start --port /dev/arduino-relay
+# or: python3 scripts/arduino/arduino_daemon.py start --port /dev/arduino-relay
 ```
 
-Comandos del daemon: `start`, `stop`, `status`. PID `/tmp/arduino-relay.pid`, socket arriba, log `/tmp/arduino-daemon.log` con `start_daemon.sh`.
+Daemon commands: `start`, `stop`, `status`. PID `/tmp/arduino-relay.pid`, socket as above, log `/tmp/arduino-daemon.log` with `start_daemon.sh`.
 
-## 7. Resolución del symlink
+## 7. Resolve the symlink
 
 ```bash
 readlink -f /dev/arduino-relay

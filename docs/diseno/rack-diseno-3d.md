@@ -1,117 +1,117 @@
 ---
-title: Rack físico
+title: Physical rack
 ---
 
-# Rack físico
+# Physical rack
 
-Vista general del **rack DIY** del lab: cajoneras, caja de control, enlace a esquemáticos eléctricos en [arduino-relay](../configuracion/arduino-relay.md) y piezas impresas para conductos y soportes. Fuentes CAD: carpeta **`3d_parts/`** en la raíz del repo (OpenSCAD homónimo del STL cuando aplica).
+Overview of the lab **DIY rack**: plastic drawers, control box, link to electrical schematics in [arduino-relay](../configuracion/arduino-relay.md), and printed parts for ducts and mounts. CAD sources: **`3d_parts/`** folder at repo root (OpenSCAD file matching STL name where applicable).
 
-## Fotos del rack
+## Rack photos
 
 <div class="rack-gallery" data-rack-gallery tabindex="0">
   <div class="rack-gallery__viewport">
-    <figure class="rack-gallery__slide" data-caption="Vista general del rack en torre: cajoneras, cableado y equipos por cajón.">
-      <img src="../../img/rack/rack.png" alt="Rack en torre con cajoneras plásticas y cableado" loading="lazy" decoding="async">
+    <figure class="rack-gallery__slide" data-caption="Tower rack overview: drawers, cabling, and gear per shelf.">
+      <img src="../../img/rack/rack.png" alt="Tower rack with plastic drawers and cabling" loading="lazy" decoding="async">
     </figure>
-    <figure class="rack-gallery__slide" data-caption="Montaje inicial en mesa: routers, hub USB, relés y cableado antes de integrar al rack.">
-      <img src="../../img/rack/starting_point.jpg" alt="Banco de pruebas en mesa con routers y relés" loading="lazy" decoding="async">
+    <figure class="rack-gallery__slide" data-caption="Initial bench setup: routers, USB hub, relays, and wiring before rack integration.">
+      <img src="../../img/rack/starting_point.jpg" alt="Bench test setup with routers and relays" loading="lazy" decoding="async">
     </figure>
-    <figure class="rack-gallery__slide" data-caption="Interior de un cajón: hub USB, módulo de relés y distribución de cables.">
-      <img src="../../img/rack/rack_2nd_level.jpg" alt="Cajón del rack con hub USB y relés" loading="lazy" decoding="async">
+    <figure class="rack-gallery__slide" data-caption="Inside a drawer: USB hub, relay module, and cable routing.">
+      <img src="../../img/rack/rack_2nd_level.jpg" alt="Rack drawer with USB hub and relays" loading="lazy" decoding="async">
     </figure>
-    <figure class="rack-gallery__slide" data-caption="Cajones superiores abiertos: fuente, hub y cableado entre niveles.">
-      <img src="../../img/rack/rack_1st_2nd_level.jpg" alt="Dos niveles del rack abiertos con fuente y cableado" loading="lazy" decoding="async">
+    <figure class="rack-gallery__slide" data-caption="Upper drawers open: PSU, hub, and inter-level wiring.">
+      <img src="../../img/rack/rack_1st_2nd_level.jpg" alt="Two rack levels open with PSU and wiring" loading="lazy" decoding="async">
     </figure>
     <div class="rack-gallery__overlay">
       <span class="rack-gallery__counter" data-rack-counter aria-live="polite"></span>
-      <button type="button" class="rack-gallery__btn" data-rack-prev aria-label="Imagen anterior">&#8249;</button>
-      <button type="button" class="rack-gallery__btn" data-rack-next aria-label="Imagen siguiente">&#8250;</button>
+      <button type="button" class="rack-gallery__btn" data-rack-prev aria-label="Previous image">&#8249;</button>
+      <button type="button" class="rack-gallery__btn" data-rack-next aria-label="Next image">&#8250;</button>
     </div>
   </div>
   <p class="rack-gallery__caption" data-rack-caption></p>
 </div>
 
-## Caja de control (módulo de relés)
+## Control box (relay module)
 
-Caja aparte del rack: relés/SSR, **UTP** (señal) y **230 V** hacia cooler y fuente. Detalle eléctrico: [arduino-relay](../configuracion/arduino-relay.md).
+Separate box from the rack: relays/SSR, **UTP** (signals) and **230 V** to cooler and PSU. Electrical detail: [arduino-relay](../configuracion/arduino-relay.md).
 
 <div class="rack-gallery" data-rack-gallery tabindex="0">
   <div class="rack-gallery__viewport">
-    <figure class="rack-gallery__slide" data-caption="Caja externa del módulo de relés (caja de control).">
-      <img src="../../img/rack/reles_box_1.jpg" alt="Caja de módulo de relés vista exterior" loading="lazy" decoding="async">
+    <figure class="rack-gallery__slide" data-caption="Relay module enclosure (control box) exterior.">
+      <img src="../../img/rack/reles_box_1.jpg" alt="Relay module enclosure exterior" loading="lazy" decoding="async">
     </figure>
-    <figure class="rack-gallery__slide" data-caption="Interior: Arduino, relés/SSR y cableado a bornes y UTP.">
-      <img src="../../img/rack/reles_box_inside.jpg" alt="Interior de la caja de relés" loading="lazy" decoding="async">
+    <figure class="rack-gallery__slide" data-caption="Interior: Arduino, relays/SSR, wiring to terminals and UTP.">
+      <img src="../../img/rack/reles_box_inside.jpg" alt="Relay box interior" loading="lazy" decoding="async">
     </figure>
     <div class="rack-gallery__overlay">
       <span class="rack-gallery__counter" data-rack-counter aria-live="polite"></span>
-      <button type="button" class="rack-gallery__btn" data-rack-prev aria-label="Imagen anterior">&#8249;</button>
-      <button type="button" class="rack-gallery__btn" data-rack-next aria-label="Imagen siguiente">&#8250;</button>
+      <button type="button" class="rack-gallery__btn" data-rack-prev aria-label="Previous image">&#8249;</button>
+      <button type="button" class="rack-gallery__btn" data-rack-next aria-label="Next image">&#8250;</button>
     </div>
   </div>
   <p class="rack-gallery__caption" data-rack-caption></p>
 </div>
 
-## Conexiones y cableado eléctrico {: #conexiones-y-cableado-electrico }
+## Connections and electrical wiring {: #connections-and-electrical-wiring }
 
-Los esquemáticos de referencia están en [arduino-relay - Esquemas eléctricos](../configuracion/arduino-relay.md#esquemas-electricos-referencia) junto con tablas de pines y comandos serial.
+Reference schematics are in [arduino-relay - Electrical schematics](../configuracion/arduino-relay.md#electrical-schematics-reference) together with pin tables and serial commands.
 
-## Consideraciones térmicas y ventilación {: #consideraciones-termicas }
+## Thermal considerations and ventilation {: #thermal-considerations }
 
-Con el apilado vertical, el aire caliente de los niveles inferiores **asciende** y tiende a estancarse arriba, con riesgo de sobrecalentamiento en los equipos superiores. La mitigación es un **ventilador inferior** (120 mm, 220 V) que empuja aire **frío de abajo hacia arriba** y **conductos impresos** que encaminan el flujo hacia los cajones. Ficha del ventilador: [Catálogo - Bosser 120 mm](../configuracion/catalogo-hardware.md#ventilador-bosser-120-mm-rack).
+With vertical stacking, hot air from lower levels **rises** and tends to stagnate at the top, risking overheating of upper equipment. Mitigation is a **bottom fan** (120 mm, 220 V) pushing **cold air upward** and **printed ducts** guiding flow toward the drawers. Fan datasheet: [Hardware catalog - Bosser 120 mm](../configuracion/catalogo-hardware.md#bosser-120mm-rack-fan).
 
-## Piezas impresas en 3D
+## 3D printed parts
 
-Renders y fotos de las piezas usadas en conductos, bases y accesorios. Modelos orientados a imprimir **sin soportes** cuando corresponde (referencia: Creality Ender 3 Pro).
+Renders and photos of parts used for ducts, bases, and accessories. Models aim for **support-free** printing where applicable (reference: Creality Ender 3 Pro).
 
-| Cantidad | Archivo STL | Uso |
-|----------|-------------|-----|
-| 1 | `curved_intake_duct.stl` | Conducto curvo: ventilador 120 mm → chimenea |
-| 4 | `airflow_chimney_duct_3levels.stl` | Segmentos verticales con rejillas (3 niveles c/u) |
-| 1 | `airflow_chimney_duct_2levels.stl` | Segmento con 2 niveles |
-| 1 | `chimney_duct_cover.stl` | Tapa superior de la chimenea |
-| 3 | `belkin_rt3200_base.stl` | Base compacta Belkin RT3200 |
-| 1 | `CE3PRO_librerouter_rack.stl` | Carcasa abierta LibreRouter (base ventilada, standoffs) |
-| 1 | `NanoHolderA.stl` | Soporte Arduino Nano |
-| 1 | (aux.) `drawer_stop` | Guía / tope de cajón (asset visual; nombre de archivo según `3d_parts/`) |
-| (var.) | `logo fcefyn.stl`, `logo unc.stl` | Logos decorativos |
+| Qty | STL file | Use |
+|-----|----------|-----|
+| 1 | `curved_intake_duct.stl` | Curved duct: 120 mm fan to chimney |
+| 4 | `airflow_chimney_duct_3levels.stl` | Vertical segments with grilles (3 levels each) |
+| 1 | `airflow_chimney_duct_2levels.stl` | Segment with 2 levels |
+| 1 | `chimney_duct_cover.stl` | Chimney top cover |
+| 3 | `belkin_rt3200_base.stl` | Compact Belkin RT3200 base |
+| 1 | `CE3PRO_librerouter_rack.stl` | Open LibreRouter enclosure (vented base, standoffs) |
+| 1 | `NanoHolderA.stl` | Arduino Nano holder |
+| 1 | (aux.) `drawer_stop` | Drawer guide / stop (visual asset; filename per `3d_parts/`) |
+| (var.) | `logo fcefyn.stl`, `logo unc.stl` | Decorative logos |
 
 <div class="rack-gallery rack-gallery--schematics" data-rack-gallery tabindex="0">
   <div class="rack-gallery__viewport">
-    <figure class="rack-gallery__slide" data-caption="Conducto de admisión curvado (render OpenSCAD / referencia).">
-      <img src="../../img/rack/curved_intake_duct.png" alt="Render conducto admisión curvado" loading="lazy" decoding="async">
+    <figure class="rack-gallery__slide" data-caption="Curved intake duct (OpenSCAD render / reference).">
+      <img src="../../img/rack/curved_intake_duct.png" alt="Curved intake duct render" loading="lazy" decoding="async">
     </figure>
-    <figure class="rack-gallery__slide" data-caption="Módulo chimenea 3 niveles (rejillas orientadas a los routers).">
-      <img src="../../img/rack/airflow_chimney_duct_3levels.png" alt="Render chimenea tres niveles" loading="lazy" decoding="async">
+    <figure class="rack-gallery__slide" data-caption="3-level chimney module (grilles toward routers).">
+      <img src="../../img/rack/airflow_chimney_duct_3levels.png" alt="Three-level chimney render" loading="lazy" decoding="async">
     </figure>
-    <figure class="rack-gallery__slide" data-caption="Módulo chimenea 2 niveles.">
-      <img src="../../img/rack/airflow_chimney_duct_2levels.png" alt="Render chimenea dos niveles" loading="lazy" decoding="async">
+    <figure class="rack-gallery__slide" data-caption="2-level chimney module.">
+      <img src="../../img/rack/airflow_chimney_duct_2levels.png" alt="Two-level chimney render" loading="lazy" decoding="async">
     </figure>
-    <figure class="rack-gallery__slide" data-caption="Tapa superior de chimenea.">
-      <img src="../../img/rack/chimney_duct_cover.png" alt="Render tapa chimenea" loading="lazy" decoding="async">
+    <figure class="rack-gallery__slide" data-caption="Chimney top cover.">
+      <img src="../../img/rack/chimney_duct_cover.png" alt="Chimney cover render" loading="lazy" decoding="async">
     </figure>
-    <figure class="rack-gallery__slide" data-caption="Ventilador 120 mm con conducto curvo montado (foto).">
-      <img src="../../img/rack/cooler_with_duct.jpeg" alt="Ventilador con conducto curvo montado" loading="lazy" decoding="async">
+    <figure class="rack-gallery__slide" data-caption="120 mm fan with curved duct mounted (photo).">
+      <img src="../../img/rack/cooler_with_duct.jpeg" alt="Fan with curved duct mounted" loading="lazy" decoding="async">
     </figure>
-    <figure class="rack-gallery__slide" data-caption="Base impresa Belkin RT3200 en el rack.">
-      <img src="../../img/rack/belkin_case_adapted.jpg" alt="Base Belkin adaptada en rack" loading="lazy" decoding="async">
+    <figure class="rack-gallery__slide" data-caption="Printed Belkin RT3200 base in rack.">
+      <img src="../../img/rack/belkin_case_adapted.jpg" alt="Adapted Belkin base in rack" loading="lazy" decoding="async">
     </figure>
-    <figure class="rack-gallery__slide" data-caption="Carcasa abierta LibreRouter.">
-      <img src="../../img/rack/librerouter-opencase.jpeg" alt="Carcasa abierta LibreRouter" loading="lazy" decoding="async">
+    <figure class="rack-gallery__slide" data-caption="Open LibreRouter enclosure.">
+      <img src="../../img/rack/librerouter-opencase.jpeg" alt="Open LibreRouter enclosure" loading="lazy" decoding="async">
     </figure>
-    <figure class="rack-gallery__slide" data-caption="Soporte Arduino Nano (NanoHolder).">
-      <img src="../../img/rack/NanoHolder.jpg" alt="Soporte Nano impreso" loading="lazy" decoding="async">
+    <figure class="rack-gallery__slide" data-caption="Arduino Nano holder (NanoHolder).">
+      <img src="../../img/rack/NanoHolder.jpg" alt="Printed Nano holder" loading="lazy" decoding="async">
     </figure>
-    <figure class="rack-gallery__slide" data-caption="Logos FCEFyN y UNC.">
-      <img src="../../img/rack/logos.png" alt="Logos FCEFyN y UNC" loading="lazy" decoding="async">
+    <figure class="rack-gallery__slide" data-caption="FCEFyN and UNC logos.">
+      <img src="../../img/rack/logos.png" alt="FCEFyN and UNC logos" loading="lazy" decoding="async">
     </figure>
     <div class="rack-gallery__overlay">
       <span class="rack-gallery__counter" data-rack-counter aria-live="polite"></span>
-      <button type="button" class="rack-gallery__btn" data-rack-prev aria-label="Imagen anterior">&#8249;</button>
-      <button type="button" class="rack-gallery__btn" data-rack-next aria-label="Imagen siguiente">&#8250;</button>
+      <button type="button" class="rack-gallery__btn" data-rack-prev aria-label="Previous image">&#8249;</button>
+      <button type="button" class="rack-gallery__btn" data-rack-next aria-label="Next image">&#8250;</button>
     </div>
   </div>
   <p class="rack-gallery__caption" data-rack-caption></p>
 </div>
 
-La base Belkin deriva de [RT3200/E8450 Wall Mount Case](https://www.thingiverse.com/thing:5864938) (TuxInvader): solo la base, parte superior abierta para ventilación.
+The Belkin base was adapted from [RT3200/E8450 Wall Mount Case](https://www.thingiverse.com/thing:5864938) (TuxInvader): base only, open top for ventilation.
