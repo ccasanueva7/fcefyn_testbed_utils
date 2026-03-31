@@ -95,9 +95,10 @@ nav:
       - Catálogo de firmware CI: tests/ci-firmware-catalog.md
       - Troubleshooting Labgrid: tests/labgrid-troubleshooting.md
   - Diseño y propuestas:
-      - Lab híbrido: diseno/hybrid-lab-proposal.md
-      - Tracking lab híbrido: diseno/hybrid-lab-tracking.md
+      - Pool unificado (VLAN dinámica): diseno/unified-pool-proposal.md
       - Onboarding openwrt-tests: diseno/openwrt-tests-onboarding.md
       - Casos de uso CI: diseno/ci-use-cases-proposal.md
       - Virtual mesh: diseno/virtual-mesh-proposal.md
       - Rack físico: diseno/rack-diseno-3d.md
+      - "(histórico) Lab híbrido": diseno/hybrid-lab-proposal.md
+      - "(histórico) Tracking lab híbrido": diseno/hybrid-lab-tracking.md

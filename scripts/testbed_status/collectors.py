@@ -13,23 +13,16 @@ import yaml
 
 from .config import (
     ARDUINO_DAEMON_SOCKET,
-    POOL_CONFIG_PATH,
+    DUT_CONFIG_PATH,
     RUNNER_SERVICE_GLOB,
     SSH_CONNECT_TIMEOUT,
     SYSTEMD_SERVICES,
-    VLAN_MODE_FILE,
 )
 
 
 # ---------------------------------------------------------------------------
 # Data classes
 # ---------------------------------------------------------------------------
-@dataclass
-class ModeInfo:
-    mode: str = "unknown"
-    detail: str = ""
-
-
 @dataclass
 class RelayState:
     connected: bool = False
@@ -44,9 +37,8 @@ class ServiceState:
 
 
 @dataclass
-class PoolConfig:
+class DutConfig:
     duts: Dict[str, Dict[str, Any]] = field(default_factory=dict)
-    pools: Dict[str, List[str]] = field(default_factory=dict)
     error: str = ""
 
 
@@ -58,7 +50,6 @@ class DutStatus:
     pdu_index: Optional[int] = None
     switch_port: int = 0
     switch_vlan: int = 0
-    pool: str = ""
     relay_on: Optional[bool] = None
     ssh_ok: Optional[bool] = None
     place_status: str = ""
@@ -69,36 +60,6 @@ class PlaceInfo:
     name: str = ""
     acquired: bool = False
     acquired_by: str = ""
-
-
-# ---------------------------------------------------------------------------
-# Mode
-# ---------------------------------------------------------------------------
-async def get_mode() -> ModeInfo:
-    try:
-        if VLAN_MODE_FILE.exists():
-            raw = VLAN_MODE_FILE.read_text().strip()
-            mode_map = {"isolated": "openwrt", "mesh": "libremesh"}
-            mode = mode_map.get(raw, raw)
-            detail_map = {
-                "openwrt": "isolated – VLANs 100-108",
-                "libremesh": "mesh – VLAN 200",
-            }
-            return ModeInfo(mode=mode, detail=detail_map.get(mode, raw))
-
-        pool_cfg = _load_pool_config_sync()
-        if pool_cfg and not pool_cfg.error:
-            openwrt_duts = pool_cfg.pools.get("openwrt", [])
-            libremesh_duts = pool_cfg.pools.get("libremesh", [])
-            if openwrt_duts and libremesh_duts:
-                return ModeInfo(mode="hybrid", detail="DUTs split across pools")
-            if openwrt_duts:
-                return ModeInfo(mode="openwrt", detail="isolated – VLANs 100-108")
-            if libremesh_duts:
-                return ModeInfo(mode="libremesh", detail="mesh – VLAN 200")
-        return ModeInfo(mode="unknown", detail="mode file not found")
-    except Exception as exc:
-        return ModeInfo(mode="error", detail=str(exc))
 
 
 # ---------------------------------------------------------------------------
@@ -190,33 +151,28 @@ async def get_services_status() -> List[ServiceState]:
 
 
 # ---------------------------------------------------------------------------
-# Pool config
+# DUT config
 # ---------------------------------------------------------------------------
-async def get_pool_config() -> PoolConfig:
+async def get_dut_config() -> DutConfig:
     try:
         return await asyncio.get_event_loop().run_in_executor(
-            None, _load_pool_config_sync
+            None, _load_dut_config_sync
         )
     except Exception as exc:
-        return PoolConfig(error=str(exc))
+        return DutConfig(error=str(exc))
 
 
-def _load_pool_config_sync() -> PoolConfig:
-    path = Path(POOL_CONFIG_PATH)
+def _load_dut_config_sync() -> DutConfig:
+    path = Path(DUT_CONFIG_PATH)
     if not path.exists():
-        return PoolConfig(error=f"file not found: {path}")
+        return DutConfig(error=f"file not found: {path}")
     try:
         with open(path) as f:
             data = yaml.safe_load(f)
         duts = data.get("duts", {})
-        pools_raw = data.get("pools", {})
-        pools = {
-            name: pool_data.get("duts", [])
-            for name, pool_data in pools_raw.items()
-        }
-        return PoolConfig(duts=duts, pools=pools)
+        return DutConfig(duts=duts)
     except Exception as exc:
-        return PoolConfig(error=str(exc))
+        return DutConfig(error=str(exc))
 
 
 # ---------------------------------------------------------------------------
@@ -298,19 +254,15 @@ def _parse_places_output(output: str) -> List[PlaceInfo]:
 # Composite: build full DUT status list
 # ---------------------------------------------------------------------------
 def build_dut_statuses(
-    pool_cfg: PoolConfig,
+    dut_cfg: DutConfig,
     relay: RelayState,
     ssh_results: Dict[str, bool],
     places: List[PlaceInfo],
 ) -> List[DutStatus]:
     place_map = {p.name: p for p in places}
-    dut_pool_map: Dict[str, str] = {}
-    for pool_name, dut_list in pool_cfg.pools.items():
-        for d in dut_list:
-            dut_pool_map[d] = pool_name
 
     statuses: List[DutStatus] = []
-    for name, info in pool_cfg.duts.items():
+    for name, info in dut_cfg.duts.items():
         pdu_name = info.get("pdu_name", "")
         pdu_index = info.get("pdu_index")
         is_poe = "poe" in pdu_name.lower()
@@ -334,7 +286,6 @@ def build_dut_statuses(
             pdu_index=pdu_index,
             switch_port=info.get("switch_port", 0),
             switch_vlan=info.get("switch_vlan_isolated", 0),
-            pool=dut_pool_map.get(name, "-"),
             relay_on=relay_on,
             ssh_ok=ssh_results.get(name),
             place_status=place_status,
@@ -386,88 +337,5 @@ async def service_action(name: str, action: str) -> Tuple[bool, str]:
         success = proc.returncode == 0
         output = ((stdout or b"") + (stderr or b"")).decode().strip()
         return success, output
-    except Exception as exc:
-        return False, str(exc)
-
-
-def pool_move_dut(dut_name: str, target_pool: str) -> Tuple[bool, str]:
-    """
-    Move dut_name to target_pool in pool-config.yaml.
-    Removes the DUT from all other pools first.
-    """
-    path = Path(POOL_CONFIG_PATH)
-    if not path.exists():
-        return False, f"config file not found: {path}"
-    try:
-        with open(path) as f:
-            data = yaml.safe_load(f)
-
-        pools = data.get("pools", {})
-        for pool_name, pool_data in pools.items():
-            duts = pool_data.get("duts") or []
-            if dut_name in duts:
-                duts.remove(dut_name)
-            pool_data["duts"] = duts
-
-        target = pools.setdefault(target_pool, {})
-        target_duts = target.get("duts") or []
-        if dut_name not in target_duts:
-            target_duts.append(dut_name)
-        target["duts"] = target_duts
-
-        with open(path, "w") as f:
-            yaml.dump(data, f, default_flow_style=False, allow_unicode=True)
-        return True, f"moved {dut_name} → {target_pool}"
-    except Exception as exc:
-        return False, str(exc)
-
-
-async def change_testbed_mode(target_mode: str) -> Tuple[bool, str]:
-    """
-    Change testbed mode by moving all DUTs to the appropriate pool(s)
-    and running pool-manager.py --apply.
-
-    target_mode: 'libremesh', 'openwrt', or 'hybrid'
-    """
-    path = Path(POOL_CONFIG_PATH)
-    if not path.exists():
-        return False, f"config file not found: {path}"
-
-    try:
-        with open(path) as f:
-            data = yaml.safe_load(f)
-
-        all_duts = list(data.get("duts", {}).keys())
-        pools = data.get("pools", {})
-
-        if target_mode == "libremesh":
-            pools["libremesh"] = {"duts": all_duts}
-            pools["openwrt"] = {"duts": []}
-        elif target_mode == "openwrt":
-            pools["openwrt"] = {"duts": all_duts}
-            pools["libremesh"] = {"duts": []}
-        elif target_mode == "hybrid":
-            half = len(all_duts) // 2
-            pools["libremesh"] = {"duts": all_duts[:half]}
-            pools["openwrt"] = {"duts": all_duts[half:]}
-        else:
-            return False, f"unknown mode: {target_mode}"
-
-        data["pools"] = pools
-        with open(path, "w") as f:
-            yaml.dump(data, f, default_flow_style=False, allow_unicode=True)
-
-        proc = await asyncio.create_subprocess_exec(
-            "pool-manager.py", "--apply", "--force",
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        stdout, stderr = await proc.communicate()
-        output = ((stdout or b"") + (stderr or b"")).decode().strip()
-
-        if proc.returncode == 0:
-            return True, f"Modo cambiado a {target_mode}"
-        return False, output or f"pool-manager.py exit code {proc.returncode}"
-
     except Exception as exc:
         return False, str(exc)

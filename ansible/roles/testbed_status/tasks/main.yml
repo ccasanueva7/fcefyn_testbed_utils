@@ -21,10 +21,10 @@
     state: directory
     mode: "0755"
 
-- name: Deploy pool-config.yaml to /etc/testbed
+- name: Deploy dut-config.yaml to /etc/testbed
   ansible.builtin.copy:
-    src: "{{ playbook_dir }}/../configs/pool-config.yaml"
-    dest: /etc/testbed/pool-config.yaml
+    src: "{{ playbook_dir }}/../configs/dut-config.yaml"
+    dest: /etc/testbed/dut-config.yaml
     owner: "{{ ansible_user_id }}"
     group: "{{ ansible_user_id }}"
     mode: "0664"
@@ -56,7 +56,7 @@
       #!/usr/bin/env python3
       import os
       import sys
-      os.environ.setdefault("TESTBED_POOL_CONFIG", "/etc/testbed/pool-config.yaml")
+      os.environ.setdefault("SWITCH_DUT_CONFIG", "/etc/testbed/dut-config.yaml")
       sys.path.insert(0, "/usr/local/lib")
       from testbed_status.__main__ import main
       main()

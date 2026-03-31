@@ -15,10 +15,6 @@ from .config import CHANNEL_NAMES, FAST_REFRESH_SECONDS, SLOW_REFRESH_SECONDS
 from .widgets import (
     CommandLogPanel,
     DutsPanel,
-    ModeChangeRequest,
-    ModeHeader,
-    PoolMoveRequest,
-    PoolsPanel,
     RelayPanel,
     RelayToggleRequest,
     ServiceActionRequest,
@@ -26,7 +22,7 @@ from .widgets import (
 )
 
 HELP_TEXT = """\
-[bold]testbed-status[/] — TUI de estado del lab FCEFyN
+[bold]testbed-status[/] - TUI de estado del lab FCEFyN
 
 [bold]Navegación:[/]
   [cyan]Tab / Shift+Tab[/]  Cambiar de panel
@@ -34,10 +30,8 @@ HELP_TEXT = """\
   [cyan]Enter[/]             Ejecutar acción sobre la fila seleccionada
 
 [bold]Acciones por panel:[/]
-  [cyan]Modo[/]       Enter/click → cambiar modo (libremesh/openwrt/hybrid)
   [cyan]Relés[/]      Enter → toggle ON/OFF (infraestructura pide confirmación)
   [cyan]Servicios[/]  Enter → start / stop / restart
-  [cyan]Pools[/]      Enter → mover DUT al otro pool
 
 [bold]Atajos:[/]
   [cyan]r[/]   Refresh inmediato
@@ -88,58 +82,6 @@ class ConfirmScreen(ModalScreen[bool]):
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         self.dismiss(event.button.id == "btn-yes")
-
-
-# ---------------------------------------------------------------------------
-# Modal: mode selection (libremesh / openwrt / hybrid)
-# ---------------------------------------------------------------------------
-class ModeSelectScreen(ModalScreen[str]):
-    """Choose a testbed mode."""
-
-    DEFAULT_CSS = """
-    ModeSelectScreen {
-        align: center middle;
-    }
-    #mode-dialog {
-        width: 55;
-        height: auto;
-        max-height: 16;
-        border: solid $accent;
-        background: $surface;
-        padding: 1 2;
-    }
-    #mode-buttons {
-        margin-top: 1;
-        height: 3;
-        align: center middle;
-    }
-    #mode-buttons Button {
-        margin: 0 1;
-    }
-    """
-
-    def __init__(self, current_mode: str) -> None:
-        super().__init__()
-        self._current_mode = current_mode
-
-    def compose(self) -> ComposeResult:
-        with Vertical(id="mode-dialog"):
-            yield Static(
-                f"[bold]Modo actual:[/] {self._current_mode.upper()}\n\n"
-                "Seleccionar nuevo modo:\n"
-                "[dim](Esto reconfigura el switch y reinicia exporters)[/]"
-            )
-            with Horizontal(id="mode-buttons"):
-                yield Button("LibreMesh", variant="success", id="libremesh")
-                yield Button("OpenWrt", variant="primary", id="openwrt")
-                yield Button("Hybrid", variant="warning", id="hybrid")
-                yield Button("Cancelar", id="cancel")
-
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "cancel":
-            self.dismiss("")
-        else:
-            self.dismiss(event.button.id or "")
 
 
 # ---------------------------------------------------------------------------
@@ -220,26 +162,18 @@ class TestbedStatusApp(App):
 
     TITLE = "Testbed FCEFyN"
     CSS = """
-    #mode-header {
-        height: 3;
-        background: $surface;
-        border-bottom: solid $accent;
-        padding: 0 1;
-        content-align: center middle;
-    }
     #top-row {
         height: 1fr;
     }
     #bottom-row {
         height: 1fr;
     }
-    #relay-container, #services-container, #pools-container, #duts-container {
+    #relay-container, #services-container, #duts-container {
         border: solid $primary;
         padding: 0 1;
     }
     #relay-container { width: 1fr; }
     #services-container { width: 1fr; }
-    #pools-container { width: 1fr; }
     #duts-container { width: 2fr; }
     """
 
@@ -252,7 +186,6 @@ class TestbedStatusApp(App):
 
     def compose(self) -> ComposeResult:
         yield Header()
-        yield ModeHeader(id="mode-header")
         with Vertical():
             with Horizontal(id="top-row"):
                 with Container(id="relay-container"):
@@ -262,9 +195,6 @@ class TestbedStatusApp(App):
                     yield Static("[bold]Servicios[/]")
                     yield ServicesPanel()
             with Horizontal(id="bottom-row"):
-                with Container(id="pools-container"):
-                    yield Static("[bold]Pools[/]")
-                    yield PoolsPanel(id="pools-panel")
                 with Container(id="duts-container"):
                     yield Static("[bold]DUTs[/]")
                     yield DutsPanel()
@@ -283,30 +213,24 @@ class TestbedStatusApp(App):
         """Add a message to the command log panel."""
         self.query_one(CommandLogPanel).add_log(msg)
 
-    # -- Fast refresh: mode, relays, services --------------------------
+    # -- Fast refresh: relays, services --------------------------------
     async def _refresh_fast(self) -> None:
-        mode_info = await collectors.get_mode()
-        self.query_one(ModeHeader).update_mode(mode_info)
-
         relay_state = await collectors.get_relay_status()
         self.query_one(RelayPanel).update_relays(relay_state)
 
         services = await collectors.get_services_status()
         self.query_one(ServicesPanel).update_services(services)
 
-    # -- Slow refresh: pools, SSH, places ------------------------------
+    # -- Slow refresh: DUTs, SSH, places --------------------------------
     async def _refresh_slow(self) -> None:
-        pool_cfg = await collectors.get_pool_config()
-        self.query_one(PoolsPanel).update_pools(
-            pool_cfg.pools, error=pool_cfg.error,
-        )
+        dut_cfg = await collectors.get_dut_config()
 
         relay_state = await collectors.get_relay_status()
-        ssh_results = await collectors.check_all_duts_ssh(pool_cfg.duts)
+        ssh_results = await collectors.check_all_duts_ssh(dut_cfg.duts)
         places = await collectors.get_labgrid_places()
 
         dut_statuses = collectors.build_dut_statuses(
-            pool_cfg, relay_state, ssh_results, places,
+            dut_cfg, relay_state, ssh_results, places,
         )
         self.query_one(DutsPanel).update_duts(dut_statuses)
 
@@ -362,58 +286,6 @@ class TestbedStatusApp(App):
             self._log(f"  → [red]ERROR[/]: {output[:60]}")
             self.notify(f"{action} {name}: {output}", severity="error")
         await self._refresh_fast()
-
-    # -- Mode change handler -------------------------------------------
-    async def on_mode_change_request(self, message: ModeChangeRequest) -> None:
-        current = message.current_mode
-
-        def _on_mode_select(target_mode: str) -> None:
-            if target_mode and target_mode != current:
-                asyncio.ensure_future(self._do_mode_change(target_mode))
-
-        self.push_screen(ModeSelectScreen(current), callback=_on_mode_select)
-
-    async def _do_mode_change(self, target_mode: str) -> None:
-        self._log(f"[magenta]MODE[/] Cambiando a {target_mode}...")
-        self._log("  → pool-manager.py --apply --force")
-        self.notify(f"Cambiando a modo {target_mode}...", severity="information")
-        success, msg = await collectors.change_testbed_mode(target_mode)
-        if success:
-            self._log(f"  → [green]OK[/]: {msg}")
-            self.notify(msg, severity="information")
-        else:
-            self._log(f"  → [red]ERROR[/]: {msg[:80]}")
-            self.notify(f"Error: {msg}", severity="error")
-        await self._refresh_fast()
-        await self._refresh_slow()
-
-    # -- Pool move handler ---------------------------------------------
-    async def on_pool_move_request(self, message: PoolMoveRequest) -> None:
-        dut = message.dut_name
-        current = message.current_pool
-        target = "openwrt" if current == "libremesh" else "libremesh"
-        prompt = (
-            f"¿Mover [bold]{dut}[/] de [bold]{current}[/] a [bold]{target}[/]?"
-        )
-
-        def _on_confirm(confirmed: bool) -> None:
-            if confirmed:
-                asyncio.ensure_future(self._do_pool_move(dut, target))
-
-        self.push_screen(ConfirmScreen(prompt), callback=_on_confirm)
-
-    async def _do_pool_move(self, dut_name: str, target_pool: str) -> None:
-        self._log(f"[blue]POOL[/] Mover {dut_name} → {target_pool}")
-        success, msg = await asyncio.get_event_loop().run_in_executor(
-            None, collectors.pool_move_dut, dut_name, target_pool
-        )
-        if success:
-            self._log(f"  → [green]OK[/]: {msg}")
-            self.notify(msg, severity="information")
-        else:
-            self._log(f"  → [red]ERROR[/]: {msg}")
-            self.notify(f"Error: {msg}", severity="error")
-        await self._refresh_slow()
 
     # -- Global actions ------------------------------------------------
     async def action_refresh_all(self) -> None:

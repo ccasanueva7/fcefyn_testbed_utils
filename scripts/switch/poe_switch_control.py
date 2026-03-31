@@ -5,26 +5,21 @@ PoE Switch Control - Control PoE ports on a managed switch via SSH.
 Used for power cycling the OpenWRT One (PoE on port 1) and other PoE devices.
 Integrates with PDUDaemon via localcmdline driver.
 
-Uses switch_client.py (Netmiko) for all SSH operations, with lockfile
-serialization to prevent SSH session contention when multiple PoE devices
-are controlled in parallel.
+Uses labgrid-switch-abstraction (SwitchClient) for all SSH operations,
+with lockfile serialization to prevent SSH session contention when
+multiple PoE devices are controlled in parallel.
 
-Requires: netmiko (pip install netmiko)
-Password: set POE_SWITCH_PASSWORD environment variable, or pass via --password.
+Requires: labgrid-switch-abstraction (pip install)
+Password: set SWITCH_PASSWORD env var, or in ~/.config/switch.conf.
 """
 
 import argparse
 import logging
 import os
 import sys
-from pathlib import Path
 
-SCRIPT_DIR = Path(__file__).resolve().parent
-if str(SCRIPT_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPT_DIR))
-
-from switch_client import SwitchClient, load_config
-from constants import DEFAULT_SWITCH_HOST, DEFAULT_SWITCH_USER
+from switch_abstraction.client import SwitchClient, load_config
+from switch_abstraction.constants import DEFAULT_SWITCH_HOST, DEFAULT_SWITCH_USER
 
 logging.basicConfig(
     level=logging.INFO,
@@ -100,11 +95,11 @@ Examples:
   %(prog)s cycle 1 2         # Power cycle ports 1 and 2 together
   %(prog)s cycle 1 --delay 5 # Power cycle with 5s delay
 
-Config file (recommended): ~/.config/poe_switch_control.conf
-  Copy from configs/templates/poe_switch_control.conf.example and set POE_SWITCH_PASSWORD.
+Config file (recommended): ~/.config/switch.conf
+  Copy from configs/templates/switch.conf.example and set SWITCH_PASSWORD.
   Not in git - never commit real passwords.
 
-Environment: POE_SWITCH_PASSWORD (fallback if no config file)
+Environment: SWITCH_PASSWORD (fallback if no config file)
         """,
     )
 
@@ -112,18 +107,18 @@ Environment: POE_SWITCH_PASSWORD (fallback if no config file)
 
     parser.add_argument(
         "--host",
-        default=os.environ.get("POE_SWITCH_HOST") or config.get("POE_SWITCH_HOST", DEFAULT_SWITCH_HOST),
+        default=os.environ.get("SWITCH_HOST") or config.get("SWITCH_HOST", DEFAULT_SWITCH_HOST),
         help=f"Switch IP (default: {DEFAULT_SWITCH_HOST})",
     )
     parser.add_argument(
         "--user",
-        default=os.environ.get("POE_SWITCH_USER") or config.get("POE_SWITCH_USER", DEFAULT_SWITCH_USER),
+        default=os.environ.get("SWITCH_USER") or config.get("SWITCH_USER", DEFAULT_SWITCH_USER),
         help=f"SSH username (default: {DEFAULT_SWITCH_USER})",
     )
     parser.add_argument(
         "--password",
-        default=os.environ.get("POE_SWITCH_PASSWORD") or config.get("POE_SWITCH_PASSWORD", ""),
-        help="Password (config file, env POE_SWITCH_PASSWORD, or this option)",
+        default=os.environ.get("SWITCH_PASSWORD") or config.get("SWITCH_PASSWORD", ""),
+        help="Password (config file, env SWITCH_PASSWORD, or this option)",
     )
     delay_default = os.environ.get("POE_CYCLE_DELAY") or config.get("POE_CYCLE_DELAY")
     try:
@@ -174,7 +169,7 @@ Environment: POE_SWITCH_PASSWORD (fallback if no config file)
 
     if not password:
         logger.error(
-            "Password required. Set POE_SWITCH_PASSWORD environment variable "
+            "Password required. Set SWITCH_PASSWORD environment variable "
             "or use --password (avoid in scripts for security)."
         )
         return 3

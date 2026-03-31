@@ -3,13 +3,10 @@
 import os
 from pathlib import Path
 
-VLAN_MODE_FILE = Path.home() / ".config" / "labgrid-vlan-mode"
-SWITCH_STATE_FILE = Path.home() / ".config" / "labgrid-switch-state.yaml"
-
-POOL_CONFIG_PATH = Path(
+DUT_CONFIG_PATH = Path(
     os.environ.get(
-        "TESTBED_POOL_CONFIG",
-        "/etc/testbed/pool-config.yaml",
+        "SWITCH_DUT_CONFIG",
+        "/etc/testbed/dut-config.yaml",
     )
 )
 
@@ -41,8 +38,6 @@ INFRA_CHANNELS = {8, 9, 10}
 
 SYSTEMD_SERVICES = [
     "labgrid-exporter",
-    "labgrid-exporter-openwrt",
-    "labgrid-exporter-libremesh",
     "labgrid-coordinator",
     "pdudaemon",
     "dnsmasq",
