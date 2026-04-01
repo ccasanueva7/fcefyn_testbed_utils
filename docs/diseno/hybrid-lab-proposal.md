@@ -1,103 +1,103 @@
-# Propuesta: Lab Híbrido OpenWrt/LibreMesh
+# Proposal: Hybrid OpenWrt/LibreMesh Lab
 
-**Documento de diseño técnico** para un lab capaz de contribuir tanto a [openwrt-tests](https://github.com/openwrt/openwrt-tests) como a [LibreMesh](https://libremesh.org/), sobre el mismo conjunto físico de DUTs.
+**Technical design document** for a lab capable of contributing to both [openwrt-tests](https://github.com/openwrt/openwrt-tests) and [LibreMesh](https://libremesh.org/), using the same physical set of DUTs.
 
-El lab FCEFyN se presenta como caso de uso inicial. Esta propuesta define el alcance, la arquitectura y algunas decisiones técnicas necesarias para implementarlo.
-
----
-
-## 1. Contexto y Objetivo
-
-### 1.1 Escenario
-
-Un laboratorio HIL (Hardware-in-the-Loop) que dispone de varios DUTs ( routers OpenWrt/LibreMesh) conectados a un switch gestionable y a un host de orquestación.
-
-### 1.2 Objetivo
-
-Permitir que un mismo lab contribuya a:
-
-- **openwrt-tests** - CI de OpenWrt vanilla (coordinator remoto, ej. Aparcar)
-- **libremesh-tests** - Fork para testing de LibreMesh (coordinator local en nuestro caso)
-
-con **conmutación entre modos** mediante un único comando CLI, o bien un **reparto simultáneo** de DUTs entre ambos proyectos en modo híbrido.
+The FCEFyN lab is presented as the initial use case. This proposal defines the scope, architecture, and key technical decisions required for implementation.
 
 ---
 
-## 2. Fundamentos Técnicos: VLANs Aisladas vs VLAN Compartida
+## 1. Context and Objective
 
-### 2.1 Por qué openwrt-tests requiere VLANs aisladas
+### 1.1 Scenario
 
-En openwrt-tests, cada DUT debe estar en su propia VLAN (100-108). La razón es que **OpenWrt vanilla asigna la misma IP a todos los dispositivos**:
+A HIL (Hardware-in-the-Loop) lab with several DUTs (OpenWrt/LibreMesh routers) connected to a managed switch and an orchestration host.
 
-- **IP por defecto**: `192.168.1.1` en `br-lan`
-- **Servidor DHCP**: `odhcpd` activo en cada DUT ofreciendo IPs en 192.168.1.x
+### 1.2 Objective
 
-Si varios DUTs compartieran el mismo segmento L2, aparecerían problemas como:
+Allow a single lab to contribute to:
 
-| Problema | Descripción |
-|----------|-------------|
-| **SSH imposible** | `ssh root@192.168.1.1` no distingue entre dispositivos |
-| **Conflictos ARP** | Múltiples MACs respondiendo para la misma IP degradan la red |
-| **DHCP wars** | Varios servidores DHCP compitiendo; el host podría recibir IP de un DUT en lugar del dnsmasq del lab |
-| **Tests no deterministas** | Un test podría ejecutarse contra el dispositivo incorrecto |
-| **TFTP boot fallido** | Durante U-Boot, el DUT hace `dhcp`; podría recibir respuesta de un DUT vecino en lugar del servidor TFTP del host |
+- **openwrt-tests** — OpenWrt vanilla CI (remote coordinator, e.g. Aparcar)
+- **libremesh-tests** — LibreMesh testing fork (local coordinator in our case)
 
-Por ello, **el aislamiento por VLAN es técnicamente necesario** para openwrt-tests cuando hay múltiples DUTs.
+with **mode switching** via a single CLI command, or a **simultaneous split** of DUTs between both projects in hybrid mode.
 
-### 2.2 Por qué LibreMesh puede usar VLAN compartida
+---
 
-LibreMesh **no comparte** la premisa de OpenWrt vanilla. Está pensado para redes mesh con múltiples nodos:
+## 2. Technical Foundations: Isolated VLANs vs Shared VLAN
 
-| Aspecto | OpenWrt vanilla | LibreMesh |
-|---------|-----------------|-----------|
-| **IP de br-lan** | Fija `192.168.1.1` (igual en todos) | Dinámica `10.13.<MAC[4]>.<MAC[5]>` (única por dispositivo) |
-| **Conflicto IP** | Sí | No; cada nodo tiene IP derivada de su MAC |
-| **Servidor DHCP** | `odhcpd` activo en 192.168.1.x | Desactivado o en rango no conflictivo en modo mesh |
-| **Suposición de diseño** | "Soy el único router en la red" | "Hay múltiples nodos en la malla" |
+### 2.1 Why openwrt-tests requires isolated VLANs
 
-#### Cómo se evitan o mitigan los problemas en LibreMesh
+In openwrt-tests, each DUT must be on its own VLAN (100-108). The reason is that **vanilla OpenWrt assigns the same IP to all devices**:
 
-| Problema (OpenWrt) | En LibreMesh |
+- **Default IP**: `192.168.1.1` on `br-lan`
+- **DHCP server**: `odhcpd` active on each DUT, offering IPs in the 192.168.1.x range
+
+If multiple DUTs shared the same L2 segment, the following issues would arise:
+
+| Problem | Description |
+|---------|-------------|
+| **SSH impossible** | `ssh root@192.168.1.1` cannot distinguish between devices |
+| **ARP conflicts** | Multiple MACs responding for the same IP degrade the network |
+| **DHCP wars** | Multiple DHCP servers competing; the host might receive an IP from a DUT instead of the lab's dnsmasq |
+| **Non-deterministic tests** | A test could run against the wrong device |
+| **Failed TFTP boot** | During U-Boot, the DUT runs `dhcp`; it could receive a response from a neighboring DUT instead of the host's TFTP server |
+
+Therefore, **VLAN isolation is technically required** for openwrt-tests when multiple DUTs are present.
+
+### 2.2 Why LibreMesh can use a shared VLAN
+
+LibreMesh **does not share** the vanilla OpenWrt assumption. It is designed for mesh networks with multiple nodes:
+
+| Aspect | Vanilla OpenWrt | LibreMesh |
+|--------|-----------------|-----------|
+| **br-lan IP** | Fixed `192.168.1.1` (same on all devices) | Dynamic `10.13.<MAC[4]>.<MAC[5]>` (unique per device) |
+| **IP conflict** | Yes | No; each node has a MAC-derived IP |
+| **DHCP server** | `odhcpd` active on 192.168.1.x | Disabled or in a non-conflicting range in mesh mode |
+| **Design assumption** | "I am the only router on the network" | "There are multiple nodes in the mesh" |
+
+#### How issues are avoided or mitigated in LibreMesh
+
+| Problem (OpenWrt) | In LibreMesh |
 |-------------------|--------------|
-| **SSH imposible** | Cada DUT tiene IP única (10.13.x.x). El framework añade una IP fija determinista (`10.13.200.x`) vía serial antes de SSH para garantizar conectividad independiente de la versión de LibreMesh |
-| **Conflictos ARP** | No existen; cada dispositivo tiene MAC única e IP única |
-| **DHCP wars** | LibreMesh no corre servidor DHCP tradicional en el puerto LAN por defecto; el host usa dnsmasq en 192.168.200.x para VLAN 200 |
-| **Tests no deterministas** | Labgrid adquiere el place exclusivamente; el exporter conoce la IP del DUT; SSH va al dispositivo correcto |
-| **TFTP boot** | Los DUTs LibreMesh no ofrecen DHCP en LAN por defecto; dnsmasq del host responde |
+| **SSH impossible** | Each DUT has a unique IP (10.13.x.x). The framework adds a deterministic fixed IP (`10.13.200.x`) via serial before SSH to guarantee connectivity regardless of the LibreMesh version |
+| **ARP conflicts** | None; each device has a unique MAC and unique IP |
+| **DHCP wars** | LibreMesh does not run a traditional DHCP server on the LAN port by default; the host uses dnsmasq on 192.168.200.x for VLAN 200 |
+| **Non-deterministic tests** | Labgrid acquires the place exclusively; the exporter knows the DUT's IP; SSH connects to the correct device |
+| **TFTP boot** | LibreMesh DUTs do not offer DHCP on LAN by default; the host's dnsmasq responds |
 
-**Conclusión**: LibreMesh puede operar con todos los DUTs en una VLAN compartida (VLAN 200) porque asigna IPs únicas por diseño. La propuesta contempla:
+**Conclusion**: LibreMesh can operate with all DUTs on a shared VLAN (VLAN 200) because it assigns unique IPs by design. The proposal includes:
 
-- **Modo isolated** (VLANs 100-108): para tests OpenWrt
-- **Modo mesh** (VLAN 200): para tests LibreMesh (single-node y multi-nodo)
-
----
-
-## 3. Roles del Lab
-
-| Modo | Coordinator | Exporter del lab | Otros labs |
-|------|-------------|------------------|------------|
-| **OpenWrt** | Aparcar (remoto) | DUTs → Aparcar | Exporters remotos → Aparcar |
-| **LibreMesh** | FCEFyN (local) | DUTs → coordinator local | Exporters remotos → nuestro coordinator |
-
-- En modos openwrt-only o libremesh-only, solo un exporter está activo a la vez.
-- En **modo híbrido**, dos exporters correrían simultáneamente: uno por pool, cada uno conectado a su coordinator (remoto y local), con un subconjunto de DUTs predefinido por pool.
+- **Isolated mode** (VLANs 100-108): for OpenWrt tests
+- **Mesh mode** (VLAN 200): for LibreMesh tests (single-node and multi-node)
 
 ---
 
-## 4. Topología de Red Propuesta
+## 3. Lab Roles
 
-| Tipo test | Topología | Uso |
-|-----------|-----------|-----|
-| **OpenWrt** | 1 DUT por VLAN (100-108) | Tests aislados |
-| **LibreMesh** | DUTs en VLAN 200 compartida | Tests single-node y multi-nodo |
+| Mode | Coordinator | Lab exporter | Other labs |
+|------|-------------|--------------|------------|
+| **OpenWrt** | Aparcar (remote) | DUTs → Aparcar | Remote exporters → Aparcar |
+| **LibreMesh** | FCEFyN (local) | DUTs → local coordinator | Remote exporters → our coordinator |
 
-### 4.1 Topología de red física
+- In openwrt-only or libremesh-only modes, only one exporter is active at a time.
+- In **hybrid mode**, two exporters run simultaneously: one per pool, each connected to its coordinator (remote and local), with a predefined subset of DUTs per pool.
 
-El switch es el elemento central que conecta gateway, host y DUTs. Gateway y host usan puertos trunk (802.1Q); cada DUT en puerto access.
+---
+
+## 4. Proposed Network Topology
+
+| Test type | Topology | Usage |
+|-----------|----------|-------|
+| **OpenWrt** | 1 DUT per VLAN (100-108) | Isolated tests |
+| **LibreMesh** | DUTs on shared VLAN 200 | Single-node and multi-node tests |
+
+### 4.1 Physical network topology
+
+The switch is the central element connecting the gateway, host, and DUTs. Gateway and host use trunk ports (802.1Q); each DUT uses an access port.
 
 ```mermaid
 flowchart TB
-    GW["OpenWrt gateway testbed\n.254 por VLAN"]
+    GW["OpenWrt testbed gateway\n.254 per VLAN"]
 
     SW["TP-Link SG2016P\nSwitch · VLANs 100-108 / 200"]
 
@@ -113,65 +113,65 @@ flowchart TB
     SW -->|access| DN
 ```
 
-### 4.2 Esquema de VLANs
+### 4.2 VLAN scheme
 
-- **VLANs 100-108**: OpenWrt (una por DUT).
-- **VLAN 200**: LibreMesh mesh compartida.
+- **VLANs 100-108**: OpenWrt (one per DUT).
+- **VLAN 200**: Shared LibreMesh mesh.
 
-### 4.3 Direccionamiento IP
+### 4.3 IP addressing
 
-| Contexto | Rango IP | Origen |
-|----------|----------|--------|
-| **OpenWrt (modo isolated)** | 192.168.1.1 por DUT | Cada DUT en su VLAN; dnsmasq según VLAN |
-| **LibreMesh (modo mesh)** | 10.13.x.x dinámico + 10.13.200.x fijo | LibreMesh asigna 10.13.x.x; el framework configura 10.13.200.x vía serial para SSH estable |
+| Context | IP range | Source |
+|---------|----------|--------|
+| **OpenWrt (isolated mode)** | 192.168.1.1 per DUT | Each DUT on its own VLAN; dnsmasq per VLAN |
+| **LibreMesh (mesh mode)** | 10.13.x.x dynamic + 10.13.200.x fixed | LibreMesh assigns 10.13.x.x; the framework configures 10.13.200.x via serial for stable SSH |
 
-Para que el host labgrid alcance DUTs LibreMesh, se añadiría la ruta `10.13.0.0/16` a la interfaz `vlan200`.
+For the labgrid host to reach LibreMesh DUTs, the route `10.13.0.0/16` would be added to the `vlan200` interface.
 
-### 4.4 IP fija para SSH (LibreMesh)
+### 4.4 Fixed IP for SSH (LibreMesh)
 
-Para no depender de la IP dinámica de LibreMesh (que puede variar entre versiones), el framework propuesto:
+To avoid depending on the dynamic LibreMesh IP (which may vary between versions), the proposed framework:
 
-1. Genera una IP determinista: `MD5(place_name) % 253 + 1` → `10.13.200.x`
-2. La configura vía consola serial como dirección secundaria en `br-lan`
-3. El exporter usa esta IP en `NetworkService`
-
----
-
-## 5. Decisión de Arquitectura: Modo Mesh para LibreMesh
-
-**Criterio**: Todos los tests LibreMesh (single-node y multi-node) correrían con el switch en **modo mesh (VLAN 200)**.
-
-| Pregunta | Decisión propuesta | Justificación |
-|----------|--------------------|---------------|
-| ¿Single-node en isolated o mesh? | **Mesh** | En isolated, la ruta 10.13.0.0/16 solo existe en vlan200. Si el DUT está en vlan101, LibreMesh le asigna 10.13.x.x pero el host no puede alcanzarlo. |
-| ¿Cuándo cambiar de modo? | **Solo al cambiar entre openwrt-tests y libremesh-tests** | Un comando CLI (`testbed-mode openwrt` o `testbed-mode libremesh`). Sin switching interno dentro de un mismo test suite. |
-| ¿Interferencia entre DUTs en VLAN 200? | **Mínima y aceptable** | Labgrid bloquea el place exclusivamente. Que los DUTs formen malla es comportamiento esperado y no interfiere con tests single-node. |
+1. Generates a deterministic IP: `MD5(place_name) % 253 + 1` → `10.13.200.x`
+2. Configures it via serial console as a secondary address on `br-lan`
+3. The exporter uses this IP in `NetworkService`
 
 ---
 
-## 6. Arquitectura Propuesta
+## 5. Architecture Decision: Mesh Mode for LibreMesh
 
-### 6.1 Componentes
+**Criterion**: All LibreMesh tests (single-node and multi-node) run with the switch in **mesh mode (VLAN 200)**.
 
-| Componente | Función |
-|------------|---------|
-| **testbed-mode (CLI)** | Comando único para cambiar entre openwrt \| libremesh \| hybrid |
-| **switch_client** | Cliente SSH central (Netmiko): lock, credenciales, operaciones. Driver seleccionable por config (`POE_SWITCH_DRIVER`); delegación a `switch_drivers/<name>.py`. Para cambiar de switch: crear driver nuevo y actualizar config. Usado por switch_vlan_preset, pool-manager y poe_switch_control. Ubicación: `scripts/switch/`. |
-| **switch_vlan_preset** | Aplica presets isolated/mesh al switch vía switch_client. Ubicación: `scripts/switch/`. |
-| **pool-manager** | En modo hybrid: define reparto de DUTs por pool, genera configuraciones de exporter, aplica VLANs al switch vía switch_client. Ubicación: `scripts/switch/`. |
-| **poe_switch_control** | Control PoE on/off por puerto; invocado por PDUDaemon en power cycle; usa switch_client. Ubicación: `scripts/switch/`. |
-| **Ansible** | Despliega exporter, dnsmasq, netplan, coordinator en modos openwrt/libremesh |
+| Question | Proposed decision | Justification |
+|----------|-------------------|---------------|
+| Single-node in isolated or mesh? | **Mesh** | In isolated mode, the 10.13.0.0/16 route only exists on vlan200. If the DUT is on vlan101, LibreMesh assigns it 10.13.x.x but the host cannot reach it. |
+| When to switch modes? | **Only when switching between openwrt-tests and libremesh-tests** | A single CLI command (`testbed-mode openwrt` or `testbed-mode libremesh`). No internal switching within a single test suite. |
+| Interference between DUTs on VLAN 200? | **Minimal and acceptable** | Labgrid locks the place exclusively. DUTs forming a mesh is expected behavior and does not interfere with single-node tests. |
 
-### 6.2 Flujo propuesto
+---
+
+## 6. Proposed Architecture
+
+### 6.1 Components
+
+| Component | Function |
+|-----------|----------|
+| **testbed-mode (CLI)** | Single command to switch between openwrt \| libremesh \| hybrid |
+| **switch_client** | Central SSH client (Netmiko): lock, credentials, operations. Driver selectable via config (`POE_SWITCH_DRIVER`); delegates to `switch_drivers/<name>.py`. To change switches: create a new driver and update config. Used by switch_vlan_preset, pool-manager, and poe_switch_control. Location: `scripts/switch/`. |
+| **switch_vlan_preset** | Applies isolated/mesh presets to the switch via switch_client. Location: `scripts/switch/`. |
+| **pool-manager** | In hybrid mode: defines DUT split per pool, generates exporter configs, applies VLANs to the switch via switch_client. Location: `scripts/switch/`. |
+| **poe_switch_control** | PoE on/off control per port; called by PDUDaemon during power cycle; uses switch_client. Location: `scripts/switch/`. |
+| **Ansible** | Deploys exporter, dnsmasq, netplan, coordinator in openwrt/libremesh modes |
+
+### 6.2 Proposed flow
 
 ```mermaid
 flowchart TD
-    subgraph Admin["Entrada"]
-        A["Administrador / GitHub Actions"]
+    subgraph Admin["Input"]
+        A["Administrator / GitHub Actions"]
     end
 
     A --> B["testbed-mode.sh\nopenwrt | libremesh | hybrid"]
-    B --> C{Modo?}
+    B --> C{Mode?}
 
     C -->|openwrt / libremesh| D["switch_vlan_preset.py"]
     C -->|openwrt / libremesh| E["ansible-playbook --tags export"]
@@ -180,26 +180,29 @@ flowchart TD
     D --> SC["switch_client.py\n(Netmiko · lock · drivers)"]
     F --> SC
     P["poe_switch_control.py\n(PDUDaemon)"] --> SC
-    SC --> G["Switch TP-Link SG2016P\n(VLANs · PoE vía SSH)"]
-    F --> H["exporter configs\ngenerados por pool"]
+    SC --> G["TP-Link SG2016P Switch\n(VLANs · PoE via SSH)"]
+    F --> H["exporter configs\ngenerated per pool"]
     H --> I["labgrid-exporter-openwrt"]
     H --> J["labgrid-exporter-libremesh"]
 
     E --> K["exporter.yaml\n/etc/labgrid"]
     K --> L["labgrid-exporter"]
 
-    I --> M["Coordinator Aparcar (remoto)"]
-    J --> N["Coordinator Local"]
+    I --> M["Aparcar Coordinator (remote)"]
+    J --> N["Local Coordinator"]
     L --> M
     L --> N
 ```
 
-- El **Switch** se configura vía SSH por `switch_vlan_preset` (modos openwrt/libremesh) o `pool-manager` (modo hybrid). Todos usan `switch_client.py` (Netmiko, lock, drivers pluggables). El driver se selecciona con `POE_SWITCH_DRIVER` en `~/.config/poe_switch_control.conf`; ver `scripts/switch/switch_drivers/DRIVER_INTERFACE.md`. `poe_switch_control.py` (invocado por PDUDaemon) también usa `switch_client`. No depende de los coordinators.
-- Los **exporters** corren en el host y envían lugares (places) a los coordinators correspondientes.
+- The **Switch** is configured via SSH by `switch_vlan_preset` (openwrt/libremesh modes) or `pool-manager` (hybrid mode). All use `switch_client.py` (Netmiko, lock, pluggable drivers). The driver is selected via `POE_SWITCH_DRIVER` in `~/.config/poe_switch_control.conf`; see `scripts/switch/switch_drivers/DRIVER_INTERFACE.md`. `poe_switch_control.py` (called by PDUDaemon) also uses `switch_client`. It does not depend on the coordinators.
+- The **exporters** run on the host and send places to their respective coordinators.
 
-### 6.3 Aplicación diferencial del switch
+### 6.3 Differential switch configuration
 
-Para reducir tiempos y evitar reconfiguraciones innecesarias, el pool-manager podría mantener un estado de la última configuración aplicada y aplicar solo los cambios de puerto (differential apply). El switch se configuraría completamente solo en la primera ejecución o cuando el estado no sea válido.
-Ya se validó que esto sería posible mediante POCs que consistieron en scripts simples que se conectan por SSH al switch y aplican los comandos válidos (cambio de asignación de puertos a cada vlan, enable/disable de PoE en puertos) para el modelo SG2016P de TPLink.
-El componente ocupado de aplicar configuraciones del switch idealmente deberia ser agnostico al fabricante del switch/comandos validos evitando una solución ad-hoc que se vuelva inutil ante un cambio de switch. Para esto explorariamos soluciones ya existentes como https://github.com/ktbyers/netmiko.
+To reduce reconfiguration time and avoid unnecessary changes, the pool-manager could maintain a record of the last applied configuration and only apply per-port changes (differential apply). The switch would be fully reconfigured only on first run or when the state is invalid.
+
+This was validated via POCs consisting of simple scripts that connect via SSH to the switch and apply valid commands (changing port-to-VLAN assignments, enabling/disabling PoE on ports) for the TP-Link SG2016P model.
+
+The component responsible for applying switch configurations should ideally be vendor-agnostic — avoiding an ad-hoc solution that becomes useless if the switch is replaced. For this, existing solutions such as [netmiko](https://github.com/ktbyers/netmiko) would be explored.
+
 ---
