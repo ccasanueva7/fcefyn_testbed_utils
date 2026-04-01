@@ -70,38 +70,36 @@ extra:
 
 nav:
   - Home: index.md
-  - Demos: demos.md
   - Lab operations:
       - Operations manual: operar/SOM.md
       - Lab procedures: operar/lab-procedures.md
       - Rack cheatsheet: operar/rack-cheatsheets.md
       - SSH access to DUTs: operar/dut-ssh-access.md
       - Manual firmware build: operar/build-firmware-manual.md
-      - Labgrid troubleshooting: operar/labgrid-troubleshooting.md
+      - Labgrid useful commands: operar/labgrid-useful-commands.md
       - Adding a DUT: operar/adding-dut-guide.md
       - Wake-on-LAN: operar/wake-on-lan-setup.md
       - ZeroTier (remote access): operar/zerotier-remote-access.md
   - Component configuration:
+      - Hardware and rack reference:
+          - Hardware catalog: configuracion/catalogo-hardware.md
+          - "Physical rack (photos and 3D)": diseno/rack-diseno-3d.md
       - Network and DUTs:
           - Host: configuracion/host-config.md
           - Switch: configuracion/switch-config.md
           - Gateway: configuracion/gateway.md
           - DUTs: configuracion/duts-config.md
       - Services and automation:
-          - TFTP / dnsmasq: configuracion/tftp-server.md
           - Arduino relay: configuracion/arduino-relay.md
+          - TFTP / dnsmasq: configuracion/tftp-server.md
           - Ansible / Labgrid: configuracion/ansible-labgrid.md
           - CI Runner: configuracion/ci-runner.md
-      - Hardware and rack reference:
-          - Hardware catalog: configuracion/catalogo-hardware.md
-          - "Physical rack (photos and 3D)": diseno/rack-diseno-3d.md
-      - Metrics:
-          - Public Grafana: configuracion/grafana-public-access.md
-          - Observability: configuracion/observabilidad.md
+      - Observability:
+          - Lab host stack (Prometheus and Grafana): configuracion/observabilidad.md
+          - Remote HTTPS access (Oracle VPS): configuracion/grafana-public-access.md
   - Design:
       - Unified pool architecture: diseno/unified-pool.md
       - openwrt-tests onboarding: diseno/openwrt-tests-onboarding.md
       - CI use cases: diseno/ci-use-cases.md
       - Virtual mesh: diseno/virtual-mesh.md
-      - "(historical) Hybrid lab": diseno/hybrid-lab-proposal.md
-      - "(historical) Hybrid lab tracking": diseno/hybrid-lab-tracking.md
+  - Demos: demos.md

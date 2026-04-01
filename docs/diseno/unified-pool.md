@@ -182,9 +182,3 @@ Compared to **fixed pools** and global mode (detail in [hybrid-lab-proposal](hyb
 - `dut-config.yaml` `duts` section (DUT to switch port map)
 - PDUDaemon and `poe_switch_control.py`
 - Serial, TFTP, SSH proxy infra
-
-## References
-
-- [Original proposal (historical)](hybrid-lab-proposal.md)
-- [Original tracking (historical)](hybrid-lab-tracking.md)
-- [openwrt-tests onboarding](openwrt-tests-onboarding.md)
