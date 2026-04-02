@@ -1,10 +1,10 @@
-# TFTP server and dnsmasq, HIL testbed
+# TFTP server with dnsmasq
 
 The orchestration host runs **dnsmasq** as **DHCP** and **TFTP** server on each VLAN. DUTs download firmware during boot (recovery mode); WAN can get an IP when connected.
 
 **Paths:** `/etc/dnsmasq.conf`, `/srv/tftp/`.
 
-**Index:** 1. dnsmasq | 2. configuration | 3. TFTP directories | 4. Labgrid | 5. firmware | 6. verification | 7. retention | 8. references (numbered headings below; MkDocs TOC links each section).
+**Sections:** 1. dnsmasq | 2. configuration | 3. TFTP directories | 4. Labgrid | 5. firmware | 6. verification | 7. retention | 8. references.
 
 ---
 
@@ -207,13 +207,6 @@ sudo rm /srv/tftp/firmwares/<device>/<filename>
 # 3. Clean resulting broken symlinks (section 5.4)
 ```
 
-See also [CI use cases](../diseno/ci-use-cases.md) section 4.5 for design context.
+See also [Lab architecture](../diseno/lab-architecture.md) for lab and CI design context.
 
 ---
-
-## 8. References
-
-- [ansible-labgrid.md](./ansible-labgrid.md) - Deploy `dnsmasq.conf` and exporter
-- [SOM.md](../operar/SOM.md) - Run tests
-- [host-config.md](./host-config.md) - Host and PDUDaemon
-- [rack-cheatsheets.md](../operar/rack-cheatsheets.md) - DUT ↔ TFTP folder mapping

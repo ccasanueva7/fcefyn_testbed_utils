@@ -1,8 +1,9 @@
 # Observability - DUT and host metrics
 
-The **lab host** runs the metrics stack. On each **DUT**, only the OpenWrt exporter is required (`prometheus-node-exporter-lua`); the orchestration host exposes its own metrics via `prometheus-node-exporter`. The Ansible **`observability`** role automates the following on the host.
+The **lab host** runs the metrics stack. On each **DUT**, only the OpenWrt exporter is required (`prometheus-node-exporter-lua`); the orchestration host exposes its own metrics via `prometheus-node-exporter`. The Ansible **`observability`** role automates the following on the host:
 
-**Public HTTPS** access to Grafana (Oracle VM, Nginx, reverse SSH tunnel) is documented in [grafana-public-access.md](grafana-public-access.md). This page covers only the stack on the lab host (scrape, local dashboards).
+* **Public HTTPS** [Grafana](https://grafana.com/) (Oracle VM, Nginx, reverse SSH tunnel), [more details here](grafana-public-access.md). 
+* **Below:** [Prometheus](https://prometheus.io/) scrape and local Grafana on the lab host.
 
 ---
 

@@ -1,10 +1,15 @@
 ---
-title: Physical rack
+title: DIY Rack
 ---
 
-# Physical rack
+# DIY Rack
 
-Overview of the lab **DIY rack**: plastic drawers, control box, link to electrical schematics in [arduino-relay](../configuracion/arduino-relay.md), and printed parts for ducts and mounts. CAD sources: **`3d_parts/`** folder at repo root (OpenSCAD file matching STL name where applicable).
+Overview of the lab's **DIY rack** consisting of:
+
+* **Stackable plastic drawers**
+* **Multiple 3D printed parts** (ventilation ducts and cases for devices) - CAD sources [`here`](https://github.com/fcefyn-testbed/fcefyn_testbed_utils/tree/main/3d_parts)
+* **AC control box interface** for control of devices via SSR relays - electrical schematics can be found in [here](../configuracion/arduino-relay.md).
+
 
 ## Rack photos
 
@@ -31,9 +36,10 @@ Overview of the lab **DIY rack**: plastic drawers, control box, link to electric
   <p class="rack-gallery__caption" data-rack-caption></p>
 </div>
 
-## Control box (relay module)
+## AC Control box
 
-Separate box from the rack: relays/SSR, **UTP** (signals) and **230 V** to cooler and PSU. Electrical detail: [arduino-relay](../configuracion/arduino-relay.md).
+Separate box from the rack: relays/SSR, **UTP** (signals) and **230 V** to cooler and PSU. Detailed wiring schematics [here](../configuracion/arduino-relay.md#electrical-schematics-reference).
+
 
 <div class="rack-gallery" data-rack-gallery tabindex="0">
   <div class="rack-gallery__viewport">
@@ -52,29 +58,25 @@ Separate box from the rack: relays/SSR, **UTP** (signals) and **230 V** to coole
   <p class="rack-gallery__caption" data-rack-caption></p>
 </div>
 
-## Connections and electrical wiring {: #connections-and-electrical-wiring }
-
-Reference schematics are in [arduino-relay - Electrical schematics](../configuracion/arduino-relay.md#electrical-schematics-reference) together with pin tables and serial commands.
-
 ## Thermal considerations and ventilation {: #thermal-considerations }
 
 With vertical stacking, hot air from lower levels **rises** and tends to stagnate at the top, risking overheating of upper equipment. Mitigation is a **bottom fan** (120 mm, 220 V) pushing **cold air upward** and **printed ducts** guiding flow toward the drawers. Fan datasheet: [Hardware catalog - Bosser 120 mm](../configuracion/catalogo-hardware.md#bosser-120mm-rack-fan).
 
 ## 3D printed parts
 
-Renders and photos of parts used for ducts, bases, and accessories. Models aim for **support-free** printing where applicable (reference: Creality Ender 3 Pro).
+Renders and photos of parts used for ducts, bases, and accessories. Models aim for **support-free** printing where applicable (printer used was a Creality Ender 3 Pro).
 
 | Qty | STL file | Use |
 |-----|----------|-----|
-| 1 | `curved_intake_duct.stl` | Curved duct: 120 mm fan to chimney |
-| 4 | `airflow_chimney_duct_3levels.stl` | Vertical segments with grilles (3 levels each) |
-| 1 | `airflow_chimney_duct_2levels.stl` | Segment with 2 levels |
-| 1 | `chimney_duct_cover.stl` | Chimney top cover |
-| 3 | `belkin_rt3200_base.stl` | Compact Belkin RT3200 base |
-| 1 | `CE3PRO_librerouter_rack.stl` | Open LibreRouter enclosure (vented base, standoffs) |
-| 1 | `NanoHolderA.stl` | Arduino Nano holder |
-| 1 | (aux.) `drawer_stop` | Drawer guide / stop (visual asset; filename per `3d_parts/`) |
-| (var.) | `logo fcefyn.stl`, `logo unc.stl` | Decorative logos |
+| 1   | `curved_intake_duct.stl` | Curved duct: 120 mm fan to chimney |
+| 4   | `airflow_chimney_duct_3levels.stl` | Vertical segments with grilles (3 levels each) |
+| 1   | `airflow_chimney_duct_2levels.stl` | Segment with 2 levels |
+| 1   | `chimney_duct_cover.stl` | Chimney top cover |
+| 3   | `belkin_rt3200_base.stl` | Compact Belkin RT3200 base |
+| 1   | `CE3PRO_librerouter_rack.stl` | Open LibreRouter enclosure (vented base, standoffs) |
+| 1   | `NanoHolderA.stl` | Arduino Nano holder |
+| 1   | (aux.) `drawer_stop` | Drawer guide / stop (visual asset; filename per `3d_parts/`) |
+| 1   | `logo fcefyn.stl`, `logo unc.stl` | Decorative logos |
 
 <div class="rack-gallery rack-gallery--schematics" data-rack-gallery tabindex="0">
   <div class="rack-gallery__viewport">

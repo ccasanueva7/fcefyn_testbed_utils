@@ -1,8 +1,8 @@
 # Proposal: Virtual LibreMesh tests with QEMU and vwifi
 
-**Technical design document** for integrating multi-node LibreMesh tests on QEMU VMs with simulated WiFi via vwifi and mac80211_hwsim. Complements the physical lab ([hybrid-lab-proposal](hybrid-lab-proposal.md)) by enabling CI without dedicated hardware and local development without real devices.
+**Technical design document** for integrating multi-node LibreMesh tests on QEMU VMs with simulated WiFi via vwifi and mac80211_hwsim. Complements the physical lab ([Lab architecture](lab-architecture.md)) by enabling CI without dedicated hardware and local development without real devices.
 
-The FCEFyN lab and libremesh-tests are the initial use cases. This proposal defines scope, architecture, and technical decisions needed to implement it.
+Initial use cases: FCEFyN lab and libremesh-tests. Remaining sections cover scope, architecture, and implementation decisions.
 
 ---
 

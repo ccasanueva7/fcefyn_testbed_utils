@@ -54,6 +54,7 @@ markdown_extensions:
 
 extra_css:
   - stylesheets/theme-colors.css
+  - stylesheets/nav-primary-sections.css
   - stylesheets/institutional-logos.css
   - stylesheets/demos.css
   - stylesheets/rack-gallery.css
@@ -71,19 +72,23 @@ extra:
 nav:
   - Home: index.md
   - Lab operations:
-      - Operations manual: operar/SOM.md
-      - Lab procedures: operar/lab-procedures.md
+      - Operations manual: operar/system-operation-manual.md
+      - Lab procedures:
+          - Overview: operar/lab-procedures.md
+          - DUTs and VLAN: operar/lab-duts-and-vlan.md
+          - Routine operations: operar/lab-routine-operations.md
+          - Running tests locally: operar/lab-running-tests.md
       - Rack cheatsheet: operar/rack-cheatsheets.md
       - SSH access to DUTs: operar/dut-ssh-access.md
       - Manual firmware build: operar/build-firmware-manual.md
       - Labgrid useful commands: operar/labgrid-useful-commands.md
-      - Adding a DUT: operar/adding-dut-guide.md
+      - Adding a DUT: operar/dut-onboarding.md
       - Wake-on-LAN: operar/wake-on-lan-setup.md
       - ZeroTier (remote access): operar/zerotier-remote-access.md
   - Component configuration:
       - Hardware and rack reference:
           - Hardware catalog: configuracion/catalogo-hardware.md
-          - "Physical rack (photos and 3D)": diseno/rack-diseno-3d.md
+          - "DIY Rack": diseno/diy-rack.md
       - Network and DUTs:
           - Host: configuracion/host-config.md
           - Switch: configuracion/switch-config.md
@@ -98,8 +103,8 @@ nav:
           - Lab host stack (Prometheus and Grafana): configuracion/observabilidad.md
           - Remote HTTPS access (Oracle VPS): configuracion/grafana-public-access.md
   - Design:
-      - Unified pool architecture: diseno/unified-pool.md
+      - Lab architecture: diseno/lab-architecture.md
       - openwrt-tests onboarding: diseno/openwrt-tests-onboarding.md
-      - CI use cases: diseno/ci-use-cases.md
       - Virtual mesh: diseno/virtual-mesh.md
+      - Virtual mesh proposal: diseno/virtual-mesh-proposal.md
   - Demos: demos.md

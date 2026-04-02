@@ -1,6 +1,6 @@
 # Virtual LibreMesh tests with QEMU and vwifi
 
-Multi-node LibreMesh tests on QEMU VMs with simulated WiFi via vwifi and mac80211_hwsim. Complements the physical lab ([hybrid-lab-proposal](hybrid-lab-proposal.md)) by enabling CI without dedicated hardware and local development without real devices.
+Multi-node LibreMesh tests on QEMU VMs with simulated WiFi via vwifi and mac80211_hwsim. Complements the physical lab ([Lab architecture](lab-architecture.md)) by enabling CI without dedicated hardware and local development without real devices.
 
 ---
 

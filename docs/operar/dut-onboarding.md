@@ -1,6 +1,6 @@
 # Guide: add or replace a DUT on the testbed
 
-Step-by-step guide to onboard a new DUT or replace an existing one (e.g. swap hardware on a switch port).
+Onboard a new DUT or replace hardware on an existing switch port.
 
 ---
 
@@ -25,11 +25,11 @@ Repos involved: **fcefyn-testbed-utils** (lab config) and **libremesh-tests** (l
 
 ---
 
-## Case A: New DUT (free port)
+## New DUT (connecting to a free port on switch)
 
 ### 1. Hardware
 
-- Connect DUT USB-serial adapter to hub.
+- Connect a *trustable* DUT USB-serial adapter to hub.
 - Ethernet from DUT to free switch port (e.g. port 3 or 15).
 - Power: Arduino relay (free channel) or PoE (free port). See [switch-config](../configuracion/switch-config.md) and [host-config 5](../configuracion/host-config.md#5-power-control-and-mapping).
 
@@ -44,7 +44,7 @@ Follow [host-config 7.5](../configuracion/host-config.md#75-identifying-new-devi
 
 ### 3. udev
 
-Edit `fcefyn-testbed-utils/configs/templates/99-serial-devices.rules` and add the rule. Example by serial:
+Edit `fcefyn-testbed-utils/configs/templates/99-serial-devices.rules` and add the rule for the new adapter. Example by serial:
 
 ```
 # Belkin RT3200 #4 - FTDI, serial BG01ABCD
@@ -78,9 +78,7 @@ In `fcefyn-testbed-utils/configs/dut-config.yaml`, add under `duts`:
     libremesh_fixed_ip: "10.13.200.XXX"   # LibreMesh fixed IP (avoid collisions)
 ```
 
-There is no pool assignment; the DUT is available to both projects automatically.
-
-For PoE: use `pdu_name: "fcefyn-poe-portN"` and `pdu_index` per port. See `openwrt_one` and `librerouter_1` examples.
+For PoE DUTs: use a **single** PDUDaemon PDU name `fcefyn-poe` and set `pdu_index` to the switch PoE port number (same index passed to `poe_switch_control.py`). See `openwrt_one` and `librerouter_1` in `configs/dut-config.yaml` and `libremesh-tests` `ansible/files/exporter/labgrid-fcefyn/exporter.yaml`.
 
 ### 5. labnet.yaml
 
@@ -136,7 +134,7 @@ If you use a **new Arduino channel** or **new PoE port**: edit `pdudaemon.conf` 
 
 ### 8. Targets
 
-Only for a **new device type**: create `libremesh-tests/targets/<device>.yaml` (drivers, prompts, boot strategies). See `targets/linksys_e8450.yaml` as reference. If reusing an existing device, skip.
+Only for a **new device type** not supported yet: create `libremesh-tests/targets/<device>.yaml` (drivers, prompts, boot strategies). See `targets/linksys_e8450.yaml` as reference. If reusing an existing device, skip.
 
 ### 9. Netplan
 
@@ -187,9 +185,9 @@ ssh dut-belkin-4
 
 ---
 
-## Case B: Replace DUT (same port)
+## Case B: Replace DUT (using a port where another device was connected)
 
-When replacing hardware on an existing port (e.g. broken Belkin for another Belkin, or model change on same port):
+When replacing hardware on an existing port (e.g. broken device in port 1 for another device in that port):
 
 1. **udev**: If serial adapter differs (other chip or USB port), update rule in `99-serial-devices.rules` and reload udev. Same adapter: skip.
 2. **dut-config**: Update `serial_port`, `libremesh_fixed_ip` if changed; `pdu_*` if power changes; keep `switch_port` and `switch_vlan_isolated`.
@@ -201,5 +199,3 @@ When replacing hardware on an existing port (e.g. broken Belkin for another Belk
 8. **Netplan / dnsmasq**: Unchanged (same VLAN).
 9. **Deploy**: Ansible (`playbook_labgrid.yml`).
 10. **duts-config.md**: Update DUT state in [duts-config](../configuracion/duts-config.md) and [rack-cheatsheets](rack-cheatsheets.md).
-
----

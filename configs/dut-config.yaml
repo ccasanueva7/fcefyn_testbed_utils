@@ -1,7 +1,7 @@
 # FCEFYN Testbed DUT Hardware Database
 #
 # All DUTs are available to both openwrt-tests and libremesh-tests via a
-# single LabGrid coordinator. VLAN switching is dynamic per-test.
+# the global LabGrid coordinator. VLAN switching is dynamic per-test.
 #
 # For VLAN changes at test time (requires labgrid-switch-abstraction package):
 #   switch-vlan <dut_name> <vlan_id> --config configs/dut-config.yaml
@@ -73,7 +73,7 @@ duts:
     serial_speed: 115200
     ssh_alias: "dut-openwrt-one"
     pdu_host: "localhost:16421"
-    pdu_name: "fcefyn-poe-port1"
+    pdu_name: "fcefyn-poe"
     pdu_index: 1
     switch_port: 16        # LAN data port (eth0 swapped to br-lan)
     switch_port_poe: 1     # WAN/PoE port — always in same VLAN for U-Boot
@@ -87,7 +87,7 @@ duts:
     serial_speed: 115200
     ssh_alias: "dut-librerouter-1"
     pdu_host: "localhost:16421"
-    pdu_name: "fcefyn-poe-port2"
+    pdu_name: "fcefyn-poe"
     pdu_index: 2
     switch_port: 2
     switch_vlan_isolated: 105

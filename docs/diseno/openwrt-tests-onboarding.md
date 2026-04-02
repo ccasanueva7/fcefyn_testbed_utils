@@ -226,7 +226,7 @@ sequenceDiagram
 | VLANs | Dynamic per test (isolated default, 192.168.1.x) | Dynamic per test (mesh VLAN 200, 10.13.x.x for multi-node) |
 | Multi-node tests | Not supported | Implemented in `conftest_mesh.py` |
 
-Both projects share the same DUT pool with a [unified pool architecture](unified-pool.md): each test locks DUTs via Labgrid and sets the VLAN it needs at runtime.
+Both projects use the **same Labgrid inventory** ([Lab architecture](lab-architecture.md)): each test locks DUTs via Labgrid and sets the VLAN it needs at runtime.
 
 ---
 

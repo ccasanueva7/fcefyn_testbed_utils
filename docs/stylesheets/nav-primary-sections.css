@@ -1,0 +1,22 @@
+/*
+ * Primary sidebar: distinguish navigation group labels (expand/collapse, not a page)
+ * from document links. Material uses label.md-nav__link for groups and a.md-nav__link for pages.
+ */
+.md-nav--primary .md-nav__item--nested > label.md-nav__link {
+  color: var(--md-primary-fg-color);
+  font-weight: 600;
+  opacity: 1;
+}
+
+.md-nav--primary .md-nav__item--nested > label.md-nav__link:hover {
+  color: var(--md-primary-fg-color--light);
+}
+
+[data-md-color-scheme="slate"] .md-nav--primary .md-nav__item--nested > label.md-nav__link {
+  /* Light green on dark sidebar: readable and clearly not the same as page links */
+  color: #7dd3a8;
+}
+
+[data-md-color-scheme="slate"] .md-nav--primary .md-nav__item--nested > label.md-nav__link:hover {
+  color: #a8e8c4;
+}

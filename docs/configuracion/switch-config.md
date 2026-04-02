@@ -85,7 +85,7 @@ Testbed VLAN configuration is **not done manually** on the switch; these tools a
 | **switch-vlan** | labgrid-switch-abstraction CLI: per-DUT VLAN change (`switch-vlan <dut> <vlan>`, `--restore`, `--restore-all`). Used by tests and manual ops. |
 | **labgrid-bound-connect** | SSH ProxyCommand (`socat` + `SO_BINDTODEVICE`) binds each DUT alias to its isolated VLAN. See [SSH access to DUTs](../operar/dut-ssh-access.md). |
 
-Day-to-day: [Lab procedures §2](../operar/lab-procedures.md#2-dynamic-vlan-per-test) (unified pool uses `switch-vlan` / `labgrid-switch-abstraction` and [unified pool architecture](../diseno/unified-pool.md)).
+Day-to-day: [DUTs and VLAN](../operar/lab-duts-and-vlan.md#dynamic-vlan-and-switch-vlan) (`switch-vlan` / `labgrid-switch-abstraction`; design: [Lab architecture](../diseno/lab-architecture.md)).
 
 !!! note "Manual configuration (reference)"
     For recovery or debug: one test VLAN per access port (untagged); trunk ports with all VLANs tagged; PVID and ingress as in §2 (Admit All).
@@ -157,7 +157,7 @@ poe_switch_control.py on 2    # Port 2 (Librerouter 1)
     PDUDaemon may invoke several `poe_switch_control.py` in parallel (multiple PoE DUTs). TP-Link firmware **does not reliably tolerate** concurrent SSH sessions (timeouts). The script serializes access with a lock (`/tmp/switch.lock`, `fcntl.flock`); background calls queue.
 
 !!! note "PDUDaemon integration"
-    One PDU per port (`fcefyn-poe-port1`, `fcefyn-poe-port2`) allows parallel cycles from the coordinator. See [host-config 5.2](host-config.md#52-pdudaemon-etcpdudaemonpdudaemonconf). If PDUDaemon was installed with Ansible (DynamicUser), use systemd override with `SWITCH_PASSWORD`; see [host-config 5.2.1](host-config.md#521-poe-pdu-password-with-dynamicuser).
+    PoE uses **one** PDUDaemon PDU (`fcefyn-poe`); Labgrid selects the switch port via **index** (same number as in `poe_switch_control.py`). Multiple PoE DUTs do not use separate PDU names. Concurrent power scripts queue on a **lockfile** (switch SSH is not safe in parallel). See [host-config 5.2](host-config.md#52-pdudaemon-etcpdudaemonpdudaemonconf). If PDUDaemon was installed with Ansible (DynamicUser), use systemd override with `SWITCH_PASSWORD`; see [host-config 5.2.1](host-config.md#521-poe-pdu-password-with-dynamicuser).
 
 ### 5.2 OpenWrt One: two cables (PoE + LAN for U-Boot TFTP)
 

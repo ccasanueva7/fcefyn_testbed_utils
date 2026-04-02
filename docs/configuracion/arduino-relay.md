@@ -26,6 +26,8 @@ The Arduino Nano controls **11 channels** over USB-serial. Device: `/dev/arduino
 !!! note "Channel polarity"
     Channel 10: HIGH = ON. Channels 0-9: LOW = ON.
 
+Per-channel AC box build (Omron **CH1-CH4**, Fotek): [AC control box (lab build)](#ac-control-box-lab-build).
+
 ### 2.2 DUTs (mechanical relays)
 
 | Channels | Pins | Hardware |
@@ -58,7 +60,7 @@ UTP Cat5e/6, ~2 m: signals and common GND.
 | Brown | Brown | PSU signal | D12 | Terminal 3 (Fotek) |
 | | White/Brown | GND | GND | Terminal 4 (Fotek) |
 
-### Electrical schematics {: #electrical-schematics-reference }
+### Electrical schematics (arduino - relays inside AC control box) {: #electrical-schematics-reference }
 
 <div class="rack-gallery rack-gallery--schematics" data-rack-gallery tabindex="0">
   <div class="rack-gallery__viewport">
@@ -79,6 +81,23 @@ UTP Cat5e/6, ~2 m: signals and common GND.
   </div>
   <p class="rack-gallery__caption" data-rack-caption></p>
 </div>
+
+### AC control box {: #ac-control-box-lab-build }
+
+Serial **command channels** are **0-10** (`ON n`, `arduino_relay_control.py`). On the **Omron G3MB-202P**, silkscreen **CH1-CH4** map as below.
+
+* **Cmd ch** = arduino sketch
+* **—** = no Arduino output for that module channel
+
+| Module | Omron CH | Cmd ch | Pin | AC box wired | Load | Arduino signal |
+|--------|----------|--------|-----|--------------|------|----------------|
+| G3MB-202P | CH1 | 8 | D10 | Yes | None | Yes |
+| G3MB-202P | CH2 | 9 | D11 | Yes | AC cooler | Yes |
+| G3MB-202P | CH3 | — | — | Yes | None | No |
+| G3MB-202P | CH4 | — | — | No | None | No |
+| Fotek SSR-25DA | Single | 10 | D12 | Yes | PSU (AC branch) | Yes |
+
+Channels **0-9**: active low. Channel **10**: active high. Summary: [§2.1 Infrastructure (SSR)](#21-infrastructure-ssr).
 
 ## 5. Serial commands
 
