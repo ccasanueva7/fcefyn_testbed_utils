@@ -1,6 +1,6 @@
 # System operation manual: FCEFyN testbed
 
-Vision, ownership, connectivity, and typical incidents for operators. Testbed procedures and commands can be found in [Lab procedures](lab-procedures.md).
+Vision, ownership, connectivity, and typical incidents for operators. Testbed procedures and commands can be found in [Routine operations](lab-routine-operations.md).
 
 ---
 

@@ -79,18 +79,15 @@ nav:
   - Home: index.md
   - Lab operations:
       - Operations manual: operar/system-operation-manual.md
-      - Lab procedures:
-          - Overview: operar/lab-procedures.md
-          - DUTs and VLAN: operar/lab-duts-and-vlan.md
-          - Routine operations: operar/lab-routine-operations.md
-          - Running tests locally: operar/lab-running-tests.md
-      - Rack cheatsheet: operar/rack-cheatsheets.md
+      - Rack quick reference: operar/rack-cheatsheets.md
+      - Routine operations: operar/lab-routine-operations.md
       - SSH access to DUTs: operar/dut-ssh-access.md
-      - Manual firmware build: operar/build-firmware-manual.md
-      - Labgrid useful commands: operar/labgrid-useful-commands.md
+      - Running tests: operar/lab-running-tests.md
+      - Labgrid commands: operar/labgrid-useful-commands.md
       - Adding a DUT: operar/dut-onboarding.md
+      - Build firmware: operar/build-firmware-manual.md
       - Wake-on-LAN: operar/wake-on-lan-setup.md
-      - ZeroTier (remote access): operar/zerotier-remote-access.md
+      - ZeroTier remote access: operar/zerotier-remote-access.md
   - Component configuration:
       - Hardware and rack reference:
           - Hardware catalog: configuracion/catalogo-hardware.md
