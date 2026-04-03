@@ -1,32 +1,33 @@
-# Observabilidad - Métricas de DUTs y host
+# Observability - DUT and host metrics
 
-En el **host del lab** corre el stack de lectura de métricas. En cada **DUT** solo hace falta el exporter en OpenWrt (`prometheus-node-exporter-lua`); el host de orquestación expone sus propias métricas via `prometheus-node-exporter`. El role Ansible **`observability`** automatiza en el host lo que sigue.
+The **lab host** runs the metrics stack. On each **DUT**, only the OpenWrt exporter is required (`prometheus-node-exporter-lua`); the orchestration host exposes its own metrics via `prometheus-node-exporter`. The Ansible **`observability`** role automates the following on the host:
 
-El acceso **HTTPS público** a Grafana (VM Oracle, Nginx, túnel SSH reverso) está en [grafana-publico.md](grafana-publico.md). Aqui solo se presenta el stack instalado en el host del lab (scrape, dashboards locales).
-
----
-
-## Qué automatiza Ansible
-
-| Acción | Detalle |
-|--------|---------|
-| Paquetes | Instala `autossh`, `prometheus`, `grafana` (repo oficial Grafana), `prometheus-node-exporter` (host). |
-| Túneles DUT | Por cada fila de `observability_duts`: unit **`dut-metrics-tunnel-<name>.service`** (`autossh`, forward `127.0.0.1:<local_port>` → `127.0.0.1:9100` en el DUT). |
-| Node exporter host | Instala `prometheus-node-exporter`, lo fija en loopback `127.0.0.1:9100`, genera job `orchestrator-host` en `jobs.d/`. |
-| Prometheus | Escribe **`/etc/prometheus/prometheus.yml`** desde template; valida con `promtool`. Carga jobs desde **`/etc/prometheus/jobs.d/*.yml`**. |
-| Grafana | Crea datasource **Prometheus** (`uid: prometheus`) por provisioning. Provisiona dashboards desde JSON en el repo: **Orchestrator Host** y **DUTs & gateway**. |
-| Servicios | Habilita y arranca túneles, `prometheus`, `prometheus-node-exporter`, `grafana-server`. |
-
-**No** automatiza: instalación del exporter en el DUT (opkg) ni collectors opcionales Wi-Fi/hwmon.
+* **Public HTTPS** [Grafana](https://grafana.com/) (Oracle VM, Nginx, reverse SSH tunnel), [more details here](grafana-public-access.md). 
+* **Below:** [Prometheus](https://prometheus.io/) scrape and local Grafana on the lab host.
 
 ---
 
-## Flujo de datos
+## What Ansible automates
+
+| Action | Detail |
+|--------|--------|
+| Packages | Installs `autossh`, `prometheus`, `grafana` (official Grafana repo), `prometheus-node-exporter` (host). |
+| DUT tunnels | For each `observability_duts` row: unit **`dut-metrics-tunnel-<name>.service`** (`autossh`, forward `127.0.0.1:<local_port>` to `127.0.0.1:9100` on the DUT). |
+| Host node exporter | Installs `prometheus-node-exporter`, binds to loopback `127.0.0.1:9100`, generates job `orchestrator-host` in `jobs.d/`. |
+| Prometheus | Writes **`/etc/prometheus/prometheus.yml`** from template; validates with `promtool`. Loads jobs from **`/etc/prometheus/jobs.d/*.yml`**. |
+| Grafana | Creates **Prometheus** datasource (`uid: prometheus`) via provisioning. Provisions dashboards from JSON in the repo: **Orchestrator Host** and **DUTs & gateway**. |
+| Services | Enables and starts tunnels, `prometheus`, `prometheus-node-exporter`, `grafana-server`. |
+
+**Does not** automate: exporter installation on the DUT (opkg) or optional Wi-Fi/hwmon collectors.
+
+---
+
+## Data flow
 
 ```mermaid
 flowchart LR
   DUT[DUT exporter loopback :9100]
-  Proxy[labgrid-dut-proxy SSH]
+  Proxy[labgrid-bound-connect SSH]
   Tunnel[autossh host :191XX]
   Host[host node_exporter :9100]
   Prom[Prometheus scrape localhost]
@@ -38,13 +39,13 @@ flowchart LR
   Prom --> Graf
 ```
 
-Prometheus solo habla con **127.0.0.1** en el host; la IP del DUT en la VLAN la resuelve SSH + `labgrid-dut-proxy`. Si cambia el modo del testbed, la sesión cae y **`autossh`** vuelve a levantar el forward.
+Prometheus only talks to **127.0.0.1** on the host; the DUT IP on the VLAN is resolved via SSH + `labgrid-bound-connect` (static isolated VLAN per DUT). If the DUT VLAN changes briefly during tests, the session drops and **`autossh`** brings the forward back up.
 
 ---
 
-## Units systemd en el host (varios DUTs)
+## systemd units on the host (multiple DUTs)
 
-Cada DUT con observabilidad tiene **su propio** unit de túnel. Prometheus y Grafana son **uno** cada uno. El host expone sus métricas directamente (sin túnel).
+Each DUT with observability has **its own** tunnel unit. Prometheus and Grafana are **one** each. The host exposes its metrics directly (no tunnel).
 
 ```mermaid
 flowchart LR
@@ -57,61 +58,61 @@ flowchart LR
   PromSvc --> GrafSvc
 ```
 
-Un unit de túnel por entrada en `observability_duts` del role. Comandos útiles: `systemctl status dut-metrics-tunnel-<name>`, `journalctl -u dut-metrics-tunnel-<name> -n 30`.
+One tunnel unit per `observability_duts` entry. Useful commands: `systemctl status dut-metrics-tunnel-<name>`, `journalctl -u dut-metrics-tunnel-<name> -n 30`.
 
 ---
 
-## Interfaces web
+## Web UIs
 
-| Servicio | URL | Acceso |
-|----------|-----|--------|
-| Prometheus | [http://127.0.0.1:9090](http://127.0.0.1:9090) | Solo desde el host o túnel SSH |
-| Grafana (local) | [http://127.0.0.1:3000](http://127.0.0.1:3000) | Solo desde el host o túnel SSH |
-| Grafana (público) | [https://fcefyn-testbed.duckdns.org](https://fcefyn-testbed.duckdns.org) | Internet via Oracle VPS + HTTPS |
+| Service | URL | Access |
+|---------|-----|--------|
+| Prometheus | [http://127.0.0.1:9090](http://127.0.0.1:9090) | Host or SSH tunnel only |
+| Grafana (local) | [http://127.0.0.1:3000](http://127.0.0.1:3000) | Host or SSH tunnel only |
+| Grafana (public) | [https://fcefyn-testbed.duckdns.org](https://fcefyn-testbed.duckdns.org) | Internet via Oracle VPS + HTTPS |
 
-En Prometheus: **Status → Targets** para ver cada job (nombre = `name` en `observability_duts`). En Grafana: el datasource **Prometheus** queda configurado por Ansible.
+In Prometheus: **Status → Targets** lists each job (name = `name` in `observability_duts`). In Grafana: **Prometheus** datasource is provisioned by Ansible.
 
-Despliegue del VPS, Certbot y unit del túnel: [grafana-publico.md](grafana-publico.md).
+VPS, Certbot, and tunnel unit: [grafana-public-access.md](grafana-public-access.md).
 
 ---
 
-## Dashboards en Grafana
+## Grafana dashboards
 
-Dos dashboards:
+Two dashboards:
 
-| Dashboard | Origen | Descripción |
-|-----------|--------|-------------|
-| **FCEFyN Testbed - DUTs & gateway** | Provisionado (JSON en repo) | DUTs + gateway WDR3500. Variable **device** con `label_values(up{dut!="lab-orchestrator"}, dut)`: **no** incluye el host de orquestación. Todas las queries usan `dut="$device"` y datasource `uid: prometheus`. |
-| **FCEFyN Testbed - Orchestrator Host** | Provisionado (JSON en repo) | Host de orquestación (~30 paneles). Job `orchestrator-host`, label `dut=lab-orchestrator`. |
+| Dashboard | Source | Description |
+|-----------|--------|---------------|
+| **FCEFyN Testbed - DUTs & gateway** | Provisioned (JSON in repo) | DUTs + WDR3500 gateway. **device** variable with `label_values(up{dut!="lab-orchestrator"}, dut)`: **does not** include the orchestration host. All queries use `dut="$device"` and datasource `uid: prometheus`. |
+| **FCEFyN Testbed - Orchestrator Host** | Provisioned (JSON in repo) | Orchestration host (~30 panels). Job `orchestrator-host`, label `dut=lab-orchestrator`. |
 
-### Secciones del dashboard DUTs & gateway
+### DUTs & gateway dashboard sections
 
-| Sección | Contenido |
-|---------|-----------|
-| Overview | Uptime, CPU, RAM, load, disco `/`, `up` |
-| Device info | Tablas instant `node_uname_info`, `node_openwrt_info` |
-| CPU & load | CPU por modo (stacked), load 1/5/15m |
-| Memory | Total / available / used |
-| Network | Tráfico y paquetes por interfaz (sin `lo`) |
-| Disk | Uso % por mountpoint, espacio libre |
-| Temperatura | `node_hwmon_temp_celsius`, `node_thermal_zone_temp`, stats CPU / máximo / radios ieee80211 |
-| Wi-Fi | `wifi_network_*` (AP), `wifi_stations` / `wifi_station_signal_dbm` (estaciones, si están los paquetes opkg) |
-| Labels | Tabla con labels de scrape (`firmware`, `target`, etc.) desde `up{dut="$device"}` |
-
-### Secciones del dashboard Orchestrator Host
-
-| Sección | Paneles |
+| Section | Content |
 |---------|---------|
+| Overview | Uptime, CPU, RAM, load, disk `/`, `up` |
+| Device info | Instant tables `node_uname_info`, `node_openwrt_info` |
+| CPU & load | CPU by mode (stacked), load 1/5/15m |
+| Memory | Total / available / used |
+| Network | Traffic and packets per interface (excluding `lo`) |
+| Disk | Usage % per mountpoint, free space |
+| Temperature | `node_hwmon_temp_celsius`, `node_thermal_zone_temp`, CPU stats / max / ieee80211 radios |
+| Wi-Fi | `wifi_network_*` (AP), `wifi_stations` / `wifi_station_signal_dbm` (stations, if opkg packages present) |
+| Labels | Table of scrape labels (`firmware`, `target`, etc.) from `up{dut="$device"}` |
+
+### Orchestrator Host dashboard sections
+
+| Section | Panels |
+|---------|--------|
 | System Overview | Uptime, CPU %, RAM %, Disk %, Swap %, Load, Processes, Open FDs |
-| CPU | Usage stacked por modo, Load Average (1/5/15m + cores), Context Switches/Interrupts, Processes & Threads |
+| CPU | Usage stacked by mode, Load Average (1/5/15m + cores), Context Switches/Interrupts, Processes & Threads |
 | Memory | Usage stacked (apps/buffers/cached/free), Swap |
 | Disk / Filesystem | Usage % (bar gauge), Available Space, Inodes % |
 | Disk I/O | Throughput (read/write), IOPS, I/O Wait Time, I/O in Progress |
 | Network - Physical | Bandwidth (bps), Packets/s, Errors & Drops, TCP Connections |
-| Network - VLANs | Bandwidth y packets de vlan100-108, vlan200 (colapsable) |
+| Network - VLANs | Bandwidth and packets for vlan100-108, vlan200 (collapsible) |
 | System Internals | File Descriptors, Entropy, Sockets by Protocol, Systemd Units (active/failed), Socket Memory |
 
-Para métricas del **solo** host de orquestación usar siempre el dashboard **Orchestrator Host**; el de DUTs los excluye a propósito del desplegable **device**.
+For **orchestration host only** metrics, always use **Orchestrator Host**; the DUT dashboard excludes it on purpose from the **device** dropdown.
 
 ---
 
@@ -121,15 +122,15 @@ Para métricas del **solo** host de orquestación usar siempre el dashboard **Or
 ansible-playbook -i ansible/inventory/hosts.yml ansible/playbook_testbed.yml --tags observability -K
 ```
 
-Los DUTs activos se listan en [`ansible/roles/observability/defaults/main.yml`](../../ansible/roles/observability/defaults/main.yml) bajo `observability_duts`.
+Active DUTs are listed in `ansible/roles/observability/defaults/main.yml` (repo root) under `observability_duts`.
 
 ---
 
-## Agregar un DUT
+## Adding a DUT
 
-### Paso 1 - En el DUT (manual, una vez via SSH)
+### Step 1 - On the DUT (manual, once over SSH)
 
-Requiere Internet en el DUT (feeds opkg). Ver también [duts-config - Acceso a Internet](duts-config.md#acceso-a-internet-opkg).
+Requires Internet on the DUT (opkg feeds). See also [duts-config - Internet access](duts-config.md#internet-access-opkg).
 
 ```sh
 opkg update
@@ -140,52 +141,111 @@ uci commit prometheus-node-exporter-lua
 /etc/init.d/prometheus-node-exporter-lua start
 ```
 
-Verificar: `wget -qO- http://127.0.0.1:9100/metrics | head -5`
+Verify: `wget -qO- http://127.0.0.1:9100/metrics | head -5`
 
-El exporter escucha **solo en loopback** por seguridad.
+The exporter listens **only on loopback** for security.
 
-Collectors opcionales (según soporte del hardware):
+Optional collectors (hardware dependent):
 
 ```sh
 opkg install prometheus-node-exporter-lua-hwmon prometheus-node-exporter-lua-wifi
 ```
 
-### Soporte de sensores térmicos por dispositivo
+#### Filesystem collector (no official package)
 
-No todos los SoCs exponen sensores de temperatura en Linux. La tabla indica qué dispositivos tienen métricas `node_hwmon_temp_celsius`:
+The `node_filesystem_*` collector is not an opkg package: upstream PR [#25535](https://github.com/openwrt/packages/pull/25535) has been open since 2020. Install manually as a Lua file:
 
-| DUT | Sensor CPU | Sensor radio Wi-Fi | Notas |
-|-----|-----------|-------------------|-------|
-| openwrt-one | Sí (`thermal_thermal_zone0`) | Sí (`ieee80211_phy0`, `phy1`) | MediaTek Filogic |
-| bananapi | Sí (`thermal_thermal_zone0`) | Sí (`ieee80211_phy0`) | MediaTek MT7988 |
-| belkin-1 | No | Sí (`ieee80211_phy0`, `phy1`) | MediaTek MT7622 |
-| belkin-2 | No | Sí (`ieee80211_phy0`) | MediaTek MT7622 |
-| belkin-3 | No | Sí (`ieee80211_phy0`) | MediaTek MT7622 |
-| librerouter-1 | No | No | IPQ4019 - sin soporte |
-| gateway-wdr3500 | No | No | QCA9558 (ath79) - sin soporte |
+```sh
+cat > /usr/lib/lua/prometheus-collectors/filesystem.lua << 'EOF'
+local nix = require "nixio"
 
-En Grafana, los paneles de temperatura muestran "No data" para dispositivos sin sensores.
+local function scrape()
+  local metric_size_bytes = metric("node_filesystem_size_bytes", "gauge")
+  local metric_free_bytes = metric("node_filesystem_free_bytes", "gauge")
+  local metric_avail_bytes = metric("node_filesystem_avail_bytes", "gauge")
+  local metric_files = metric("node_filesystem_files", "gauge")
+  local metric_files_free = metric("node_filesystem_files_free", "gauge")
+  local metric_readonly = metric("node_filesystem_readonly", "gauge")
 
-### Paso 2 - En el repo
+  for e in io.lines("/proc/self/mounts") do
+    local fields = space_split(e)
+    local device, mount_point, fs_type = fields[1], fields[2], fields[3]
 
-Añadir una entrada en `observability_duts` en [`ansible/roles/observability/defaults/main.yml`](../../ansible/roles/observability/defaults/main.yml):
+    if mount_point:find("/dev/?", 1) ~= 1
+    and mount_point:find("/proc/?", 1) ~= 1
+    and mount_point:find("/sys/?", 1) ~= 1
+    and fs_type ~= "overlay" and fs_type ~= "squashfs"
+    and fs_type ~= "tmpfs"   and fs_type ~= "sysfs"
+    and fs_type ~= "proc"    and fs_type ~= "devtmpfs"
+    and fs_type ~= "devpts"  and fs_type ~= "debugfs"
+    and fs_type ~= "cgroup"  and fs_type ~= "cgroup2"
+    and fs_type ~= "pstore" then
+      local ok, stat = pcall(nix.fs.statvfs, mount_point)
+      if ok and stat then
+        local labels = { device = device, fstype = fs_type, mountpoint = mount_point }
+        local ro = (nix.bit.band(stat.flag, 0x001) == 1) and 1 or 0
+        metric_size_bytes(labels, stat.blocks * stat.bsize)
+        metric_free_bytes(labels, stat.bfree  * stat.bsize)
+        metric_avail_bytes(labels, stat.bavail * stat.bsize)
+        metric_files(labels, stat.files)
+        metric_files_free(labels, stat.ffree)
+        metric_readonly(labels, ro)
+      end
+    end
+  end
+end
+
+return { scrape = scrape }
+EOF
+```
+
+After creating or editing the file, **restart** the service so the collector loads (without restart, `wget … | grep node_filesystem` is often empty):
+
+```sh
+/etc/init.d/prometheus-node-exporter-lua restart
+wget -qO- http://127.0.0.1:9100/metrics | grep node_filesystem
+```
+
+Requires `nixio` (usual dependency of `prometheus-node-exporter-lua`; if it fails, `opkg install luci-lib-nixio`).
+
+**Note:** Root filesystem `/` is `overlay` (filtered by design, same as standard node_exporter).
+
+### Thermal sensors by device
+
+Not all SoCs expose temperature sensors in Linux. The table shows which devices report `node_hwmon_temp_celsius`:
+
+| DUT | CPU sensor | Wi-Fi radio sensor | Notes |
+|-----|-------------|-------------------|-------|
+| openwrt-one | Yes (`thermal_thermal_zone0`) | Yes (`ieee80211_phy0`, `phy1`) | MediaTek Filogic |
+| bananapi | Yes (`thermal_thermal_zone0`) | Yes (`ieee80211_phy0`) | MediaTek MT7988 |
+| belkin-1 | No | Yes (`ieee80211_phy0`, `phy1`) | MediaTek MT7622 |
+| belkin-2 | No | Yes (`ieee80211_phy0`) | MediaTek MT7622 |
+| belkin-3 | No | Yes (`ieee80211_phy0`) | MediaTek MT7622 |
+| librerouter-1 | No | No | IPQ4019 - not supported |
+| gateway-wdr3500 | No | No | QCA9558 (ath79) - not supported |
+
+In Grafana, temperature panels show "No data" for devices without sensors.
+
+### Step 2 - In the repo
+
+Add an entry under `observability_duts` in `ansible/roles/observability/defaults/main.yml`:
 
 ```yaml
 observability_duts:
-  - name: nombre-dut
-    ssh_alias: dut-nombre-dut
+  - name: dut-name
+    ssh_alias: dut-dut-name
     local_port: 19106
     remote_port: 9100
     labels:
-      dut: nombre-dut
+      dut: dut-name
       firmware: openwrt-X.Y.Z
-      target: plataforma-arch
+      target: platform-arch
 ```
 
-Puertos locales (`local_port`) por DUT (alinear con [duts-config](duts-config.md) al cambiar firmware):
+Local ports (`local_port`) per DUT (align with [duts-config](duts-config.md) when changing firmware):
 
-| `dut` (label Grafana) | Dispositivo | `local_port` | `ssh_alias` |
-|-----------------------|-------------|--------------|-------------|
+| `dut` (Grafana label) | Device | `local_port` | `ssh_alias` |
+|-----------------------|--------|--------------|-------------|
 | openwrt-one | OpenWrt One | 19100 | `dut-openwrt-one` |
 | belkin-1 | Belkin RT3200 #1 | 19101 | `dut-belkin-1` |
 | belkin-2 | Belkin RT3200 #2 | 19102 | `dut-belkin-2` |
@@ -193,9 +253,9 @@ Puertos locales (`local_port`) por DUT (alinear con [duts-config](duts-config.md
 | bananapi | Banana Pi R4 | 19104 | `dut-bananapi` |
 | librerouter-1 | Librerouter 1 | 19105 | `dut-librerouter-1` |
 
-Hasta que el paso 1 no esté hecho, el target en Prometheus queda **DOWN** para ese nombre; el túnel puede reiniciar en bucle si el DUT está apagado.
+Until step 1 is done, the Prometheus target stays **DOWN** for that name; the tunnel may restart in a loop if the DUT is off.
 
-### Paso 3 - Aplicar
+### Step 3 - Apply
 
 ```bash
 ansible-playbook -i ansible/inventory/hosts.yml ansible/playbook_testbed.yml --tags observability -K
@@ -203,33 +263,35 @@ ansible-playbook -i ansible/inventory/hosts.yml ansible/playbook_testbed.yml --t
 
 ---
 
-## Verificación
+## Verification
 
 ```bash
-systemctl status dut-metrics-tunnel-<nombre>
+systemctl status dut-metrics-tunnel-<name>
 curl -sS http://127.0.0.1:<local_port>/metrics | head -5
 promtool check config /etc/prometheus/prometheus.yml
 ```
 
-En [Prometheus](http://127.0.0.1:9090): **Status → Targets** - deben aparecer todos los DUTs más `orchestrator-host`. En [Grafana](http://127.0.0.1:3000): **FCEFyN Testbed - DUTs & gateway** y **FCEFyN Testbed - Orchestrator Host** (ambos provisionados por Ansible).
+In [Prometheus](http://127.0.0.1:9090): **Status → Targets** - all DUTs plus `orchestrator-host` should appear. In [Grafana](http://127.0.0.1:3000): **FCEFyN Testbed - DUTs & gateway** and **FCEFyN Testbed - Orchestrator Host** (both provisioned by Ansible).
 
 ```bash
-# Verificar node exporter del host
+# Host node exporter
 curl -sS http://127.0.0.1:9100/metrics | head -5
 systemctl status prometheus-node-exporter
 ```
 
 ---
 
-## Archivos clave
+## Key files
 
-| Archivo | Descripción |
-|---------|-------------|
-| [`ansible/roles/observability/defaults/main.yml`](../../ansible/roles/observability/defaults/main.yml) | `observability_duts`, `orchestrator_node_exporter`, `grafana_public_tunnel`, `grafana_config` |
-| [`ansible/roles/observability/templates/dut-metrics-tunnel.service.j2`](../../ansible/roles/observability/templates/dut-metrics-tunnel.service.j2) | Unit autossh por DUT |
-| [`ansible/roles/observability/templates/dut-scrape-job.yml.j2`](../../ansible/roles/observability/templates/dut-scrape-job.yml.j2) | Fragmento scrape por DUT |
-| [`ansible/roles/observability/templates/orchestrator-scrape-job.yml.j2`](../../ansible/roles/observability/templates/orchestrator-scrape-job.yml.j2) | Fragmento scrape del host |
-| [`ansible/roles/observability/templates/prometheus.yml.j2`](../../ansible/roles/observability/templates/prometheus.yml.j2) | `prometheus.yml` principal |
-| [`ansible/roles/observability/templates/grafana-dashboards-provider.yml.j2`](../../ansible/roles/observability/templates/grafana-dashboards-provider.yml.j2) | Provider de dashboards por archivo en Grafana |
-| [`ansible/roles/observability/files/dashboards/orchestrator-node.json`](../../ansible/roles/observability/files/dashboards/orchestrator-node.json) | Dashboard JSON del host de orquestación |
-| [`ansible/roles/observability/files/dashboards/duts-node.json`](../../ansible/roles/observability/files/dashboards/duts-node.json) | Dashboard JSON DUTs + gateway (variable sin `lab-orchestrator`) |
+Paths are relative to the repository root.
+
+| Path | Description |
+|------|-------------|
+| `ansible/roles/observability/defaults/main.yml` | `observability_duts`, `orchestrator_node_exporter`, `grafana_public_tunnel`, `grafana_config` |
+| `ansible/roles/observability/templates/dut-metrics-tunnel.service.j2` | autossh unit per DUT |
+| `ansible/roles/observability/templates/dut-scrape-job.yml.j2` | Scrape fragment per DUT |
+| `ansible/roles/observability/templates/orchestrator-scrape-job.yml.j2` | Host scrape fragment |
+| `ansible/roles/observability/templates/prometheus.yml.j2` | Main `prometheus.yml` |
+| `ansible/roles/observability/templates/grafana-dashboards-provider.yml.j2` | File-based dashboard provider in Grafana |
+| `ansible/roles/observability/files/dashboards/orchestrator-node.json` | Orchestrator host dashboard JSON |
+| `ansible/roles/observability/files/dashboards/duts-node.json` | DUTs + gateway dashboard JSON (variable excludes `lab-orchestrator`) |

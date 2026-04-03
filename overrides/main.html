@@ -2,7 +2,7 @@
 
 {# Institutional logos: thin bar above the default Material footer (non-intrusive). #}
 {% block footer %}
-  <aside class="md-institutional-bar md-typeset" aria-label="Instituciones">
+  <aside class="md-institutional-bar md-typeset" aria-label="Institutions">
     <div class="md-grid md-institutional-bar__inner">
       <nav class="md-institutional-bar__logos">
         <a
@@ -10,10 +10,10 @@
           href="https://fcefyn.unc.edu.ar/"
           target="_blank"
           rel="noopener noreferrer"
-          title="Facultad de Ciencias Exactas, Físicas y Naturales — UNC"
+          title="Facultad de Ciencias Exactas, Físicas y Naturales - UNC"
         >
           <img
-            src="{{ base_url }}/img/logos/fcefyn.png"
+            src="{{ 'img/logos/fcefyn.png' | url }}"
             alt="FCEFyN — UNC"
             loading="lazy"
             decoding="async"
@@ -27,7 +27,7 @@
           title="Universidad Nacional de Córdoba"
         >
           <img
-            src="{{ base_url }}/img/logos/unc.png"
+            src="{{ 'img/logos/unc.png' | url }}"
             alt="Universidad Nacional de Córdoba"
             loading="lazy"
             decoding="async"

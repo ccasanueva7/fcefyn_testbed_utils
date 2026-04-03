@@ -1,8 +1,7 @@
 """
 DUT Gateway - Update default gateway on OpenWrt DUTs via parallel SSH.
 
-Shared module used by switch_vlan_preset.py (all DUTs same mode) and
-pool-manager.py (hybrid: each DUT in its own pool/mode).
+Configures gateway and DNS on DUTs after VLAN switching.
 
 For each DUT, builds a shell script that:
   - Persists gateway and DNS in UCI (survives reboot)
@@ -22,7 +21,7 @@ try:
 except ImportError:
     yaml = None
 
-from constants import MESH_GATEWAY, MESH_DNS
+from switch_abstraction.constants import MESH_GATEWAY, MESH_DNS
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +38,7 @@ DEFAULT_SETTLE_SECONDS = 5
 
 
 def load_duts(config_path: Path) -> list[dict]:
-    """Load DUT info from pool-config.yaml.
+    """Load DUT info from dut-config.yaml.
 
     Returns list of dicts with keys: id, vlan, ssh_alias, mesh_src_ip,
     ip_last_octet.
@@ -139,7 +138,7 @@ def update_dut_gateways(
     Args:
         dut_modes: Mapping of DUT id -> mode ("mesh" or "isolated").
                    Only DUTs present in this dict are updated.
-        config_path: Path to pool-config.yaml (for ssh_alias, vlan, mesh IP).
+        config_path: Path to dut-config.yaml (for ssh_alias, vlan, mesh IP).
         dry_run: If True, print commands without connecting.
         settle_seconds: Seconds to wait before SSH (for VLAN switch to settle).
     """
@@ -176,7 +175,7 @@ def update_dut_gateways(
     for dut in duts:
         ssh_alias = dut.get("ssh_alias")
         if not ssh_alias:
-            logger.warning("  SKIP %s: no ssh_alias in pool-config", dut["id"])
+            logger.warning("  SKIP %s: no ssh_alias in dut-config", dut["id"])
             continue
 
         mode = dut_modes[dut["id"]]

@@ -1,24 +1,19 @@
-# FCEFYN Testbed Pool Configuration
+# FCEFYN Testbed DUT Hardware Database
 #
-# Edit 'pools' to change which DUTs belong to each project, then run:
-#   scripts/switch/pool-manager.py --apply
+# All DUTs are available to both openwrt-tests and libremesh-tests via a
+# the global LabGrid coordinator. VLAN switching is dynamic per-test.
 #
-# Modes:
-#   libremesh-only:  all DUTs in 'libremesh' pool, 'openwrt' pool empty
-#   openwrt-only:    all DUTs in 'openwrt' pool,    'libremesh' pool empty
-#   hybrid:          DUTs split across both pools
-
-coordinators:
-  openwrt: "coordinator.openwrt.org:20408"
-  libremesh: "localhost:20408"
+# For VLAN changes at test time (requires labgrid-switch-abstraction package):
+#   switch-vlan <dut_name> <vlan_id> --config configs/dut-config.yaml
+#   switch-vlan <dut_name> --restore --config configs/dut-config.yaml
 
 switch:
   host: "192.168.0.1"
   user: "admin"
-  # Password is loaded from ~/.config/poe_switch_control.conf (POE_SWITCH_PASSWORD)
+  # Password is loaded from ~/.config/switch.conf (SWITCH_PASSWORD)
   uplink_ports: [9, 10]  # always tagged for all active VLANs
 
-# DUT hardware database — physical facts that never change with pool assignments
+# DUT hardware database - physical facts per device
 duts:
   belkin_rt3200_1:
     location: fcefyn-testbed
@@ -78,7 +73,7 @@ duts:
     serial_speed: 115200
     ssh_alias: "dut-openwrt-one"
     pdu_host: "localhost:16421"
-    pdu_name: "fcefyn-poe-port1"
+    pdu_name: "fcefyn-poe"
     pdu_index: 1
     switch_port: 16        # LAN data port (eth0 swapped to br-lan)
     switch_port_poe: 1     # WAN/PoE port — always in same VLAN for U-Boot
@@ -92,24 +87,12 @@ duts:
     serial_speed: 115200
     ssh_alias: "dut-librerouter-1"
     pdu_host: "localhost:16421"
-    pdu_name: "fcefyn-poe-port2"
+    pdu_name: "fcefyn-poe"
     pdu_index: 2
     switch_port: 2
     switch_vlan_isolated: 105
     tftp_path: "librerouter_1/"
     libremesh_fixed_ip: "10.13.200.77"
 
-# Pool assignment — edit here to change testbed mode.
-# A DUT must belong to exactly one pool (or neither, to exclude it).
-pools:
-  openwrt:
-    duts: []
-
-  libremesh:
-    duts:
-      - belkin_rt3200_1
-      - belkin_rt3200_2
-      - belkin_rt3200_3
-      - bananapi_bpi-r4
-      - openwrt_one
-      - librerouter_1
+# Default VLAN state: all DUTs in isolated VLANs (openwrt-tests compatible).
+# LibreMesh tests switch ports to VLAN 200 dynamically via switch-vlan CLI.

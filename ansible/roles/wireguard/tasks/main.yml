@@ -1,0 +1,91 @@
+---
+# Role: wireguard
+# Installs WireGuard on the lab host and configures the tunnel to the openwrt-tests
+# global-coordinator. This tunnel allows the coordinator to reach the lab via SSH
+# (proxy to DUTs) and enables CI runners to execute tests on lab devices.
+#
+# Prerequisites (manual, one-time):
+#   1. sudo apt install wireguard-tools
+#   2. wg genkey | sudo tee /etc/wireguard/private.key | wg pubkey | sudo tee /etc/wireguard/public.key
+#   3. sudo chmod 600 /etc/wireguard/private.key
+#   4. Send public key to Paul via Matrix; receive peer config (IP, endpoint, public key).
+#   5. Update defaults/main.yml (or host_vars) with the received values.
+#
+# Supported: Debian, Ubuntu.
+
+- name: Install wireguard-tools
+  ansible.builtin.apt:
+    name: wireguard-tools
+    state: present
+    update_cache: yes
+  when: ansible_os_family == "Debian"
+
+- name: Ensure /etc/wireguard/ exists
+  ansible.builtin.file:
+    path: /etc/wireguard
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Check private key exists
+  ansible.builtin.stat:
+    path: "{{ wireguard_private_key_path }}"
+  register: wg_privkey
+
+- name: Generate WireGuard keypair if missing
+  ansible.builtin.shell: |
+    set -euo pipefail
+    wg genkey | tee {{ wireguard_private_key_path }} | wg pubkey > {{ wireguard_private_key_path | dirname }}/public.key
+    chmod 600 {{ wireguard_private_key_path }}
+    chmod 644 {{ wireguard_private_key_path | dirname }}/public.key
+  args:
+    executable: /bin/bash
+    creates: "{{ wireguard_private_key_path }}"
+  when: not wg_privkey.stat.exists
+  register: wg_keygen
+
+- name: Show public key (send this to the coordinator maintainer)
+  ansible.builtin.command: cat {{ wireguard_private_key_path | dirname }}/public.key
+  register: wg_pubkey
+  changed_when: false
+
+- name: Print public key
+  ansible.builtin.debug:
+    msg: >-
+      WireGuard public key for this lab:
+      {{ wg_pubkey.stdout }}
+      — Send this to the openwrt-tests coordinator maintainer.
+
+- name: Read private key for config template
+  ansible.builtin.slurp:
+    src: "{{ wireguard_private_key_path }}"
+  register: wg_privkey_content
+  no_log: true
+
+- name: Set private key fact
+  ansible.builtin.set_fact:
+    wireguard_private_key_content: "{{ wg_privkey_content.content | b64decode | trim }}"
+  no_log: true
+
+- name: Deploy WireGuard config
+  ansible.builtin.template:
+    src: wg0.conf.j2
+    dest: "/etc/wireguard/{{ wireguard_interface }}.conf"
+    owner: root
+    group: root
+    mode: "0600"
+  notify: restart wireguard
+
+- name: Enable and start WireGuard tunnel
+  ansible.builtin.systemd:
+    name: "wg-quick@{{ wireguard_interface }}"
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
+- name: Verify WireGuard interface is up
+  ansible.builtin.command: wg show {{ wireguard_interface }}
+  register: wg_status
+  changed_when: false
+  failed_when: wg_status.rc != 0

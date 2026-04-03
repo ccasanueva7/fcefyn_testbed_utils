@@ -1,0 +1,13 @@
+# {{ ansible_managed }}
+# WireGuard tunnel to openwrt-tests global-coordinator.
+# Private key read from {{ wireguard_private_key_path }} (never committed to repo).
+
+[Interface]
+PrivateKey = {{ wireguard_private_key_content }}
+Address = {{ wireguard_address }}
+
+[Peer]
+PublicKey = {{ wireguard_peer_public_key }}
+Endpoint = {{ wireguard_peer_endpoint }}
+AllowedIPs = {{ wireguard_peer_allowed_ips }}
+PersistentKeepalive = {{ wireguard_peer_keepalive }}

@@ -1,106 +1,105 @@
-# Configuración del router Gateway/Ingress
+# Gateway / ingress router
 
-* Router OpenWrt (actualmente TL-WDR3500) en el trunk al switch.
-* VLANs 100-108 y 200, gateway `.254` por subred. 
-* Router MikroTik (red personal) da uplink al OpenWrt (192.168.99.0/30), esto es temporal.
+* OpenWrt router (currently TL-WDR3500) on trunk to switch.
+* VLANs 100-108 and 200, gateway `.254` per subnet.
+* MikroTik (personal network) uplink to OpenWrt (192.168.99.0/30); temporary setup.
 
-## 1. Contexto
+## 1. Context {: #1-context }
 
-openwrt-tests necesita acceso serial, SSH y TFTP a cada DUT de forma **aislada**.
+openwrt-tests needs serial, SSH, and TFTP access to each DUT in an **isolated** way.
 
-Cada DUT en su propia VLAN:
+Each DUT on its own VLAN:
 
-| Requisito | Efecto                                                                                                                            |
-|-----------|-----------------------------------------------------------------------------------------------------------------------------------|
-| **Determinismo** | Tráfico por VLAN; sin cruce entre DUTs en tests simultáneos.                                                                      |
-| **Seguridad** | Sin L2 entre DUTs; menos riesgo de un router mal configurado afectando a otro.                                                    |
-| **Convención de direccionamiento** | OpenWrt usa por defecto `192.168.1.1` en LAN; con una VLAN por DUT, la misma IP en cada subred sin conflicto (broadcast distinto). |
-| **Coordinador** | El exporter de Labgrid tiene interfaz en cada VLAN; SSH a `192.168.1.1` con binding a la interfaz de esa VLAN.                    |
+| Requirement | Effect |
+|---------------|--------|
+| **Determinism** | Traffic stays on the VLAN; no cross-talk between DUTs in concurrent tests. |
+| **Security** | No L2 between DUTs; lower risk of one misconfigured router affecting another. |
+| **Addressing convention** | OpenWrt defaults to `192.168.1.1` on LAN; with one VLAN per DUT, the same IP can repeat per subnet without conflict (different broadcast domains). |
+| **Coordinator** | The Labgrid exporter has an interface on each VLAN; SSH to `192.168.1.1` with binding to that VLAN interface. |
 
-**Rol del gateway:** L3 (subredes, gateway por VLAN), internet opcional (opkg), firewall. El switch se conecta por puerto trunk (802.1Q).
+**Gateway role:** L3 (subnets, per-VLAN gateway), optional internet (opkg), firewall. The switch connects on a trunk port (802.1Q).
 
-**DHCP:** El router gateway (OpenWrt) no ejecuta DHCP en las VLANs de prueba. El host de orquestación ejecuta dnsmasq como DHCP y TFTP en cada VLAN; ver [tftp-server.md](./tftp-server.md).
+**DHCP:** The gateway router (OpenWrt) does not run DHCP on test VLANs. The orchestration host runs dnsmasq as DHCP and TFTP on each VLAN; see [tftp-server.md](./tftp-server.md).
 
 ---
 
-## 2. Requisitos
+## 2. Requirements
 
-- **Trunk** - Puerto que transporta VLANs etiquetadas (802.1Q).
-- **Interfaces VLAN** - Una por DUT para OpenWrt (VLANs 100-108, subredes 192.168.100.0/24, etc.). Además, VLAN 200 para LibreMesh (todos los DUTs en red compartida 192.168.200.0/24).
-- **Firewall** - Permitir tráfico desde las VLANs hacia el router (SSH, Webfig) y hacia internet.
-- **NAT** (opcional) - Para que los DUTs accedan a internet.
+- **Trunk** - Port carrying tagged VLANs (802.1Q).
+- **VLAN interfaces** - One per DUT for OpenWrt (VLANs 100-108, subnets 192.168.100.0/24, etc.). Plus VLAN 200 for LibreMesh (all DUTs on shared 192.168.200.0/24).
+- **Firewall** - Allow traffic from test VLANs to the router (SSH, LuCI) and to the internet.
+- **NAT** (optional) - For DUT internet access.
 
-### Implementación actual: TP-Link TL-WDR3500 v1
+### Current implementation: TP-Link TL-WDR3500 v1
 
-- **OpenWrt** instalado (probado con 25.12.1, ath79).
-- Puerto WAN separado para el uplink al MikroTik.
-- Al menos un puerto LAN para trunk 802.1Q al switch.
-- Soporte de VLANs en el switch interno (swconfig o DSA).
+- **OpenWrt** installed (tested with 25.12.1, ath79).
+- Dedicated WAN port for uplink to the MikroTik.
+- At least one LAN port for 802.1Q trunk to the switch.
+- VLAN support on the internal switch (swconfig or DSA).
 
-| Dato | Valor |
-|------|-------|
+| Field | Value |
+|-------|-------|
 | SoC | AR9344 (ath79/generic) |
-| Switch interno | AR934x, swconfig, 5 puertos (CPU + 4 LAN) |
-| WAN | eth1 (interfaz separada, fuera del switch) |
-| LAN | eth0 a través del switch interno (ports 1-4) |
-| Trunk | Switch port 1 (físicamente LAN4 en el panel trasero) |
+| Internal switch | AR934x, swconfig, 5 ports (CPU + 4 LAN) |
+| WAN | eth1 (separate interface, not through switch) |
+| LAN | eth0 through internal switch (ports 1-4) |
+| Trunk | Switch port 1 (physically LAN4 on rear panel) |
 
 ---
 
-## 3. Esquema de Red
+## 3. Network layout
 
-### 3.1 Topología
+### 3.1 Topology
 
 ```mermaid
 flowchart TB
     isp["Internet ISP"]
-    mt["MikroTik RB750Gr3\nRed personal · VLANs 10-50 · DHCP · NAT\nether4 · 192.168.99.1/30"]
-    ow["Router OpenWrt · gateway del testbed\nVLANs 100-108 y 200\nWAN 192.168.99.2/30 · gw 192.168.99.1\nLAN trunk 802.1Q tagged"]
-    sw["TP-Link SG2016P\nPuerto 9 · trunk Host Lenovo\nPuerto 10 · trunk OpenWrt\nPuertos 1-4, 11-16 · access DUTs"]
+    mt["MikroTik RB750Gr3\nHome LAN · VLANs 10-50 · DHCP · NAT\nether4 · 192.168.99.1/30"]
+    ow["OpenWrt router · testbed gateway\nVLANs 100-108 and 200\nWAN 192.168.99.2/30 · gw 192.168.99.1\nLAN trunk 802.1Q tagged"]
+    sw["TP-Link SG2016P\nPort 9 · trunk to host Lenovo\nPort 10 · trunk to OpenWrt\nPorts 1-4, 11-16 · access DUTs"]
 
     isp -->|"PPPoE"| mt
-    mt -->|"Cable directo sin VLANs"| ow
-    ow -->|"Trunk · puerto 10"| sw
+    mt -->|"Direct cable no VLANs"| ow
+    ow -->|"Trunk · port 10"| sw
 ```
 
-El MikroTik solo provee internet al router OpenWrt vía enlace punto a punto (192.168.99.0/30). El router OpenWrt hace NAT/masquerade hacia el MikroTik, sin que este conozca las subredes del testbed.
+The MikroTik only provides internet to the OpenWrt router over a point-to-point link (192.168.99.0/30). The OpenWrt router NATs toward the MikroTik without the MikroTik knowing testbed subnets.
 
-### 3.2 Modos de VLAN
+### 3.2 VLAN modes
 
-Mapeo del lab FCEFyN (8 DUTs). Tabla VLAN→Gateway: [duts-config.md](./duts-config.md#acceso-a-internet-opkg). Alinear IDs y subredes con `exporter.yaml` y las VLAN del host.
+FCEFyN lab mapping (8 DUTs). VLAN→gateway table: [duts-config.md](./duts-config.md#internet-access-opkg). Align IDs and subnets with `exporter.yaml` and host VLANs.
 
-| Modo      | VLANs           | Uso                               |
-|-----------|-----------------|-----------------------------------|
-| OpenWrt   | 100-108 (aisladas) | Tests aislados, una VLAN por DUT  |
-| LibreMesh | 200 (compartida)   | Tests multi-nodo en malla L2      |
+| Mode      | VLANs           | Use |
+|-----------|-----------------|-----|
+| OpenWrt   | 100-108 (isolated) | Isolated tests, one VLAN per DUT |
+| LibreMesh | 200 (shared)       | Multi-node L2 mesh tests |
 
-### 3.3 Dos IPs por VLAN en el host
+### 3.3 Two IPs per VLAN on the host
 
-El servidor usa dos IPs por VLAN (ver [host-config 2.4](./host-config.md#24-direccionamiento-dos-ips-por-vlan)):
+The server uses two IPs per VLAN (see [host-config 2.4](./host-config.md#24-addressing-two-ips-per-vlan)):
 
-- `192.168.X.1/24` - Fase de provisioning: host como servidor DHCP/TFTP; el DUT obtiene IP en 192.168.X.x al arrancar.
-- `192.168.1.X/24` - Fase de SSH: host en la misma subred que OpenWrt (192.168.1.1); binding de socket para alcanzar al DUT.
+- `192.168.X.1/24` - Provisioning phase: host as DHCP/TFTP server; DUT gets 192.168.X.x at boot.
+- `192.168.1.X/24` - SSH phase: host on same subnet as OpenWrt (192.168.1.1); socket binding to reach the DUT.
 
-### 3.4 Conexión física
+### 3.4 Physical cabling
 
-Dos cables ethernet:
+Two Ethernet cables:
 
-| Cable | Desde | Hasta |
-|-------|-------|-------|
-| **WAN** | Router OpenWrt → puerto WAN | MikroTik → ether4 |
-| **Trunk** | Router OpenWrt → un puerto LAN | Switch SG2016P → puerto 10 |
+| Cable | From | To |
+|-------|------|-----|
+| **WAN** | OpenWrt router → WAN port | MikroTik → ether4 |
+| **Trunk** | OpenWrt router → one LAN port | SG2016P switch → port 10 |
 
-!!! note "TL-WDR3500: puerto LAN físico para trunk"
-    El puerto LAN que se usa como trunk corresponde al switch port 1 interno. En el panel trasero es el puerto marcado como LAN4 (numeración inversa: LAN1=port4, LAN2=port3, LAN3=port2, LAN4=port1).
+!!! note "TL-WDR3500: physical LAN port for trunk"
+    The LAN port used as trunk maps to internal switch port 1. On the rear panel it is labeled LAN4 (reverse numbering: LAN1=port4, LAN2=port3, LAN3=port2, LAN4=port1).
 
 ---
 
-## 4. Labgrid y el host sobre esta red
-{: #4-labgrid-y-host }
+## 4. Labgrid and host on this network {: #4-labgrid-and-host }
 
-**Router OpenWrt (lo de §5 en adelante):** VLANs 100-108 y 200, gateway `.254` en cada subred, firewall y trunk al switch. Define el entorno de red del testbed.
+**OpenWrt router (from §5 onward):** VLANs 100-108 and 200, gateway `.254` per subnet, firewall, and trunk to the switch. Defines the testbed network environment.
 
-**Host orquestador + Labgrid:** No se configura en el router. Cada DUT en `exporter.yaml` declara un `NetworkService` con sufijo `%vlanXXX` para que el SSH salga por la VLAN correcta del **host**; muchos DUTs comparten `192.168.1.1` en broadcast domains distintos.
+**Orchestration host + Labgrid:** Not configured on the router. Each DUT in `exporter.yaml` declares a `NetworkService` with `%vlanXXX` suffix so SSH exits on the correct **host** VLAN; many DUTs share `192.168.1.1` on different broadcast domains.
 
 ```yaml
 NetworkService:
@@ -108,26 +107,26 @@ NetworkService:
   username: "root"
 ```
 
-`%vlan100` fuerza el tráfico por la interfaz `vlan100` del servidor. Labgrid usa `labgrid-bound-connect` (p. ej. `socat` con `so-bindtodevice`) para TCP/SSH. Sin binding, el kernel usaría la ruta por defecto y no distinguiría entre DUTs con la misma IP.
+`%vlan100` forces traffic via the host `vlan100` interface. Labgrid uses `labgrid-bound-connect` (e.g. `socat` with `so-bindtodevice`) for TCP/SSH. Without binding, the kernel would use the default route and could not distinguish DUTs at the same IP.
 
-**Flujo resumido (VLAN 100):**
+**Flow summary (VLAN 100):**
 
-1. El exporter publica `address: "192.168.1.1%vlan100"` para el place del DUT.
-2. Al abrir SSH, Labgrid invoca p. ej. `labgrid-bound-connect vlan100 192.168.1.1 22`.
-3. El tráfico sale por `vlan100` del host (p. ej. origen `192.168.1.100`).
-4. El switch entrega en VLAN 100 al DUT; en fase SSH, host y DUT comparten `192.168.1.0/24` en esa VLAN (mismo dominio L2): la sesión no tiene por qué pasar por el gateway.
+1. The exporter publishes `address: "192.168.1.1%vlan100"` for the DUT place.
+2. When opening SSH, Labgrid runs e.g. `labgrid-bound-connect vlan100 192.168.1.1 22`.
+3. Traffic leaves on host `vlan100` (e.g. source `192.168.1.100`).
+4. The switch delivers VLAN 100 to the DUT; in the SSH phase, host and DUT share `192.168.1.0/24` on that VLAN (same L2 domain): the session need not go through the gateway.
 
-Netplan, VLANs en el host y detalle de SSH: [host-config §1](host-config.md#1-contexto), [§2 Netplan](host-config.md#2-configuracion-de-red-netplan-con-networkmanager), [§3 SSH a DUTs](host-config.md#3-ssh-a-duts).
+Netplan, host VLANs, and SSH detail: [host-config §1](host-config.md#1-context), [§2 Netplan](host-config.md#2-network-configuration-netplan-with-networkmanager), [§3 SSH to DUTs](host-config.md#3-ssh-to-duts).
 
 ---
 
-## 5. Configuración OpenWrt - implementación actual
+## 5. OpenWrt configuration - current implementation
 
-Aplicar vía SSH o serial al router con OpenWrt recién instalado (`ssh root@192.168.1.1`).
+Apply over SSH or serial on a freshly installed OpenWrt router (`ssh root@192.168.1.1`).
 
 ### 5.1 `/etc/config/network`
 
-Reemplazar el contenido completo. Adaptar las secciones marcadas con comentarios si el hardware es distinto al TL-WDR3500.
+Replace the entire file. Adapt commented sections if hardware differs from TL-WDR3500.
 
 ```
 config interface 'loopback'
@@ -138,24 +137,24 @@ config interface 'loopback'
 config globals 'globals'
 	option ula_prefix 'fdf5:5b96:8798::/48'
 
-# --- Switch interno (solo si el router usa swconfig) ---
-# En routers con DSA, omitir esta sección y usar bridge VLANs.
-# Verificar con: swconfig list
+# --- Internal switch (only if router uses swconfig) ---
+# On DSA routers, skip this section and use bridge VLANs.
+# Check with: swconfig list
 
 config switch
 	option name 'switch0'
 	option reset '1'
 	option enable_vlan '1'
 
-# VLAN 1: puertos LAN sin usar (management local)
+# VLAN 1: unused LAN ports (local management)
 config switch_vlan
 	option device 'switch0'
 	option vlan '1'
 	option vid '1'
 	option ports '2 3 4 0t'
 
-# Testbed VLANs: trunk en port 1 (tagged) + CPU (tagged)
-# Port 1 = el puerto LAN conectado al switch SG2016P.
+# Testbed VLANs: trunk on port 1 (tagged) + CPU (tagged)
+# Port 1 = LAN port wired to SG2016P switch.
 
 config switch_vlan
 	option device 'switch0'
@@ -218,8 +217,8 @@ config switch_vlan
 	option ports '1t 0t'
 
 # --- WAN ---
-# Uplink al MikroTik vía enlace punto a punto.
-# En el TL-WDR3500, WAN es eth1 (separado del switch).
+# Uplink to MikroTik over point-to-point link.
+# On TL-WDR3500, WAN is eth1 (outside the switch).
 
 config interface 'wan'
 	option device 'eth1'
@@ -230,7 +229,7 @@ config interface 'wan'
 	list dns '8.8.8.8'
 	list dns '1.1.1.1'
 
-# --- LAN (management local, puertos sin usar) ---
+# --- LAN (local management, unused ports) ---
 
 config device
 	option name 'br-lan'
@@ -242,9 +241,9 @@ config interface 'lan'
 	option proto 'static'
 	list ipaddr '192.168.1.1/24'
 
-# --- Interfaces VLAN del testbed ---
-# Una interfaz por VLAN. Gateway en .254 de cada subred.
-# El host de orquestación es .1 y ejecuta dnsmasq (DHCP/TFTP).
+# --- Testbed VLAN interfaces ---
+# One interface per VLAN. Gateway at .254 per subnet.
+# Orchestration host is .1 and runs dnsmasq (DHCP/TFTP).
 
 config interface 'vlan100'
 	option device 'eth0.100'
@@ -309,7 +308,7 @@ config interface 'vlan200'
 
 ### 5.2 `/etc/config/firewall`
 
-Reemplazar el contenido completo.
+Replace the entire file.
 
 ```
 config defaults
@@ -375,9 +374,9 @@ config rule
 	option family 'ipv4'
 ```
 
-### 5.3 Desactivar DHCP en las VLANs del testbed
+### 5.3 Disable DHCP on testbed VLANs
 
-El host de orquestación ejecuta dnsmasq como servidor DHCP/TFTP en cada VLAN (ver [tftp-server.md](./tftp-server.md)). El router OpenWrt **no** debe servir DHCP en las VLANs del testbed.
+The orchestration host runs dnsmasq as DHCP/TFTP server on each VLAN (see [tftp-server.md](./tftp-server.md)). The OpenWrt router **must not** serve DHCP on testbed VLANs.
 
 ```bash
 for vid in 100 101 102 103 104 105 106 107 108 200; do
@@ -388,19 +387,19 @@ done
 uci commit dhcp
 ```
 
-### 5.4 Aplicar y reiniciar
+### 5.4 Apply and reboot
 
 ```bash
 reboot
 ```
 
-Tras el reinicio, mover los cables según sección 3.4 si aún no se hizo. Las interfaces tardan ~30-60 segundos en estar operativas (ARP resolution).
+After reboot, move cables per section 3.4 if not done yet. Interfaces take ~30-60s to become usable (ARP resolution).
 
-### 5.5 Acceso SSH al gateway desde el host
+### 5.5 SSH access to gateway from host {: #55-ssh-access-to-gateway-from-host }
 
-El host accede al router OpenWrt vía VLAN 100 (`192.168.100.254`), tanto en modo isolated como en mesh. Los trunks del switch (puertos 9 y 10) llevan VLANs 100-108 tagged en ambos modos.
+The host reaches the OpenWrt router via VLAN 100 (`192.168.100.254`) in both isolated and mesh modes. Switch trunks (ports 9 and 10) carry VLANs 100-108 tagged in both modes.
 
-Agregar a `~/.ssh/config` del host (o copiar desde `configs/templates/ssh_config_fcefyn`):
+Add to the host `~/.ssh/config` (or copy from `configs/templates/ssh_config_fcefyn`):
 
 ```
 Host gateway-openwrt
@@ -408,32 +407,32 @@ Host gateway-openwrt
     User root
 ```
 
-Uso: `ssh gateway-openwrt`
+Usage: `ssh gateway-openwrt`
 
-| Modo | VLANs en trunk | Acceso al gateway |
-|------|----------------|-------------------|
-| Isolated | 100-108 | `192.168.100.254` (o cualquier 101-108) |
-| Mesh | 100-108, 200 | `192.168.100.254` o `192.168.200.254` |
+| Mode | VLANs on trunk | Gateway access |
+|------|----------------|----------------|
+| Isolated | 100-108 | `192.168.100.254` (or any 101-108) |
+| Mesh | 100-108, 200 | `192.168.100.254` or `192.168.200.254` |
 
-### 5.6 Extroot (USB) - Ampliar almacenamiento
+### 5.6 Extroot (USB) - expand storage
 
-El TL-WDR3500 tiene solo 8MB de flash (~1MB usable en `/overlay`). Para instalar ZeroTier y etherwake se necesita más espacio. Extroot monta un USB como `/overlay`.
+The TL-WDR3500 has only 8MB flash (~1MB usable on `/overlay`). ZeroTier and etherwake need more space. Extroot mounts a USB stick as `/overlay`.
 
-**Requisitos:** pendrive USB (cualquier tamaño, ej. 2-8GB), puerto USB disponible.
+**Requirements:** USB stick (any size, e.g. 2-8GB), free USB port.
 
 ```bash
 apk update
 apk add kmod-usb-storage block-mount kmod-fs-ext4 e2fsprogs
 
-ls /dev/sd*     # Debe aparecer /dev/sda, /dev/sda1
+ls /dev/sd*     # Expect /dev/sda, /dev/sda1
 dmesg | tail -5
 
-# Formatear como ext4 (features compatibles)
+# Format as ext4 (compatible features)
 mkfs.ext4 -O ^metadata_csum,^64bit,^orphan_file -F /dev/sda1
 
-# Si mkfs.ext4 falla, instalar kmod-fs-ext4 primero.
-# Si no cabe, borrar e2fsprogs: apk del e2fsprogs && apk add kmod-fs-ext4
-# y formatear el USB desde el host de orquestación antes de enchufarlo.
+# If mkfs.ext4 fails, install kmod-fs-ext4 first.
+# If space is tight, remove e2fsprogs: apk del e2fsprogs && apk add kmod-fs-ext4
+# and format the USB on the orchestration host before plugging it in.
 
 modprobe ext4
 mount /dev/sda1 /mnt
@@ -449,11 +448,11 @@ apk del e2fsprogs
 reboot
 ```
 
-Verificación: `df -h /overlay` (debe mostrar el tamaño del pendrive).
+Check: `df -h /overlay` (should show USB size).
 
-### 5.7 ZeroTier (acceso remoto)
+### 5.7 ZeroTier (remote access) {: #57-zerotier-remote-access }
 
-Acceso al router gateway desde fuera de la red local. Requiere extroot (sección 5.6) por falta de espacio en flash.
+Remote access to the gateway router from outside the LAN. Needs extroot (section 5.6) due to flash size.
 
 ```bash
 apk update
@@ -461,8 +460,8 @@ apk add zerotier
 
 uci set zerotier.global.enabled='1'
 
-# Unirse a la red del lab: el init de OpenWrt solo aplica secciones UCI tipo "network"
-# (ver nota debajo). El nombre "fcefyn_vpn" es arbitrario.
+# Join lab network: OpenWrt init only applies UCI sections of type "network"
+# (see note below). Name "fcefyn_vpn" is arbitrary.
 uci set zerotier.fcefyn_vpn=network
 uci set zerotier.fcefyn_vpn.id='b103a835d2ead2b6'
 uci set zerotier.fcefyn_vpn.allow_managed='1'
@@ -480,9 +479,9 @@ zerotier-cli info            # ONLINE
 zerotier-cli listnetworks    # b103a835d2ead2b6 OK + IP (ej. 10.246.3.95/24)
 ```
 
-**UCI y persistencia:** `/etc/init.d/zerotier` llama `config_foreach join_network network`: solo entran secciones UCI `config …` de tipo `network` con `option id '<nwid>'`; ahí genera `networks.d/<nwid>.conf`. Otras plantillas (p. ej. `list join` / `openwrt_network`) las ignora: el servicio levanta pero no hace join al reiniciar. Si quedó un `network` con NWID inválido (`zerotier.earth` → `NOT_FOUND`), borrarlo y dejar solo la entrada con `b103a835d2ead2b6`.
+**UCI and persistence:** `/etc/init.d/zerotier` calls `config_foreach join_network network`: only UCI `config …` sections of type `network` with `option id '<nwid>'` are applied; it generates `networks.d/<nwid>.conf`. Other templates (e.g. `list join` / `openwrt_network`) are ignored: the service starts but does not join on reboot. If a `network` section has an invalid NWID (`zerotier.earth` → `NOT_FOUND`), remove it and keep only the entry with `b103a835d2ead2b6`.
 
-**Limpieza típica** (si `listnetworks` muestra un NWID en `NOT_FOUND` o quedó basura de plantillas):
+**Typical cleanup** (if `listnetworks` shows a NWID in `NOT_FOUND` or leftover template junk):
 
 ```bash
 uci delete zerotier.earth 2>/dev/null
@@ -490,11 +489,11 @@ uci delete zerotier.openwrt_network 2>/dev/null
 uci commit zerotier
 ```
 
-Luego añadir la sección `fcefyn_vpn` (o equivalente) como arriba y `restart`.
+Then add the `fcefyn_vpn` section (or equivalent) as above and `restart`.
 
-Autorizar el nodo en [my.zerotier.com](https://my.zerotier.com) → network `b103a835d2ead2b6` → Members.
+Authorize the node at [my.zerotier.com](https://my.zerotier.com) → network `b103a835d2ead2b6` → Members.
 
-**Firewall:** agregar la interfaz ZeroTier a la zona `testbed`:
+**Firewall:** add ZeroTier interface to `testbed` zone:
 
 ```bash
 uci add_list firewall.@zone[2].device='zt+'
@@ -502,56 +501,56 @@ uci commit firewall
 service firewall restart
 ```
 
-El wildcard `zt+` matchea cualquier interfaz `zt*`. Si la zona cambia, ajustar el índice (`@zone[2]` = `testbed`). Verificar con `uci show firewall`.
+Wildcard `zt+` matches any `zt*` interface. If the zone index changes, adjust (`@zone[2]` = `testbed`). Check with `uci show firewall`.
 
-| Síntoma | Causa | Solución |
-|---------|-------|----------|
-| `disabled in /etc/config/zerotier` | `zerotier.global.enabled` es `0` | `uci set zerotier.global.enabled='1'; uci commit zerotier` |
-| `missing port and zerotier-one.port not found` | Daemon no está corriendo | `/etc/init.d/zerotier restart` |
-| `ACCESS_DENIED` en `listnetworks` | Nodo no autorizado | Autorizar en my.zerotier.com |
-| `NOT_FOUND` para un NWID en `listnetworks` | NWID inválido o red inexistente; a menudo sección UCI `network` vieja (`earth`, etc.) | `uci delete zerotier.<nombre>` de esa sección; usar solo `option id` con el NWID correcto (ver arriba) |
-| `listnetworks` solo muestra el encabezado (sin redes) | Falta sección UCI `network` con `id`, o solo quedó `openwrt_network.join` | Añadir `uci set zerotier.fcefyn_vpn=network` + `id='b103a835d2ead2b6'` + `allow_*`; `commit`; `restart` |
-| `zerotier-cli info` ONLINE pero SSH desde fuera: *No route to host* | Nodo no en la red ZT o IP mal asignada | Comprobar `listnetworks` OK en el router; laptop en la misma red ZT (`zerotier-cli listnetworks`) |
-| `Connection refused` al SSH por ZeroTier IP | Firewall bloquea la interfaz zt* | Agregar `zt+` al firewall (ver arriba) |
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `disabled in /etc/config/zerotier` | `zerotier.global.enabled` is `0` | `uci set zerotier.global.enabled='1'; uci commit zerotier` |
+| `missing port and zerotier-one.port not found` | Daemon not running | `/etc/init.d/zerotier restart` |
+| `ACCESS_DENIED` in `listnetworks` | Node not authorized | Authorize on my.zerotier.com |
+| `NOT_FOUND` for a NWID in `listnetworks` | Invalid NWID or missing network; often stale UCI `network` section (`earth`, etc.) | `uci delete zerotier.<name>` for that section; use only `option id` with correct NWID (see above) |
+| `listnetworks` shows header only (no networks) | Missing UCI `network` section with `id`, or only `openwrt_network.join` left | Add `uci set zerotier.fcefyn_vpn=network` + `id='b103a835d2ead2b6'` + `allow_*`; `commit`; `restart` |
+| `zerotier-cli info` ONLINE but SSH from outside: *No route to host* | Node not on ZT network or wrong IP | Check `listnetworks` OK on router; laptop on same ZT (`zerotier-cli listnetworks`) |
+| `Connection refused` SSH to ZeroTier IP | Firewall blocks zt* | Add `zt+` to firewall (above) |
 
-### 5.8 Wake-on-LAN (encendido remoto del host)
+### 5.8 Wake-on-LAN (remote host power-on) {: #58-wake-on-lan-remote-host-power-on }
 
-Encender el host de orquestación remotamente desde el router gateway vía ZeroTier.
+Power on the orchestration host remotely from the gateway router via ZeroTier.
 
 ```mermaid
 flowchart LR
-    admin["Admin remoto"]
-    router["Router OpenWrt"]
-    host["Host de orquestación"]
+    admin["Remote admin"]
+    router["OpenWrt router"]
+    host["Orchestration host"]
 
     admin -->|"ZeroTier SSH"| router
     router -->|"etherwake"| host
 ```
 
-**Requisitos:**
+**Requirements:**
 
-1. **Host de orquestación:** WoL habilitado en BIOS y en Linux. Ver [wake-on-lan-setup.md](../operar/wake-on-lan-setup.md).
-2. **Router OpenWrt:** `etherwake` instalado y accesible vía ZeroTier.
+1. **Orchestration host:** WoL enabled in BIOS and Linux. See [wake-on-lan-setup.md](../operar/wake-on-lan-setup.md).
+2. **OpenWrt router:** `etherwake` installed and reachable over ZeroTier.
 
 ```bash
 apk add etherwake
 ```
 
-Enviar WoL desde cualquier equipo con acceso ZeroTier al router:
+Send WoL from any machine with ZeroTier access to the router:
 
 ```bash
 ssh root@<IP-ZeroTier-del-router> 'etherwake -i eth0.100 00:21:cc:c4:25:3b'
 ```
 
-| Parámetro                    | Valor | Notas |
-|------------------------------|-------|-------|
-| IP ZeroTier del router       | `10.246.3.95` (actual) | Verificar en my.zerotier.com o `zerotier-cli listnetworks` |
-| Interfaz                     | `eth0.100` | VLAN 100 (cualquier VLAN del testbed funciona) |
-| MAC del Host de orquestación | `00:21:cc:c4:25:3b` | Interfaz `enp0s25` del host |
+| Parameter | Value | Notes |
+|-----------|-------|-------|
+| Router ZeroTier IP | `10.246.3.95` (current) | Check my.zerotier.com or `zerotier-cli listnetworks` |
+| Interface | `eth0.100` | VLAN 100 (any testbed VLAN works) |
+| Orchestration host MAC | `00:21:cc:c4:25:3b` | Host iface `enp0s25` |
 
-**Magic packet por `eth0.100`:** WoL es broadcast L2. El paquete sale por `eth0.100`, entra al trunk del switch (puerto 10), el switch lo reenvía tagged al host (puerto 9) y la NIC lo acepta con 802.1Q.
+**Magic packet via `eth0.100`:** WoL is L2 broadcast. The packet leaves on `eth0.100`, enters the switch trunk (port 10), the switch forwards tagged to the host (port 9) and the NIC accepts with 802.1Q.
 
-**Servicio wol.service en el host (fix de timing):** debe ejecutarse **después** de NetworkManager, porque NM resetea el setting. Contenido: `/etc/systemd/system/wol.service`:
+**wol.service on host (timing fix):** must run **after** NetworkManager because NM resets the setting. Contents: `/etc/systemd/system/wol.service`:
 
 ```ini
 [Unit]
@@ -569,110 +568,110 @@ RemainAfterExit=yes
 WantedBy=multi-user.target
 ```
 
-Verificar: `sudo ethtool enp0s25 | grep Wake-on` (debe ser `g`, no `d`).
+Check: `sudo ethtool enp0s25 | grep Wake-on` (should be `g`, not `d`).
 
-**Secuencia:**
+**Sequence:**
 
-1. Admin se conecta al router vía ZeroTier: `ssh root@10.246.3.95`
-2. Envía WoL: `etherwake -i eth0.100 00:21:cc:c4:25:3b`
-3. Host de orquestación arranca (~30-60s). `wol.service` re-habilita WoL para el próximo apagado.
-4. Admin puede SSH al host vía ZeroTier: `ssh laryc@10.246.3.118` (o la IP ZT del host)
+1. Admin connects to router over ZeroTier: `ssh root@10.246.3.95`
+2. Send WoL: `etherwake -i eth0.100 00:21:cc:c4:25:3b`
+3. Orchestration host boots (~30-60s). `wol.service` re-enables WoL for the next shutdown.
+4. Admin can SSH to host over ZeroTier: `ssh laryc@10.246.3.118` (or host ZT IP)
 
 ---
 
-## 6. Verificación
+## 6. Verification
 
-Desde el host de orquestación:
+From the orchestration host:
 
 ```bash
-# Switch accesible (VLAN 1, management)
+# Switch reachable (VLAN 1, management)
 ping -c 2 192.168.0.1
 
-# Gateway accesible en cada VLAN
+# Gateway reachable on each VLAN
 for v in 100 101 102 103 104 105 106 107 108; do
     ping -c 1 -W 2 192.168.${v}.254 && echo "VLAN $v: OK" || echo "VLAN $v: FAIL"
 done
 
-# Internet desde el router OpenWrt
+# Internet from OpenWrt router
 ssh root@192.168.100.254 'ping -c 2 8.8.8.8'
 
-# DNS desde el router OpenWrt
+# DNS from OpenWrt router
 ssh root@192.168.100.254 'nslookup openwrt.org'
 ```
 
-Si alguna VLAN no responde al ping inmediatamente después del reboot pero SSH sí funciona, esperar ~30 segundos (resolución ARP).
+If a VLAN does not reply to ping right after reboot but SSH works, wait ~30 seconds (ARP).
 
 ---
 
-## 7. Notas y Troubleshooting
+## 7. Notes and troubleshooting
 
 ### swconfig vs DSA
 
-- **swconfig** (TL-WDR3500, ath79): VLANs en secciones `config switch_vlan` con `option vlan` (índice) y `option vid` (VLAN ID 802.1Q). Interfaces: `eth0.<vid>`.
-- **DSA** (routers más nuevos): cada puerto LAN es una interfaz independiente (`lan1`, `lan2`, …). VLANs con bridge VLAN filtering. Consultar la wiki de OpenWrt.
+- **swconfig** (TL-WDR3500, ath79): VLANs in `config switch_vlan` sections with `option vlan` (index) and `option vid` (802.1Q VLAN ID). Interfaces: `eth0.<vid>`.
+- **DSA** (newer routers): each LAN port is a separate interface (`lan1`, `lan2`, …). VLANs via bridge VLAN filtering. See OpenWrt wiki.
 
 ```bash
 swconfig list          # Si responde → swconfig
 ls /sys/class/net/     # Si hay lan1, lan2, ... → DSA
 ```
 
-### Mapeo de puertos (swconfig)
+### Port mapping (swconfig)
 
 ```bash
 swconfig dev switch0 show
 ```
 
-Confirmar CPU port (generalmente 0) y puertos LAN (1-4). El trunk va en uno de los puertos LAN, marcado como tagged (`t`).
+Confirm CPU port (usually 0) and LAN ports (1-4). Trunk is on one LAN port, tagged (`t`).
 
-### Verificar VLANs creadas
+### Verify VLANs created
 
 ```bash
-swconfig dev switch0 show   # Tabla de VLANs del switch interno
-ifconfig | grep "inet addr" # IPs asignadas
-ls /sys/class/net/          # Interfaces existentes
+swconfig dev switch0 show   # Internal switch VLAN table
+ifconfig | grep "inet addr" # Assigned IPs
+ls /sys/class/net/          # Existing interfaces
 ```
 
-### Pérdida de acceso al switch SG2016P
+### Lost access to SG2016P switch
 
-Si tras aplicar `testbed-mode.sh` se pierde acceso al switch (192.168.0.1):
+If after `switch-vlan` (or manual VLAN changes) the switch (192.168.0.1) is unreachable:
 
-1. **Trunk sin VLAN 1 untagged**: los puertos trunk del SG2016P deben mantener VLAN 1 untagged con PVID 1 para management (192.168.0.x). Verificar en `tplink_jetstream.py` que los trunks incluyan `switchport general allowed vlan 1 untagged` y `switchport pvid 1`.
-2. **NetworkManager con DHCP en la interfaz física**: si el host tiene `dhcp4: true` en la interfaz trunk (enp0s25) y no hay servidor DHCP en VLAN 1, NetworkManager desconecta la interfaz cada ~45s. Solución: `dhcp4: false` en netplan.
-3. **Perfiles "Wired connection N"**: borrar perfiles automáticos de NM que compiten con netplan: `nmcli connection delete "Wired connection 1"`.
-
----
-
-## 8. Adaptación a otro router
-
-Para usar un router distinto al TL-WDR3500:
-
-1. **Instalar OpenWrt** y verificar compatibilidad en la [Table of Hardware](https://openwrt.org/toh/start).
-2. **Identificar interfaces**: `swconfig list` (o DSA), `ip link show`. Determinar WAN y LAN.
-3. **Adaptar `/etc/config/network`**:
-   - Cambiar `option device 'eth1'` en WAN si la interfaz tiene otro nombre.
-   - Ajustar `option ports` en `switch_vlan` según el mapeo de puertos.
-   - Si usa DSA, reemplazar las secciones `config switch*` por bridge VLAN filtering.
-4. **Firewall y DHCP**: no requieren cambios (independientes del hardware).
-5. **Verificar** con los comandos de la sección 6.
-
-| Parámetro | Valor actual | Qué cambiar |
-|-----------|-------------|-------------|
-| WAN device | `eth1` | Nombre de la interfaz WAN del nuevo router |
-| WAN IP | `192.168.99.2/30` | Solo si se cambia el enlace al MikroTik |
-| Switch name | `switch0` | Verificar con `swconfig list` |
-| Trunk port | `1` (port interno) | Verificar con `swconfig dev switch0 show` |
-| CPU port | `0` (tagged) | Verificar (generalmente es 0) |
-| Puertos sin usar | `2 3 4` | Los LAN restantes |
-| VLAN range | 100-108, 200 | Adaptar si se agregan/quitan DUTs |
-| Gateway IPs | `192.168.X.254/24` | Consistente con host y switch |
+1. **Trunk without VLAN 1 untagged**: SG2016P trunk ports must keep VLAN 1 untagged with PVID 1 for management (192.168.0.x). Check in `tplink_jetstream.py` that trunks include `switchport general allowed vlan 1 untagged` and `switchport pvid 1`.
+2. **NetworkManager DHCP on physical iface**: if the host has `dhcp4: true` on the trunk iface (enp0s25) and no DHCP server on VLAN 1, NetworkManager drops the iface every ~45s. Fix: `dhcp4: false` in netplan.
+3. **"Wired connection N" profiles**: delete auto NM profiles that fight netplan: `nmcli connection delete "Wired connection 1"`.
 
 ---
 
-## 9. MikroTik RouterOS (DEPRECADO por cambio a WDR3500)
+## 8. Adapting to another router
 
-El gateway del lab es OpenWrt en el trunk. Si el MikroTik aún tiene VLANs o firewall de cuando hacía de L3 hacia el testbed, los bloques siguientes documentan esa config; la limpieza está en la sección 9.5. 8 DUTs (VLANs 100-108), VLAN 200 para LibreMesh. Interfaz al switch: `LAB-TRUNK` (renombrada desde `ether3`).
+To use a router other than TL-WDR3500:
 
-### 9.1 Crear interfaces VLAN
+1. **Install OpenWrt** and check compatibility on [Table of Hardware](https://openwrt.org/toh/start).
+2. **Identify interfaces**: `swconfig list` (or DSA), `ip link show`. Determine WAN and LAN.
+3. **Adapt `/etc/config/network`**:
+   - Change `option device 'eth1'` on WAN if the iface name differs.
+   - Adjust `option ports` in `switch_vlan` per port map.
+   - If DSA, replace `config switch*` sections with bridge VLAN filtering.
+4. **Firewall and DHCP**: usually unchanged (hardware-independent).
+5. **Verify** with section 6 commands.
+
+| Parameter | Current value | What to change |
+|-----------|---------------|------------------|
+| WAN device | `eth1` | WAN iface name on new router |
+| WAN IP | `192.168.99.2/30` | Only if changing link to MikroTik |
+| Switch name | `switch0` | Check with `swconfig list` |
+| Trunk port | `1` (internal) | Check with `swconfig dev switch0 show` |
+| CPU port | `0` (tagged) | Usually 0 |
+| Unused ports | `2 3 4` | Remaining LAN |
+| VLAN range | 100-108, 200 | Adjust if DUTs added/removed |
+| Gateway IPs | `192.168.X.254/24` | Consistent with host and switch |
+
+---
+
+## 9. MikroTik RouterOS (deprecated after WDR3500 switch)
+
+The lab gateway is OpenWrt on the trunk. If the MikroTik still has VLANs or firewall from when it was L3 to the testbed, the blocks below document that config; cleanup is in section 9.5. 8 DUTs (VLANs 100-108), VLAN 200 for LibreMesh. Switch-facing interface: `LAB-TRUNK` (renamed from `ether3`).
+
+### 9.1 Create VLAN interfaces
 
 ```routeros
 /interface vlan
@@ -688,7 +687,7 @@ add interface=LAB-TRUNK name=vlan108-testbed vlan-id=108
 add interface=LAB-TRUNK name=vlan200-mesh vlan-id=200
 ```
 
-### 9.2 Asignar direcciones IP
+### 9.2 Assign IP addresses
 
 ```routeros
 /ip address
@@ -704,7 +703,7 @@ add address=192.168.108.254/24 interface=vlan108-testbed network=192.168.108.0
 add address=192.168.200.254/24 interface=vlan200-mesh network=192.168.200.0
 ```
 
-### 9.3 Reglas de firewall
+### 9.3 Firewall rules
 
 ```routeros
 /ip firewall filter
@@ -720,6 +719,6 @@ add action=accept chain=input comment="Allow access from VLAN108 testbed to rout
 add action=accept chain=input comment="Allow access from VLAN200 mesh to router" in-interface=vlan200-mesh
 ```
 
-Insertar **antes** de la regla `drop` al final de la cadena `input`.
+Insert **before** the `drop` rule at the end of chain `input`.
 
 ---

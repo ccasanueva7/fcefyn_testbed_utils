@@ -1,0 +1,17 @@
+---
+# WireGuard role: connects the lab host to the openwrt-tests global-coordinator.
+#
+# These values are PLACEHOLDERS. Replace with the actual values received from the
+# upstream maintainer (Paul) after exchanging WireGuard public keys.
+
+wireguard_interface: wg0
+wireguard_private_key_path: /etc/wireguard/private.key
+
+# Lab-side address assigned by the coordinator maintainer.
+wireguard_address: "10.0.0.X/24"
+
+# Peer: global-coordinator (upstream openwrt-tests).
+wireguard_peer_public_key: "REPLACE_WITH_COORDINATOR_PUBLIC_KEY"
+wireguard_peer_endpoint: "coordinator.example.com:51820"
+wireguard_peer_allowed_ips: "10.0.0.0/24"
+wireguard_peer_keepalive: 25

@@ -61,6 +61,7 @@
   height: auto;
   object-fit: contain;
   vertical-align: middle;
+  cursor: zoom-in;
 }
 
 /* Overlay: Instagram-style nav on top of the photo */
@@ -132,4 +133,123 @@
   opacity: 0.92;
   text-align: center;
   font-style: italic;
+}
+
+/* Full-screen lightbox (injected by rack-gallery.js) */
+body.rack-gallery-lightbox-open {
+  overflow: hidden;
+}
+
+.rack-gallery-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  box-sizing: border-box;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.9);
+}
+
+.rack-gallery-lightbox[hidden] {
+  display: none !important;
+}
+
+.rack-gallery-lightbox__backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  cursor: pointer;
+  background: transparent;
+}
+
+.rack-gallery-lightbox__close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 3;
+  width: 2.75rem;
+  height: 2.75rem;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.75rem;
+  line-height: 1;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.45);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  transition: background 0.15s ease;
+}
+
+.rack-gallery-lightbox__close:hover {
+  background: rgba(0, 0, 0, 0.65);
+}
+
+.rack-gallery-lightbox__close:focus-visible {
+  outline: 2px solid var(--md-accent-fg-color, #fff);
+  outline-offset: 2px;
+}
+
+.rack-gallery-lightbox__counter {
+  position: absolute;
+  top: 0.65rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+
+.rack-gallery-lightbox__stage {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  max-width: 100%;
+  max-height: calc(100vh - 5rem);
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.rack-gallery-lightbox__stage .rack-gallery-lightbox__nav {
+  flex-shrink: 0;
+}
+
+.rack-gallery-lightbox__img {
+  display: block;
+  max-width: min(96vw, 100%);
+  max-height: min(85vh, 100%);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  cursor: default;
+  border-radius: 4px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
+}
+
+.rack-gallery-lightbox__caption {
+  position: relative;
+  z-index: 1;
+  margin: 0.65rem 0 0;
+  max-width: 42rem;
+  padding: 0 0.5rem;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.92);
 }

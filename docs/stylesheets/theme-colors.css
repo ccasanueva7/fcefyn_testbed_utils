@@ -1,0 +1,44 @@
+/*
+ * Custom primary: dark green header (--md-primary-fg-color).
+ * In Material, --md-primary-bg-color is the *foreground on primary* (text/icons on the bar),
+ * not the page background. Never set it to dark grey in slate mode or header/tabs go unreadable.
+ */
+[data-md-color-primary="custom"] {
+  --md-primary-fg-color: #1e4136;
+  --md-primary-fg-color--light: #2d6a58;
+  --md-primary-fg-color--dark: #152f27;
+  /* Text and icons on green header + tab bar (light mode) */
+  --md-primary-bg-color: #fff;
+  --md-primary-bg-color--light: hsla(0, 0%, 100%, 0.75);
+  /* Body links: amber reads on white and on slate grey */
+  --md-typeset-a-color: #b45309;
+}
+
+[data-md-color-scheme="slate"][data-md-color-primary="custom"] {
+  /* Same: keep light text on green header in dark scheme */
+  --md-primary-bg-color: #f5faf8;
+  --md-primary-bg-color--light: rgba(245, 250, 248, 0.78);
+  /* Links in article: light amber on dark content background */
+  --md-typeset-a-color: #ffd54f;
+}
+
+/* Hover / active for in-content links */
+[data-md-color-primary="custom"] .md-typeset a:focus,
+[data-md-color-primary="custom"] .md-typeset a:hover {
+  color: var(--md-accent-fg-color);
+}
+
+[data-md-color-scheme="slate"][data-md-color-primary="custom"] .md-typeset a:focus,
+[data-md-color-scheme="slate"][data-md-color-primary="custom"] .md-typeset a:hover {
+  color: #ffe082;
+}
+
+/* Sidebar: active section used primary green on dark bg; align with readable accent */
+[data-md-color-scheme="slate"][data-md-color-primary="custom"] .md-nav__link--active {
+  color: var(--md-typeset-a-color);
+}
+
+[data-md-color-scheme="slate"][data-md-color-primary="custom"] .md-nav__link:focus,
+[data-md-color-scheme="slate"][data-md-color-primary="custom"] .md-nav__link:hover {
+  color: #ffe082;
+}

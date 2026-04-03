@@ -6,8 +6,8 @@
 #   - arduino: arduino-relay-daemon, udev rules (for physical DUT power control)
 #   - poe_switch: poe_switch_control.py, switch_client, switch_drivers (for PoE power control)
 #   - zerotier: ZeroTier on orchestrator for remote lab access (network 93afae5963ea9881)
+#   - wireguard: WireGuard tunnel to openwrt-tests global-coordinator (CI + upstream access)
 #   - wol: Wake-on-LAN persistence (ethtool at boot) so host can be woken remotely
-#   - testbed_status: testbed-status TUI dashboard (Textual, read-only state viewer)
 #
 # Run AFTER or BEFORE playbook_labgrid.yml from fork-openwrt-tests.
 #
@@ -16,11 +16,18 @@
 #   pipx run --spec ansible-core ansible-playbook -i ansible/inventory/hosts.yml ansible/playbook_testbed.yml --tags virtual_mesh --ask-become-pass
 #   pipx run --spec ansible-core ansible-playbook -i ansible/inventory/hosts.yml ansible/playbook_testbed.yml --tags arduino --ask-become-pass
 #   pipx run --spec ansible-core ansible-playbook -i ansible/inventory/hosts.yml ansible/playbook_testbed.yml --tags poe_switch --ask-become-pass
+#   pipx run --spec ansible-core ansible-playbook -i ansible/inventory/hosts.yml ansible/playbook_testbed.yml --tags wireguard --ask-become-pass
 #   pipx run --spec ansible-core ansible-playbook -i ansible/inventory/hosts.yml ansible/playbook_testbed.yml --tags wol --ask-become-pass
-#   pipx run --spec ansible-core ansible-playbook -i ansible/inventory/hosts.yml ansible/playbook_testbed.yml --tags testbed_status --ask-become-pass
 #   pipx run --spec ansible-core ansible-playbook -i ansible/inventory/hosts.yml ansible/playbook_testbed.yml --tags observability --ask-become-pass
 #
-# Or if ansible-core is installed: ansible-playbook -i ansible/inventory/hosts.yml ansible/playbook_testbed.yml -K
+# Same commands if ansible-core is installed (ansible-playbook in PATH); -K is shorthand for --ask-become-pass:
+#   ansible-playbook -i ansible/inventory/hosts.yml ansible/playbook_testbed.yml -K
+#   ansible-playbook -i ansible/inventory/hosts.yml ansible/playbook_testbed.yml --tags virtual_mesh -K
+#   ansible-playbook -i ansible/inventory/hosts.yml ansible/playbook_testbed.yml --tags arduino -K
+#   ansible-playbook -i ansible/inventory/hosts.yml ansible/playbook_testbed.yml --tags poe_switch -K
+#   ansible-playbook -i ansible/inventory/hosts.yml ansible/playbook_testbed.yml --tags wireguard -K
+#   ansible-playbook -i ansible/inventory/hosts.yml ansible/playbook_testbed.yml --tags wol -K
+#   ansible-playbook -i ansible/inventory/hosts.yml ansible/playbook_testbed.yml --tags observability -K
 
 - name: FCEFyN testbed infrastructure
   hosts: localhost
@@ -42,13 +49,13 @@
       tags:
         - zerotier
         - testbed
+    - role: wireguard
+      tags:
+        - wireguard
+        - testbed
     - role: wol
       tags:
         - wol
-        - testbed
-    - role: testbed_status
-      tags:
-        - testbed_status
         - testbed
     - role: observability
       tags:

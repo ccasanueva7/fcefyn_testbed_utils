@@ -7,10 +7,8 @@ Configures each DUT with the addresses needed for SSH access in mesh mode:
   - Route 10.13.0.0/16 (host can reach the DUT)
   - Secondary IP 192.168.200.x on br-lan (gateway subnet, for mesh internet)
 
-The default gateway is NOT modified here; it is managed by
-switch_vlan_preset.py which updates the DUT gateway via parallel SSH each
-time the testbed mode changes (isolated -> per-VLAN gateway,
-mesh -> 192.168.200.254).
+The default gateway is NOT modified here; it is managed by dut_gateway.py
+which updates the DUT gateway via parallel SSH when VLAN changes occur.
 
 All sections use named UCI keys for idempotency (re-running is safe).
 
@@ -27,19 +25,14 @@ import sys
 import time
 from pathlib import Path
 
-SWITCH_DIR = Path(__file__).resolve().parent / "switch"
-if str(SWITCH_DIR) not in sys.path:
-    sys.path.insert(0, str(SWITCH_DIR))
+SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = SCRIPT_DIR.parent
 
 try:
     import serial
 except ImportError:
     print("ERROR: pyserial required. Run: pip install pyserial", file=sys.stderr)
     sys.exit(2)
-
-from constants import repo_root
-
-REPO_ROOT = repo_root()
 
 DEFAULT_DEVICE_IP_MAP = {
     "/dev/belkin-rt3200-1": "10.13.200.11",
@@ -55,7 +48,7 @@ for _k, _v in list(DEFAULT_DEVICE_IP_MAP.items()):
 
 
 def load_pool_config(config_path: Path) -> list[tuple[str, str, int]]:
-    """Load (serial_port, mesh_ip, baud) for all DUTs from pool-config.yaml."""
+    """Load (serial_port, mesh_ip, baud) for all DUTs from dut-config.yaml."""
     if not config_path.exists():
         return []
     try:
@@ -110,7 +103,7 @@ def _build_uci_commands(ip: str) -> list[str]:
     - Gateway-subnet IP 192.168.200.x on lan (for MikroTik reachability in mesh)
 
     Does NOT modify the default gateway or DNS -- those are managed by
-    switch_vlan_preset.py at mode-switch time.
+    dut_gateway.py when VLAN changes occur.
     """
     last_octet = ip.split(".")[-1]
     gateway_subnet_ip = f"192.168.200.{last_octet}"
@@ -190,22 +183,22 @@ def main() -> int:
         "--all",
         "-a",
         action="store_true",
-        help="Apply to all DUTs defined in pool-config.yaml (serial_port + libremesh_fixed_ip)",
+        help="Apply to all DUTs defined in dut-config.yaml (serial_port + libremesh_fixed_ip)",
     )
-    parser.add_argument("--ip", help="Mesh IP to assign (default: from pool-config or built-in map)")
-    parser.add_argument("--config", default=None, type=Path, help="Path to pool-config.yaml")
+    parser.add_argument("--ip", help="Mesh IP to assign (default: from dut-config or built-in map)")
+    parser.add_argument("--config", default=None, type=Path, help="Path to dut-config.yaml")
     parser.add_argument("--baud", type=int, default=115200, help="Serial baud rate (used with --device)")
     parser.add_argument("--dry-run", action="store_true", help="Print actions without connecting")
     args = parser.parse_args()
 
-    config_path = args.config or (REPO_ROOT / "configs" / "pool-config.yaml")
+    config_path = args.config or (REPO_ROOT / "configs" / "dut-config.yaml")
 
     if args.all:
         duts = load_pool_config(config_path)
         if not duts:
-            print("ERROR: No DUTs found in pool-config. Check serial_port and libremesh_fixed_ip.", file=sys.stderr)
+            print("ERROR: No DUTs found in dut-config. Check serial_port and libremesh_fixed_ip.", file=sys.stderr)
             return 1
-        print(f"Provisioning {len(duts)} DUTs from pool-config...")
+        print(f"Provisioning {len(duts)} DUTs from dut-config...")
         print("Close any screen/minicom sessions on these ports first.")
         ok = 0
         for port, ip, baud in duts:
@@ -222,7 +215,7 @@ def main() -> int:
 
     ip = resolve_ip(args.device, args.ip, config_path)
     if not ip:
-        print(f"ERROR: No IP for {args.device}. Use --ip or add to pool-config.yaml", file=sys.stderr)
+            print(f"ERROR: No IP for {args.device}. Use --ip or add to dut-config.yaml", file=sys.stderr)
         return 1
 
     print(f"Device: {args.device} -> Mesh IP: {ip}")

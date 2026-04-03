@@ -7,7 +7,8 @@
 #   - a Prometheus scrape job fragment in /etc/prometheus/jobs.d/<name>.yml
 #
 # The SSH tunnel uses the dut-<name> SSH alias from ~/.ssh/config, which
-# labgrid-dut-proxy resolves to the correct VLAN/IP regardless of testbed mode.
+# routes via labgrid-bound-connect to the DUT's isolated VLAN.
+# During brief mesh VLAN windows (libremesh tests), autossh retries on failure.
 #
 # Prerequisite per DUT (manual, one-time — see docs/configuracion/observabilidad.md):
 #   opkg install prometheus-node-exporter-lua prometheus-node-exporter-lua-openwrt

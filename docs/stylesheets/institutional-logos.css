@@ -32,6 +32,46 @@
   justify-content: flex-start;
 }
 
+/* Grafana + GitHub shortcuts in top bar (mkdocs extra.grafana_url / github_repo_url) */
+.md-header-quicklinks {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.05rem;
+  margin-inline-end: 0.05rem;
+}
+
+.md-header-grafana {
+  padding: 0.15rem 0.35rem;
+}
+
+.md-header-github svg {
+  /* Match visual weight next to Grafana mark */
+  width: 1.35rem;
+  height: 1.35rem;
+  fill: currentColor;
+}
+
+.md-header-grafana__img {
+  display: block;
+  height: 1.2rem;
+  width: auto;
+  max-height: 2rem;
+  object-fit: contain;
+  border-radius: 0.25rem;
+}
+
+.md-header-grafana:hover .md-header-grafana__img,
+.md-header-grafana:focus-visible .md-header-grafana__img {
+  filter: brightness(1.1);
+}
+
+.md-header-grafana:focus-visible {
+  outline: 2px solid var(--md-primary-bg-color, #fff);
+  outline-offset: 2px;
+  border-radius: 0.25rem;
+}
+
 /* Compact institutional strip above the site footer; keeps logos small and unobtrusive. */
 
 .md-institutional-bar {
@@ -77,7 +117,7 @@
   object-fit: contain;
 }
 
-/* UNC logo only: 15% larger than FCEFyN strip default (see overrides/main.html) */
+/* UNC logo only: larger than FCEFyN strip default (see overrides/main.html) */
 .md-institutional-bar__link--unc img {
   max-height: calc(38px * 1.40);
 }
