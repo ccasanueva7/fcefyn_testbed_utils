@@ -1,34 +1,63 @@
-# Lab architecture (dynamic VLAN per test) {: #lab-architecture }
+# Lab architecture {: #lab-architecture }
 
-**Technical design document** for the current HIL lab: one global coordinator, one exporter, shared DUT inventory, and VLAN as a per-test attribute. Context: [openwrt-tests](https://github.com/openwrt/openwrt-tests) and [LibreMesh](https://libremesh.org/) workloads on the same hardware.
+Technical design of the FCEFyN HIL testbed: one global coordinator shared with the openwrt-tests ecosystem, DUTs available for both [openwrt-tests](https://github.com/openwrt/openwrt-tests) and [libremesh-tests](https://github.com/libremesh/libremesh-tests), and dynamic VLAN as a per-test attribute.
 
----
-
-## 1. Scope
-
-- All DUTs are scheduled from a **single Labgrid inventory** (`dut-config.yaml` `duts` as hardware DB).
-- VLAN changes apply only where a test requires them (e.g. mesh); openwrt-tests runs on isolated VLANs by default.
+![Full testbed architecture](../img/diagrams/full_design.png)
 
 ---
 
-## 2. Design principle
+## 1. Overall design
+
+The diagram above shows the complete system. Key elements:
+
+| Element | Description |
+|---|---|
+| **Paul's VM (public cloud)** | Datacenter VM with the `labgrid-coordinator`, a pool of GitHub Actions self-hosted runners for openwrt-tests, and `labgrid-client` / pytest plugin. |
+| **FCEFyN Testbed (on-prem)** | Orchestration host running `labgrid-exporter`, `pdudaemon`, dnsmasq/TFTP, and the libremesh-tests self-hosted runner. DUTs connect via managed switch. |
+| **Remote Labs** | Other contributors' labs. Each runs an exporter that registers devices with the global coordinator. A lab may serve openwrt-tests, libremesh-tests, or both. |
+| **GitHub Actions** | Push/PR events trigger CI workflows. openwrt-tests jobs run on Paul's runners; libremesh-tests jobs run on the FCEFyN runner. |
+
+### Single coordinator, two test suites
+
+All labs share one `labgrid-coordinator`. Both openwrt-tests runners (on Paul's VM) and the libremesh-tests runner (on the FCEFyN host) connect to it. Labgrid locks serialize device access - only one runner holds a device at a time, regardless of which project triggered the job.
+
+For the full connection topology (WireGuard, `LG_PROXY`, `LG_COORDINATOR`) see [Integration overview](integration-overview.md).
+
+---
+
+## 2. Per-project device opt-in
+
+The coordinator sees **all** devices from **all** labs. It does not distinguish between projects. The filtering happens at the **CI configuration** level:
+
+| Project | Device registry | Who decides which labs participate |
+|---|---|---|
+| **openwrt-tests** | `labnet.yaml` in the openwrt-tests repo | Lab maintainer submits a PR adding their lab to `labnet.yaml` |
+| **libremesh-tests** | Own configuration (env vars, device list) | Lab maintainer adds their lab to the libremesh-tests config |
+
+This means a lab can contribute devices to **one project, the other, or both**:
+
+- A lab listed only in openwrt-tests' `labnet.yaml` will never receive libremesh-tests jobs.
+- A lab listed only in the libremesh-tests config will never receive openwrt-tests jobs.
+- The FCEFyN lab appears in both, so its DUTs serve both projects (serialized by coordinator locks).
+
+The coordinator itself is "project-agnostic" - it only manages locks and resource registration. The decision of which devices to test on which project belongs to each repository's CI configuration.
+
+---
+
+## 3. VLAN architecture
+
+### 3.1 Design principle
 
 The VLAN on a DUT port follows the **test run that holds the Labgrid lock**: the test applies the VLAN it needs at start and restores the port on teardown. Labgrid locking serializes access so two jobs do not reconfigure the same port at once.
 
----
-
-## 3. Architecture
-
-### 3.1 One coordinator, one exporter
+### 3.2 Components
 
 | Component | Role |
-|-----------|------|
+|---|---|
 | Coordinator | One global (datacenter VM, via WireGuard) |
 | Exporter | One `labgrid-exporter` process for all DUTs |
-| DUT inventory | `dut-config.yaml` `duts` (hardware database for Labgrid) |
-| VLAN / scheduling | Per-test VLAN where needed; Labgrid lock serializes access |
-
-The global coordinator is the single source of locks. libremesh-tests points `LG_COORDINATOR` at the coordinator WireGuard IP instead of `localhost:20408`. For the full connection topology (runners, WireGuard, LG_PROXY) see [Integration overview](integration-overview.md).
+| DUT inventory | `dut-config.yaml` (hardware database for Labgrid and switch port mapping) |
+| VLAN scheduling | Per-test VLAN where needed; Labgrid lock serializes access |
 
 ```mermaid
 flowchart LR
@@ -44,16 +73,16 @@ flowchart LR
     SW -->|"access port\n(isolated or VLAN 200)"| DUTs
 ```
 
-### 3.2 Default state: isolated (fail-safe)
+### 3.3 Default state: isolated (fail-safe)
 
 All switch ports start on their **isolated VLAN** (100-108):
 
 - openwrt-tests needs no VLAN changes
 - If a test fails or the runner crashes, the DUT stays isolated (no cross-talk)
 
-### 3.3 Dynamic VLAN: the test that needs it changes it
+### 3.4 Dynamic VLAN: the test that needs it changes it
 
-Only libremesh-tests needs VLAN 200. Flow:
+Multi-node tests (libremesh-tests mesh, openwrt-tests multi-node) switch DUTs to a shared VLAN. Flow:
 
 ```mermaid
 sequenceDiagram
@@ -75,7 +104,7 @@ sequenceDiagram
 
 Switching overhead: 2-5 s (SSH to switch + CLI). Negligible vs flash + boot (minutes).
 
-### 3.4 Static infrastructure (all VLANs always on)
+### 3.5 Static infrastructure (all VLANs always on)
 
 Configured once and left alone:
 
@@ -86,9 +115,9 @@ Configured once and left alone:
 | dnsmasq | Instances for all VLANs (DHCP + TFTP) |
 | Gateway | Interfaces for all VLANs |
 
-## 4. Key component: `vlan_manager` API (labgrid-switch-abstraction)
+## 4. `vlan_manager` API (labgrid-switch-abstraction)
 
-Implementation lives in the **labgrid-switch-abstraction** package (`switch_abstraction.vlan_manager`). It uses `SwitchClient` + the existing driver:
+Implementation lives in **[labgrid-switch-abstraction](https://github.com/fcefyn-testbed/labgrid-switch-abstraction)** (`switch_abstraction.vlan_manager`). It uses `SwitchClient` + the existing driver:
 
 ```python
 def set_port_vlan(dut_name, vlan_id, *, config_path=None):
@@ -110,13 +139,12 @@ def mesh_vlan(request):
 
 ## 5. Repository split
 
-The split between openwrt-tests and libremesh-tests **does not change**:
-
-| Repo | Responsibility | What changes |
-|------|----------------|--------------|
-| **openwrt-tests** (upstream) | Vanilla OpenWrt tests, single-node | Nothing |
-| **libremesh-tests** (ours) | LibreMesh single and multi-node | VLAN fixture; `LG_COORDINATOR` to global |
-| **fcefyn_testbed_utils** (ours) | Lab infra, switch drivers, scripts | Static config; host: `switch-vlan` CLI |
+| Repo | Responsibility |
+|---|---|
+| **openwrt-tests** (upstream) | Vanilla OpenWrt tests, single and multi-node |
+| **libremesh-tests** (fork) | LibreMesh-specific tests, mesh multi-node |
+| **fcefyn_testbed_utils** | Lab infrastructure, Ansible, scripts |
+| **labgrid-switch-abstraction** | Vendor-agnostic switch management (VLAN, PoE) |
 
 ## 6. Layers and upstream contribution
 
@@ -151,23 +179,15 @@ flowchart TB
 
 **Layer 2** enables multi-device tests for openwrt-tests (WiFi speed, golden-device pattern).
 
-## 7. Relation to Switch Topology Daemon (future)
+## 7. Switch Topology Daemon (future)
 
-The `vlan_manager` module in **labgrid-switch-abstraction** is the library base for a daemon. If an HTTP API is needed (like PDUDaemon), add an HTTP server on top of `set_port_vlan()`. Internal logic stays the same.
+The `vlan_manager` module in **[labgrid-switch-abstraction](https://github.com/fcefyn-testbed/labgrid-switch-abstraction)** is the library base for a daemon. If an HTTP API is needed (like PDUDaemon), add an HTTP server on top of `set_port_vlan()`. Internal logic stays the same.
 
 ## 8. Trade-offs
 
 | Aspect | Value | Mitigation |
-|--------|-------|------------|
+|---|---|---|
 | WireGuard dependency | All testing depends on the tunnel | Stable WireGuard with keepalive; temporary local coordinator fallback |
 | Coordinator API latency | Lock/unlock via WireGuard | Light messages; SSH to DUTs is local |
 | dnsmasq complexity | 9+ VLANs at once | One-time config; independent instances |
-| VLAN switching overhead | 2-5 s per test (libremesh only) | Negligible vs flash+boot |
-
-## 9. What is reused
-
-- `SwitchClient` + `tplink_jetstream.py` driver
-- `assign_port_vlan_commands()` (driver interface)
-- `dut-config.yaml` `duts` section (DUT to switch port map)
-- PDUDaemon and `poe_switch_control.py`
-- Serial, TFTP, SSH proxy infra
+| VLAN switching overhead | 2-5 s per multi-node test | Negligible vs flash + boot (minutes) |
