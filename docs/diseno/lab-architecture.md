@@ -80,7 +80,19 @@ All switch ports start on their **isolated VLAN** (100-108):
 - openwrt-tests needs no VLAN changes
 - If a test fails or the runner crashes, the DUT stays isolated (no cross-talk)
 
-### 3.4 Dynamic VLAN: the test that needs it changes it
+### 3.4 Exporter SSH model (single config, two access modes)
+
+The exporter declares `NetworkService.address: "192.168.1.1%vlanXXX"` - the default OpenWrt `br-lan` IP reachable via `socat` + `SO_BINDTODEVICE`. This is the **only** exporter config; it does not change between projects.
+
+| Project | SSH access | VLAN state |
+|---|---|---|
+| **openwrt-tests** | Labgrid `SSHDriver` -> `192.168.1.1%vlanXXX` | Isolated (default) |
+| **libremesh-tests** (single-node) | Same as openwrt-tests | Isolated (default) |
+| **libremesh-tests** (mesh) | Serial for setup, then direct SSH to mesh IPs (`10.13.200.x`) on vlan200 | Shared (fixture switches VLAN) |
+
+Mesh tests bypass `SSHDriver` after the VLAN switch because the DUT acquires a mesh IP on a different subnet. The `mesh_vlan` fixture (section 4) handles the switch and restore.
+
+### 3.5 Dynamic VLAN: the test that needs it changes it
 
 Multi-node tests (libremesh-tests mesh, openwrt-tests multi-node) switch DUTs to a shared VLAN. Flow:
 
@@ -104,7 +116,7 @@ sequenceDiagram
 
 Switching overhead: 2-5 s (SSH to switch + CLI). Negligible vs flash + boot (minutes).
 
-### 3.5 Static infrastructure (all VLANs always on)
+### 3.6 Static infrastructure (all VLANs always on)
 
 Configured once and left alone:
 
