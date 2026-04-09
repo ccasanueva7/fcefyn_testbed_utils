@@ -17,9 +17,9 @@ Run with:
 
 import subprocess
 import time
-import pytest
-from helpers import ssh_run, NODES, N_NODES
 
+import pytest
+from helpers import N_NODES, NODES, ssh_run
 
 pytestmark = pytest.mark.skipif(N_NODES < 5, reason="Multi-hop tests require 5 nodes")
 
@@ -37,12 +37,10 @@ STEP_M = 50
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _vwifi_ctrl(*args) -> tuple[int, str]:
     """Run vwifi-ctrl with given args. Returns (returncode, stdout)."""
-    result = subprocess.run(
-        ["vwifi-ctrl"] + list(args),
-        capture_output=True, text=True
-    )
+    result = subprocess.run(["vwifi-ctrl"] + list(args), capture_output=True, text=True)
     return result.returncode, result.stdout.strip()
 
 
@@ -77,6 +75,7 @@ def _reset_topology(client_ids: list[str]) -> None:
 # Fixture: set linear topology, restore after test
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture(scope="module")
 def linear_topology():
     """Set linear topology once for all tests in this module."""
@@ -99,6 +98,7 @@ def linear_topology():
 # 1. Verificar que la topología se aplicó
 # ---------------------------------------------------------------------------
 
+
 def test_topology_set(linear_topology):
     """Verify vwifi-ctrl applied coordinates correctly."""
     cids = linear_topology
@@ -110,7 +110,7 @@ def test_topology_set(linear_topology):
             if line.startswith(cid):
                 parts = line.split()
                 assert int(parts[1]) == expected_x, (
-                    f"Node {i+1} (CID {cid}) X coord wrong: {parts[1]} != {expected_x}"
+                    f"Node {i + 1} (CID {cid}) X coord wrong: {parts[1]} != {expected_x}"
                 )
 
 
@@ -118,21 +118,23 @@ def test_topology_set(linear_topology):
 # 2. Nodos adyacentes se ven directamente en batman
 # ---------------------------------------------------------------------------
 
+
 def test_adjacent_nodes_are_direct_neighbors(linear_topology):
     """Adjacent nodes must appear as direct batman neighbors."""
     failures = []
     for i in range(len(NODES) - 1):
         src = NODES[i]
-        dst_id = f"{NODES[i+1]['index']:06x}"
+        dst_id = f"{NODES[i + 1]['index']:06x}"
         _, out, _ = ssh_run(src["port"], "batctl n")
         if f"lime_{dst_id}".lower() not in out.lower():
-            failures.append(f"{src['name']} does not see {NODES[i+1]['name']} as direct neighbor")
+            failures.append(f"{src['name']} does not see {NODES[i + 1]['name']} as direct neighbor")
     assert not failures, "\n".join(failures)
 
 
 # ---------------------------------------------------------------------------
 # 3. Nodos extremos NO son vecinos directos (multi-hop forzado)
 # ---------------------------------------------------------------------------
+
 
 def test_endpoints_are_not_direct_neighbors(linear_topology):
     """vm1 and vm5 must NOT be direct batman neighbors (too far apart)."""
@@ -141,16 +143,14 @@ def test_endpoints_are_not_direct_neighbors(linear_topology):
     _, out, _ = ssh_run(vm1["port"], "batctl n")
     # In neighbors table, entry means direct link
     # If vm5 appears here with low last-seen, they're direct neighbors — fail
-    direct = [line for line in out.splitlines()
-              if f"lime_{vm5_id}".lower() in line.lower() and "s" in line]
-    assert not direct, (
-        f"vm1 and vm5 are direct neighbors — topology not working:\n{out}"
-    )
+    direct = [line for line in out.splitlines() if f"lime_{vm5_id}".lower() in line.lower() and "s" in line]
+    assert not direct, f"vm1 and vm5 are direct neighbors — topology not working:\n{out}"
 
 
 # ---------------------------------------------------------------------------
 # 4. Ping extremo a extremo (vm1 → vm5) — multi-hop
 # ---------------------------------------------------------------------------
+
 
 def test_multihop_ping_vm1_to_vm5(linear_topology):
     """vm1 must reach vm5 through intermediate nodes."""
@@ -173,6 +173,7 @@ def test_multihop_ping_vm5_to_vm1(linear_topology):
 # ---------------------------------------------------------------------------
 # 5. Número de hops > 1 en la ruta extremo a extremo
 # ---------------------------------------------------------------------------
+
 
 def test_multihop_hop_count(linear_topology):
     """Route from vm1 to vm5 must go through at least 2 hops in batman."""
@@ -198,6 +199,7 @@ def test_multihop_hop_count(linear_topology):
 # 6. Nodos intermedios aparecen en la ruta
 # ---------------------------------------------------------------------------
 
+
 def test_intermediate_nodes_in_originator_table(linear_topology):
     """vm1 must know routes through vm2, vm3, vm4 to reach vm5."""
     _, out, _ = ssh_run(NODES[0]["port"], "batctl o")
@@ -212,6 +214,7 @@ def test_intermediate_nodes_in_originator_table(linear_topology):
 # ---------------------------------------------------------------------------
 # 7. Todos los pares ping (full connectivity a través de la mesh)
 # ---------------------------------------------------------------------------
+
 
 def test_multihop_all_pairs_ping(linear_topology):
     """All node pairs must be reachable even with linear topology."""
@@ -233,6 +236,7 @@ def test_multihop_all_pairs_ping(linear_topology):
 # ---------------------------------------------------------------------------
 # 8. TQ decrece con la distancia
 # ---------------------------------------------------------------------------
+
 
 def test_tq_decreases_with_distance(linear_topology):
     """TQ to vm2 (adjacent) must be higher than TQ to vm5 (4 hops away)."""
@@ -259,6 +263,4 @@ def test_tq_decreases_with_distance(linear_topology):
     if tq_vm2 is None or tq_vm5 is None:
         pytest.skip(f"Could not find TQ values (vm2={tq_vm2}, vm5={tq_vm5})")
 
-    assert tq_vm2 > tq_vm5, (
-        f"Expected TQ(vm2)>{tq_vm5} > TQ(vm5)={tq_vm5}, got vm2={tq_vm2}"
-    )
+    assert tq_vm2 > tq_vm5, f"Expected TQ(vm2)>{tq_vm5} > TQ(vm5)={tq_vm5}, got vm2={tq_vm2}"

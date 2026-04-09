@@ -12,16 +12,17 @@ N_NODES: int = int(os.environ.get("VIRTUAL_MESH_NODES", 2))
 SSH_TIMEOUT: int = int(os.environ.get("VIRTUAL_MESH_SSH_TIMEOUT", 30))
 
 SSH_OPTS = [
-    "-o", "StrictHostKeyChecking=no",
-    "-o", "UserKnownHostsFile=/dev/null",
-    "-o", "LogLevel=ERROR",
-    "-o", f"ConnectTimeout={SSH_TIMEOUT}",
+    "-o",
+    "StrictHostKeyChecking=no",
+    "-o",
+    "UserKnownHostsFile=/dev/null",
+    "-o",
+    "LogLevel=ERROR",
+    "-o",
+    f"ConnectTimeout={SSH_TIMEOUT}",
 ]
 
-NODES: list[dict] = [
-    {"name": f"vm{i}", "port": SSH_BASE_PORT + i - 1, "index": i}
-    for i in range(1, N_NODES + 1)
-]
+NODES: list[dict] = [{"name": f"vm{i}", "port": SSH_BASE_PORT + i - 1, "index": i} for i in range(1, N_NODES + 1)]
 
 
 def node_mac(index: int, vwifi: bool = False) -> str:

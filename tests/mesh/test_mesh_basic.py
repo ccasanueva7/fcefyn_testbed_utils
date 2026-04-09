@@ -6,12 +6,12 @@ Run with:  pytest tests/mesh/test_mesh_basic.py -v
 """
 
 import pytest
-from helpers import ssh_run, NODES, N_NODES, node_mac
-
+from helpers import N_NODES, NODES, node_mac, ssh_run
 
 # ---------------------------------------------------------------------------
 # Helper
 # ---------------------------------------------------------------------------
+
 
 def _bat0_ip(port: int) -> str | None:
     """Return the first IPv4 address on bat0, or br-lan as fallback (LibreMesh bridges bat0 into br-lan)."""
@@ -26,6 +26,7 @@ def _bat0_ip(port: int) -> str | None:
 # ---------------------------------------------------------------------------
 # 1. Ping entre nodos (LAN user-net – QEMU hostfwd bridge)
 # ---------------------------------------------------------------------------
+
 
 def test_ping_between_nodes():
     """VM1 can ping VM2's QEMU user-net gateway (10.13.0.2 within vm2 net)."""
@@ -47,6 +48,7 @@ def ssh_cmd_compat(port, cmd):
 # 2. Interfaz mesh activa
 # ---------------------------------------------------------------------------
 
+
 def test_mesh_interface_up():
     rc, out, _ = ssh_run(2222, "ip link show | grep -E 'mesh|bat'")
     assert rc == 0, "No mesh/bat interface found on vm1"
@@ -56,6 +58,7 @@ def test_mesh_interface_up():
 # ---------------------------------------------------------------------------
 # 3. Vecinos mesh (batman-adv)
 # ---------------------------------------------------------------------------
+
 
 def test_neighbors_present():
     rc, out, _ = ssh_run(2222, "batctl n")
@@ -67,6 +70,7 @@ def test_neighbors_present():
 # 4. Tabla de originadores
 # ---------------------------------------------------------------------------
 
+
 def test_routing_table():
     rc, out, _ = ssh_run(2222, "batctl o")
     assert rc == 0, "batctl o failed on vm1"
@@ -76,6 +80,7 @@ def test_routing_table():
 # ---------------------------------------------------------------------------
 # 5. Ping mesh a través de bat0 (bidireccional)
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.skipif(N_NODES < 2, reason="Need at least 2 nodes")
 def test_bat0_ping_vm1_to_vm2():
@@ -101,6 +106,7 @@ def test_bat0_ping_vm2_to_vm1():
 # 6. Todos los nodos tienen bat0 con IP
 # ---------------------------------------------------------------------------
 
+
 def test_all_nodes_have_bat0_ip():
     missing = []
     for node in NODES:
@@ -113,6 +119,7 @@ def test_all_nodes_have_bat0_ip():
 # ---------------------------------------------------------------------------
 # 7. bat0 IPs son únicas (sin duplicados)
 # ---------------------------------------------------------------------------
+
 
 def test_bat0_ips_unique():
     ips = {}
@@ -127,6 +134,7 @@ def test_bat0_ips_unique():
 # ---------------------------------------------------------------------------
 # 8. Cada nodo ve al resto en su tabla batman
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.skipif(N_NODES < 2, reason="Need at least 2 nodes")
 def test_each_node_sees_all_others_in_batman():
@@ -151,6 +159,7 @@ def test_each_node_sees_all_others_in_batman():
 # 9. Resolución DNS mínima desde cada nodo
 # ---------------------------------------------------------------------------
 
+
 def test_dns_resolves_from_vm1():
     _, _, _ = ssh_run(NODES[0]["port"], "nslookup libremesh.org 2>&1 || dig +short libremesh.org 2>&1 || true")
     # Soft check: VMs may not have internet. Just verify the command doesn't crash.
@@ -159,6 +168,7 @@ def test_dns_resolves_from_vm1():
 # ---------------------------------------------------------------------------
 # 10. MTU de bat0 es suficiente para paquetes mesh
 # ---------------------------------------------------------------------------
+
 
 def test_bat0_mtu():
     rc, out, _ = ssh_run(NODES[0]["port"], "cat /sys/class/net/bat0/mtu")

@@ -8,12 +8,12 @@ Run with:  pytest tests/mesh/test_mesh_batman.py -v
 """
 
 import pytest
-from helpers import ssh_run, NODES, N_NODES, node_mac
-
+from helpers import N_NODES, NODES, node_mac, ssh_run
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _parse_originators(output: str) -> list[dict]:
     """
@@ -44,13 +44,15 @@ def _parse_originators(output: str) -> list[dict]:
             if inner.isdigit():
                 tq = int(inner)
                 break
-        entries.append({
-            "originator": parts[0],
-            "last_seen_ms": last_seen,
-            "tq": tq,
-            "next_hop": parts[3] if len(parts) > 3 else "",
-            "iface": parts[4] if len(parts) > 4 else "",
-        })
+        entries.append(
+            {
+                "originator": parts[0],
+                "last_seen_ms": last_seen,
+                "tq": tq,
+                "next_hop": parts[3] if len(parts) > 3 else "",
+                "iface": parts[4] if len(parts) > 4 else "",
+            }
+        )
     return entries
 
 
@@ -78,18 +80,21 @@ def _parse_neighbors(output: str) -> list[dict]:
             if inner.isdigit():
                 tq = int(inner)
                 break
-        entries.append({
-            "iface": parts[0],
-            "neighbor": parts[1],
-            "last_seen_ms": last_seen,
-            "tq": tq,
-        })
+        entries.append(
+            {
+                "iface": parts[0],
+                "neighbor": parts[1],
+                "last_seen_ms": last_seen,
+                "tq": tq,
+            }
+        )
     return entries
 
 
 # ---------------------------------------------------------------------------
 # 1. Originator table has entries
 # ---------------------------------------------------------------------------
+
 
 def test_originator_table_not_empty():
     rc, out, _ = ssh_run(NODES[0]["port"], "batctl o")
@@ -101,6 +106,7 @@ def test_originator_table_not_empty():
 # ---------------------------------------------------------------------------
 # 2. TQ values are non-zero
 # ---------------------------------------------------------------------------
+
 
 def test_originator_tq_nonzero():
     """All originators must have TQ > 0 (link quality indicator)."""
@@ -114,6 +120,7 @@ def test_originator_tq_nonzero():
 # ---------------------------------------------------------------------------
 # 3. Each peer appears in originator table
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.skipif(N_NODES < 2, reason="Need at least 2 nodes")
 def test_all_peers_in_originator_table():
@@ -134,6 +141,7 @@ def test_all_peers_in_originator_table():
 # 4. Neighbor last-seen is recent (< 10 s)
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.skipif(N_NODES < 2, reason="Need at least 2 nodes")
 def test_neighbor_last_seen_recent():
     """Direct neighbors must have been seen within the last 10 seconds."""
@@ -141,28 +149,26 @@ def test_neighbor_last_seen_recent():
     assert rc == 0, "batctl n failed"
     entries = _parse_neighbors(out)
     stale = [e for e in entries if e["last_seen_ms"] > 10000]
-    assert not stale, (
-        f"Stale neighbors (>10 s) on vm1: {[(e['neighbor'], e['last_seen_ms']) for e in stale]}"
-    )
+    assert not stale, f"Stale neighbors (>10 s) on vm1: {[(e['neighbor'], e['last_seen_ms']) for e in stale]}"
 
 
 # ---------------------------------------------------------------------------
 # 5. batman-adv interface statistics (TX/RX counters > 0)
 # ---------------------------------------------------------------------------
 
+
 def test_batman_iface_stats_nonzero():
     rc, out, _ = ssh_run(NODES[0]["port"], "batctl s")
     assert rc == 0, "batctl s failed"
     assert out, "batctl s returned empty output"
     # Check at least one tx or rx counter is present
-    assert "tx" in out.lower() or "rx" in out.lower(), (
-        f"No tx/rx stats in batctl s output:\n{out}"
-    )
+    assert "tx" in out.lower() or "rx" in out.lower(), f"No tx/rx stats in batctl s output:\n{out}"
 
 
 # ---------------------------------------------------------------------------
 # 6. bat0 uses the correct batman-adv version protocol
 # ---------------------------------------------------------------------------
+
 
 def test_batman_protocol_version():
     rc, out, _ = ssh_run(NODES[0]["port"], "batctl -v")
@@ -173,6 +179,7 @@ def test_batman_protocol_version():
 # ---------------------------------------------------------------------------
 # 7. wlan0 is enslaved to batman-adv
 # ---------------------------------------------------------------------------
+
 
 def test_wlan0_enslaved_to_batman(node):
     rc, out, _ = ssh_run(node["port"], "batctl if")
@@ -185,17 +192,17 @@ def test_wlan0_enslaved_to_batman(node):
 # 8. No batman-adv soft-interface in error state
 # ---------------------------------------------------------------------------
 
+
 def test_batman_no_error_state(node):
     rc, out, _ = ssh_run(node["port"], "batctl if")
     assert rc == 0
-    assert "inactive" not in out, (
-        f"{node['name']}: batman interface in inactive state:\n{out}"
-    )
+    assert "inactive" not in out, f"{node['name']}: batman interface in inactive state:\n{out}"
 
 
 # ---------------------------------------------------------------------------
 # 9. Symmetric TQ (both directions roughly equal)
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.skipif(N_NODES < 2, reason="Need at least 2 nodes")
 def test_tq_symmetric():
@@ -214,6 +221,4 @@ def test_tq_symmetric():
 
     tq1 = entries1[0]["tq"]
     tq2 = entries2[0]["tq"]
-    assert abs(tq1 - tq2) <= 50, (
-        f"TQ asymmetry too large: vm1->vm2={tq1}, vm2->vm1={tq2}"
-    )
+    assert abs(tq1 - tq2) <= 50, f"TQ asymmetry too large: vm1->vm2={tq1}, vm2->vm1={tq2}"
