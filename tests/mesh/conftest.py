@@ -8,7 +8,7 @@ Environment variables (match launch_debug_vms.sh):
 """
 
 import pytest
-from helpers import NODES, N_NODES, ssh_run, node_mac  # noqa: F401 (re-exported)
+from helpers import N_NODES, NODES, node_mac, ssh_run  # noqa: F401 (re-exported)
 
 
 @pytest.fixture(params=NODES, ids=[n["name"] for n in NODES])

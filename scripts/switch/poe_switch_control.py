@@ -21,10 +21,7 @@ import sys
 from switch_abstraction.client import SwitchClient, load_config
 from switch_abstraction.constants import DEFAULT_SWITCH_HOST, DEFAULT_SWITCH_USER
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 DEFAULT_DELAY_SEC = 3
 POE_PORTS = (1, 2, 3, 4, 5, 6, 7, 8)
@@ -133,7 +130,8 @@ Environment: SWITCH_PASSWORD (fallback if no config file)
         help=f"Delay in seconds for cycle between off/on (default: {DEFAULT_DELAY_SEC})",
     )
     parser.add_argument(
-        "--verbose", "-v",
+        "--verbose",
+        "-v",
         action="store_true",
         help="Enable debug logging",
     )
@@ -141,19 +139,19 @@ Environment: SWITCH_PASSWORD (fallback if no config file)
     subparsers = parser.add_subparsers(dest="action", help="Action to perform")
 
     on_parser = subparsers.add_parser("on", help="Enable PoE on one or more ports")
-    on_parser.add_argument("ports", nargs="+", type=int, choices=POE_PORTS,
-                           help="Switch port(s) (1-8). Multiple allowed.",
-                           metavar="PORT")
+    on_parser.add_argument(
+        "ports", nargs="+", type=int, choices=POE_PORTS, help="Switch port(s) (1-8). Multiple allowed.", metavar="PORT"
+    )
 
     off_parser = subparsers.add_parser("off", help="Disable PoE on one or more ports")
-    off_parser.add_argument("ports", nargs="+", type=int, choices=POE_PORTS,
-                            help="Switch port(s) (1-8). Multiple allowed.",
-                            metavar="PORT")
+    off_parser.add_argument(
+        "ports", nargs="+", type=int, choices=POE_PORTS, help="Switch port(s) (1-8). Multiple allowed.", metavar="PORT"
+    )
 
     cycle_parser = subparsers.add_parser("cycle", help="Power cycle: off, wait, on")
-    cycle_parser.add_argument("ports", nargs="+", type=int, choices=POE_PORTS,
-                              help="Switch port(s) (1-8). Multiple allowed.",
-                              metavar="PORT")
+    cycle_parser.add_argument(
+        "ports", nargs="+", type=int, choices=POE_PORTS, help="Switch port(s) (1-8). Multiple allowed.", metavar="PORT"
+    )
 
     args = parser.parse_args()
 
@@ -175,9 +173,7 @@ Environment: SWITCH_PASSWORD (fallback if no config file)
         return 3
 
     if args.action == "cycle":
-        success = run_poe_cycle_single_session(
-            args.host, args.user, password, ports, args.delay
-        )
+        success = run_poe_cycle_single_session(args.host, args.user, password, ports, args.delay)
         return 0 if success else 2
 
     success = run_poe_command(args.host, args.user, password, ports, args.action)

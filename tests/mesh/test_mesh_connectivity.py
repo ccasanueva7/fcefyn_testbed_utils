@@ -7,12 +7,12 @@ Run with:  pytest tests/mesh/test_mesh_connectivity.py -v
 """
 
 import pytest
-from helpers import ssh_run, NODES, N_NODES
-
+from helpers import N_NODES, NODES, ssh_run
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _brlan_ip(port: int) -> str | None:
     """Return the br-lan IPv4 of a node (LibreMesh mesh IP)."""
@@ -23,6 +23,7 @@ def _brlan_ip(port: int) -> str | None:
 # ---------------------------------------------------------------------------
 # 1. Ping entre nodos via br-lan (datos reales a través de la mesh)
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.skipif(N_NODES < 2, reason="Need at least 2 nodes")
 def test_ping_vm1_to_vm2():
@@ -65,6 +66,7 @@ def test_ping_all_pairs():
 # 2. vwifi-server alcanzable desde cada nodo
 # ---------------------------------------------------------------------------
 
+
 def test_vwifi_server_reachable(node):
     """Each node can reach the vwifi-server at 10.99.0.2."""
     rc, out, _ = ssh_run(node["port"], "ping -c 2 -W 3 10.99.0.2")
@@ -74,6 +76,7 @@ def test_vwifi_server_reachable(node):
 # ---------------------------------------------------------------------------
 # 3. uhttpd responde HTTP
 # ---------------------------------------------------------------------------
+
 
 def test_uhttpd_responds(node):
     """uhttpd must serve a response on port 80."""
@@ -90,6 +93,7 @@ def test_uhttpd_running(node):
 # 4. dnsmasq corriendo
 # ---------------------------------------------------------------------------
 
+
 def test_dnsmasq_running(node):
     rc, out, _ = ssh_run(node["port"], "pgrep -x dnsmasq")
     assert rc == 0, f"{node['name']}: dnsmasq not running"
@@ -98,6 +102,7 @@ def test_dnsmasq_running(node):
 # ---------------------------------------------------------------------------
 # 5. vwifi-client proceso activo
 # ---------------------------------------------------------------------------
+
 
 def test_vwifi_client_process(node):
     rc, out, _ = ssh_run(node["port"], "pgrep -a vwifi-client")
@@ -108,17 +113,17 @@ def test_vwifi_client_process(node):
 # 6. Hostname LibreMesh correcto
 # ---------------------------------------------------------------------------
 
+
 def test_lime_hostname(node):
     """Hostname must follow LibreMesh convention: LiMe-XXXXXX."""
     rc, out, _ = ssh_run(node["port"], "uci get system.@system[0].hostname")
-    assert rc == 0 and out.lower().startswith("lime-"), (
-        f"{node['name']}: unexpected hostname '{out}'"
-    )
+    assert rc == 0 and out.lower().startswith("lime-"), f"{node['name']}: unexpected hostname '{out}'"
 
 
 # ---------------------------------------------------------------------------
 # 7. lime-report ejecuta sin errores
 # ---------------------------------------------------------------------------
+
 
 def test_lime_report_runs(node):
     rc, out, _ = ssh_run(node["port"], "lime-report 2>/dev/null | head -5")
@@ -134,18 +139,18 @@ def test_lime_report_has_hostname(node):
 # 8. batman-adv gateway mode
 # ---------------------------------------------------------------------------
 
+
 def test_batman_gw_mode(node):
     rc, out, _ = ssh_run(node["port"], "batctl gw")
     assert rc == 0, f"{node['name']}: batctl gw failed"
     # Should be 'off', 'client' or 'server'
-    assert any(m in out for m in ["off", "client", "server"]), (
-        f"{node['name']}: unexpected gw mode: {out}"
-    )
+    assert any(m in out for m in ["off", "client", "server"]), f"{node['name']}: unexpected gw mode: {out}"
 
 
 # ---------------------------------------------------------------------------
 # 9. Tabla ARP tiene entradas de otros nodos
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.skipif(N_NODES < 2, reason="Need at least 2 nodes")
 def test_arp_has_mesh_neighbors():
@@ -162,6 +167,7 @@ def test_arp_has_mesh_neighbors():
 # ---------------------------------------------------------------------------
 # 10. Tests para 5 nodos — visibilidad completa
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.skipif(N_NODES < 5, reason="Need at least 5 nodes")
 def test_5nodes_all_see_each_other_batman():
