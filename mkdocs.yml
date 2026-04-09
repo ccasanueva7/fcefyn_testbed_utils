@@ -83,6 +83,7 @@ nav:
       - Routine operations: operar/lab-routine-operations.md
       - SSH access to DUTs: operar/dut-ssh-access.md
       - Running tests: operar/lab-running-tests.md
+      - Virtual mesh tests: operar/virtual-mesh-tests.md
       - Labgrid commands: operar/labgrid-useful-commands.md
       - Adding a DUT: operar/dut-onboarding.md
       - Build firmware: operar/build-firmware-manual.md
