@@ -15,7 +15,7 @@ jobs:
       - name: Ruff (Python)
         uses: astral-sh/ruff-action@v1
         with:
-          src: "scripts/"
+          src: "scripts/ tests/"
 
       - name: Yamllint (YAML)
         uses: ibiqlik/action-yamllint@v3
