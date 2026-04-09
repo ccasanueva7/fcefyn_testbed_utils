@@ -1,0 +1,318 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: fcefyn-testbed
+    folder: FCEFyN Alerts
+    interval: 1m
+    rules:
+
+      # -----------------------------------------------------------------------
+      # Target down
+      # Fires when any Prometheus target (DUT or orchestrator) stops responding.
+      # -----------------------------------------------------------------------
+      - uid: fcefyn-target-down
+        title: Target down
+        condition: C
+        for: 2m
+        annotations:
+          summary: "{{ $labels.job }} / {{ $labels.instance }} is down"
+          description: "Prometheus target has been unreachable for more than 2 minutes."
+        labels:
+          severity: critical
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: "up == 0"
+              instant: true
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: classic_conditions
+              refId: C
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+
+      # -----------------------------------------------------------------------
+      # High CPU (orchestrator host)
+      # -----------------------------------------------------------------------
+      - uid: fcefyn-high-cpu
+        title: High CPU usage
+        condition: C
+        for: 5m
+        annotations:
+          summary: "High CPU on {{ $labels.instance }}"
+          description: "CPU usage has been above 90% for more than 5 minutes."
+        labels:
+          severity: warning
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: "100 - (avg by (instance, dut) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)"
+              instant: true
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: classic_conditions
+              refId: C
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [90]
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+
+      # -----------------------------------------------------------------------
+      # High memory
+      # -----------------------------------------------------------------------
+      - uid: fcefyn-high-memory
+        title: High memory usage
+        condition: C
+        for: 5m
+        annotations:
+          summary: "High memory on {{ $labels.instance }}"
+          description: "Memory usage has been above 90% for more than 5 minutes."
+        labels:
+          severity: warning
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: "(1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100"
+              instant: true
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: classic_conditions
+              refId: C
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [90]
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+
+      # -----------------------------------------------------------------------
+      # Low disk space
+      # -----------------------------------------------------------------------
+      - uid: fcefyn-low-disk
+        title: Low disk space
+        condition: C
+        for: 0m
+        annotations:
+          summary: "Low disk on {{ $labels.instance }} ({{ $labels.mountpoint }})"
+          description: "Disk usage is above 85% on {{ $labels.mountpoint }}."
+        labels:
+          severity: warning
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: "(1 - node_filesystem_avail_bytes{fstype!~\"tmpfs|overlay\"} / node_filesystem_size_bytes{fstype!~\"tmpfs|overlay\"}) * 100"
+              instant: true
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: classic_conditions
+              refId: C
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [85]
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+
+      # -----------------------------------------------------------------------
+      # High temperature
+      # Only fires on devices that actually expose hwmon sensors.
+      # -----------------------------------------------------------------------
+      - uid: fcefyn-high-temp
+        title: High temperature
+        condition: C
+        for: 2m
+        annotations:
+          summary: "High temperature on {{ $labels.instance }} ({{ $labels.chip }})"
+          description: "Temperature sensor above 80°C for more than 2 minutes."
+        labels:
+          severity: warning
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: "node_hwmon_temp_celsius > 80"
+              instant: true
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: classic_conditions
+              refId: C
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+
+      # -----------------------------------------------------------------------
+      # DUT metrics tunnel down
+      # Checks that autossh tunnel units are not in failed state.
+      # Metric comes from the orchestrator's node_exporter.
+      # -----------------------------------------------------------------------
+      - uid: fcefyn-tunnel-down
+        title: DUT metrics tunnel down
+        condition: C
+        for: 2m
+        annotations:
+          summary: "Metrics tunnel failed: {{ $labels.name }}"
+          description: "autossh unit {{ $labels.name }} is in failed state — DUT metrics may be stale."
+        labels:
+          severity: warning
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: "node_systemd_unit_state{name=~\"dut-metrics-tunnel-.+\\.service\", state=\"failed\"} == 1"
+              instant: true
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: classic_conditions
+              refId: C
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+
+      # -----------------------------------------------------------------------
+      # Systemd units in failed state (orchestrator host)
+      # Catches prometheus, grafana, labgrid-coordinator, etc.
+      # -----------------------------------------------------------------------
+      - uid: fcefyn-systemd-failed
+        title: Systemd unit failed
+        condition: C
+        for: 1m
+        annotations:
+          summary: "Systemd unit failed on {{ $labels.instance }}: {{ $labels.name }}"
+          description: "A systemd unit is in failed state on the orchestration host."
+        labels:
+          severity: warning
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: "node_systemd_unit_state{state=\"failed\", name!~\"dut-metrics-tunnel-.+\\.service\"} == 1"
+              instant: true
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: classic_conditions
+              refId: C
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last
+
+      # -----------------------------------------------------------------------
+      # Network errors (orchestrator host)
+      # Sustained error rate on physical interfaces.
+      # -----------------------------------------------------------------------
+      - uid: fcefyn-network-errors
+        title: Network interface errors
+        condition: C
+        for: 5m
+        annotations:
+          summary: "Network errors on {{ $labels.instance }} / {{ $labels.device }}"
+          description: "Interface {{ $labels.device }} has a sustained error/drop rate over 5 minutes."
+        labels:
+          severity: warning
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: "rate(node_network_receive_errs_total{device!~\"lo|veth.+|docker.+\"}[5m]) + rate(node_network_transmit_errs_total{device!~\"lo|veth.+|docker.+\"}[5m]) + rate(node_network_receive_drop_total{device!~\"lo|veth.+|docker.+\"}[5m]) > 0.1"
+              instant: true
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: classic_conditions
+              refId: C
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: last

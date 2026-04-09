@@ -201,6 +201,27 @@
   notify: Restart grafana
 
 # -------------------------------------------------------------------------
+# Grafana alert rules — provisioned from YAML
+# -------------------------------------------------------------------------
+
+- name: Create Grafana provisioning alerting directory
+  ansible.builtin.file:
+    path: /etc/grafana/provisioning/alerting
+    state: directory
+    owner: root
+    group: grafana
+    mode: "0750"
+
+- name: Deploy Grafana alert rules
+  ansible.builtin.copy:
+    src: alerting/fcefyn-alerts.yaml
+    dest: /etc/grafana/provisioning/alerting/fcefyn-alerts.yaml
+    owner: root
+    group: grafana
+    mode: "0640"
+  notify: Restart grafana
+
+# -------------------------------------------------------------------------
 # Grafana config — grafana.ini settings (security, URL, registration)
 # -------------------------------------------------------------------------
 
