@@ -1,8 +1,9 @@
 ---
 # Role: poe_switch
-# Installs poe_switch_control.py and the labgrid-switch-abstraction package
-# for PoE power control of DUTs via TP-Link managed switch.
-# Required by PDUDaemon (openwrt-tests playbook_labgrid.yml) for fcefyn-poe-port1/port2.
+# Installs poe_switch_control.py, switch_daemon.py, and the
+# labgrid-switch-abstraction package for PoE power control of DUTs
+# via TP-Link managed switch.
+# Required by PDUDaemon for fcefyn-poe PDU entries.
 
 - name: Install netmiko for switch SSH (apt avoids PEP 668 externally-managed-environment)
   ansible.builtin.apt:
@@ -21,3 +22,22 @@
     src: "{{ playbook_dir }}/../scripts/switch/poe_switch_control.py"
     dest: /usr/local/bin/poe_switch_control.py
     mode: "0755"
+
+- name: Copy switch_daemon.py to /usr/local/bin
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../scripts/switch/switch_daemon.py"
+    dest: /usr/local/bin/switch_daemon.py
+    mode: "0755"
+
+- name: Install switch-ssh-daemon systemd unit
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../configs/templates/switch-ssh-daemon.service"
+    dest: /etc/systemd/system/switch-ssh-daemon.service
+    mode: "0644"
+
+- name: Enable and start switch-ssh-daemon
+  ansible.builtin.systemd:
+    name: switch-ssh-daemon
+    enabled: yes
+    state: started
+    daemon_reload: yes

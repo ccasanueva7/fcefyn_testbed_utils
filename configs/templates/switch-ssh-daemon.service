@@ -1,0 +1,14 @@
+[Unit]
+Description=Switch SSH Daemon - persistent SSH connection to managed switch
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /usr/local/bin/switch_daemon.py start
+Restart=on-failure
+RestartSec=10
+User=root
+
+[Install]
+WantedBy=multi-user.target
