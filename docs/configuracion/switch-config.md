@@ -38,7 +38,7 @@ Trunks carry several VLANs; each DUT has a dedicated access port.
 | SG2016P port | Device       | VLAN | Type   |
 |--------------|--------------|------|--------|
 | 1              | OpenWrt One       | 104  | Access |
-| 2              | LibreRouter #1    | 105  | Access (PoE + 48V→12V splitter) |
+| 2              | LibreRouter #1    | 105  | Access |
 | 3              | LibreRouter #2    | 106  | Access |
 | 4              | LibreRouter #3    | 107  | Access |
 | 9              | Lenovo T430 (server) | Trunk | Trunk |
@@ -147,7 +147,7 @@ chmod 600 ~/.config/switch.conf
 poe_switch_control.py on 1    # Power on port 1 (OpenWrt One)
 poe_switch_control.py off 1   # Power off
 poe_switch_control.py cycle 1 # Power cycle (off, 5s, on)
-poe_switch_control.py on 2    # Port 2 (Librerouter 1)
+arduino_relay_control.py on 4 # Librerouter 1 (relay, not PoE)
 ```
 
 !!! note "Running with sudo"
@@ -164,8 +164,8 @@ poe_switch_control.py on 2    # Port 2 (Librerouter 1)
 !!! note "WAN PHY timeout and second link (LAN)"
     With PoE on port 1, U-Boot on WAN (EN8811H) can hit PHY timeout. **Two links:** WAN (PoE) to port 1; LAN to port 16. Port 16 is VLAN 104 (untagged, PVID 104) so DHCP/TFTP reach the host. More in [duts-config OpenWrt One](duts-config.md#openwrt-one).
 
-!!! note "LibreRouter 1 (port 2) and PoE"
-    Uses PoE via 48V→12V splitter. LibreRouter needs passive PoE; switch delivers active (802.3af/at). A generic injector/splitter (e.g. POE-48V-12W Gigabit) converts 48V→12V. Enable PoE on switch port 2 to feed the splitter.
+!!! note "LibreRouter 1 (port 2) - no PoE"
+    LibreRouter 1 is now powered via 12V DC barrel jack (Arduino relay channel 4). PoE is disabled on switch port 2.
 
 ---
 

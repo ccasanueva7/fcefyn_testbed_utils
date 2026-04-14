@@ -2,7 +2,7 @@
 # Role: poe_switch
 # Installs poe_switch_control.py and the labgrid-switch-abstraction package
 # for PoE power control of DUTs via TP-Link managed switch.
-# Required by PDUDaemon (openwrt-tests playbook_labgrid.yml) for fcefyn-poe-port1/port2.
+# Required by PDUDaemon (openwrt-tests playbook_labgrid.yml) for fcefyn-poe (OpenWrt One).
 
 - name: Install netmiko for switch SSH (apt avoids PEP 668 externally-managed-environment)
   ansible.builtin.apt:
