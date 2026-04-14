@@ -22,6 +22,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 RELAY_CHANNEL_COUNT = 11  # 8 DUTs + 3 SSR (Switch, Cooler, Fuente)
+PSU_CHANNEL = 10
+DUT_RELAY_RANGE = range(0, 8)
 
 class RelayChannel(IntEnum):
     CHANNEL_0 = 0
@@ -505,11 +507,39 @@ def main() -> int:
         logger.info("Using direct connection (may cause reset)")
         return _execute_direct(args)
 
+def _needs_psu(channels: List[int]) -> bool:
+    """True if any requested channel is a DUT relay that depends on the PSU."""
+    return any(ch in DUT_RELAY_RANGE for ch in channels)
+
+
+def _ensure_psu_via_daemon(daemon_client: DaemonClient) -> None:
+    """Query STATUS via daemon; turn PSU on if it is off."""
+    result = daemon_client.send_command("STATUS")
+    raw = result.get("response", "")
+    if f"{PSU_CHANNEL}:OFF" in raw.upper():
+        logger.info("PSU (channel %d) is OFF - turning ON automatically", PSU_CHANNEL)
+        daemon_client.send_command(f"ON {PSU_CHANNEL}")
+
+
+def _ensure_psu_via_direct(controller: 'ArduinoRelayController') -> None:
+    """Query STATUS via direct connection; turn PSU on if it is off."""
+    status = controller.get_status()
+    if status is None:
+        logger.warning("Could not read relay status - skipping PSU auto-check")
+        return
+    psu_on = status.get("channels", {}).get(PSU_CHANNEL, False)
+    if not psu_on:
+        logger.info("PSU (channel %d) is OFF - turning ON automatically", PSU_CHANNEL)
+        controller.relay_on(PSU_CHANNEL)
+
+
 def _execute_via_daemon(args, daemon_client: DaemonClient) -> int:
     """Executes commands via daemon."""
     try:
         # Build command for daemon
         if args.action == 'on':
+            if _needs_psu(args.channels):
+                _ensure_psu_via_daemon(daemon_client)
             cmd = f"ON {' '.join(map(str, args.channels))}"
         elif args.action == 'off':
             cmd = f"OFF {' '.join(map(str, args.channels))}"
@@ -555,6 +585,8 @@ def _execute_direct(args) -> int:
     try:
         success = False
         if args.action == 'on':
+            if _needs_psu(args.channels):
+                _ensure_psu_via_direct(controller)
             # GL.iNet special sequence: disconnect serial (relay 1) → power on (relay 0) → wait → reconnect serial (relay 1 OFF)
             if hasattr(args, 'glinet_sequence') and args.glinet_sequence and len(args.channels) == 1 and args.channels[0] == 0:
                 logger.info("Using GL.iNet MT300N-v2 power sequence")
