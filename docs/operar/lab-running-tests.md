@@ -45,6 +45,18 @@ uv run pytest tests/test_mesh.py -v
 
 `LG_MESH_KEEP_POWERED=1` leaves DUTs powered after the test (VLANs are still restored to isolated). SSH via alias: `ssh dut-belkin-rt3200-2`.
 
+### Robustness mechanisms
+
+Multi-node tests include several layers of automatic recovery:
+
+| Mechanism | Scope | Description |
+|-----------|-------|-------------|
+| Boot retries | Per node | Up to 3 attempts per node. Failures in U-Boot activation, TFTP download, and post-shell stages are retriable. |
+| U-Boot proactive interrupt | Per node | Single-byte interrupt chars (`\x1b` ESC or `\x03` Ctrl-C) are sent proactively during boot to ensure U-Boot is captured before autoboot. |
+| IP watchdog | Per node | Background script on the DUT re-applies the fixed SSH IP on `br-lan` every 3s for 300s, surviving network restarts. |
+| SSH transport retry | Per node | `SSHProxy` retries up to 3 times on SSH exit code 255 (transport errors during mesh convergence). |
+| Network settle | Global | After all nodes boot, a convergence window (60s base + 20s per extra node beyond 3) waits for batman-adv/babeld routing to stabilize. |
+
 ---
 
 ## Remote coordinator access (openwrt-tests)
