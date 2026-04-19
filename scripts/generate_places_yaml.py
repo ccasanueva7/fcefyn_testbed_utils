@@ -20,6 +20,7 @@ Examples:
 """
 
 import argparse
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -37,19 +38,28 @@ except ImportError:
     sys.exit(1)
 
 
-def find_libremesh_tests_dir():
-    """Try to find the libremesh-tests directory."""
-    possible_paths = [
-        Path.cwd().parent / "libremesh-tests",
-        Path.home() / "libremesh-tests",
-        Path.home() / "testbed_fcefyn" / "libremesh-tests",
-        Path.home() / "Documents" / "libremesh-tests",
-    ]
-    
-    for path in possible_paths:
-        if path.exists() and (path / "labnet.yaml").exists():
-            return path
-    
+def find_openwrt_tests_dir() -> Path | None:
+    """Locate an openwrt-tests clone (inventory ``labnet.yaml`` lives there)."""
+    o = os.environ.get("OPENWRT_TESTS_DIR", "").strip()
+    if o:
+        root = Path(os.path.expanduser(o)).resolve()
+        if (root / "labnet.yaml").is_file():
+            return root
+
+    utils_repo = Path(__file__).resolve().parent.parent
+    sibling = utils_repo.parent / "openwrt-tests"
+    if (sibling / "labnet.yaml").is_file():
+        return sibling.resolve()
+
+    for path in (
+        Path.cwd().parent / "openwrt-tests",
+        Path.home() / "openwrt-tests",
+        Path.home() / "testbed_fcefyn" / "openwrt-tests",
+        Path.home() / "Documents" / "openwrt-tests",
+    ):
+        if (path / "labnet.yaml").is_file():
+            return path.resolve()
+
     return None
 
 
@@ -137,13 +147,13 @@ def main():
     parser.add_argument(
         '--labnet',
         type=Path,
-        help='Path to labnet.yaml (default: auto-detect from libremesh-tests)'
+        help='Path to labnet.yaml (default: OPENWRT_TESTS_DIR or sibling openwrt-tests)'
     )
     
     parser.add_argument(
         '--template',
         type=Path,
-        help='Path to places.yaml.j2 template (default: auto-detect from libremesh-tests)'
+        help='Path to places.yaml.j2 (default: openwrt-tests ansible/files/coordinator/places.yaml.j2)'
     )
     
     parser.add_argument(
@@ -156,17 +166,22 @@ def main():
     args = parser.parse_args()
     
     if args.labnet is None or args.template is None:
-        tests_dir = find_libremesh_tests_dir()
-        if tests_dir is None:
-            print("Error: Could not find libremesh-tests directory.", file=sys.stderr)
-            print("Please specify --labnet and --template paths manually.", file=sys.stderr)
+        openwrt_root = find_openwrt_tests_dir()
+        if openwrt_root is None:
+            print(
+                "Error: Could not find openwrt-tests (labnet.yaml). Set OPENWRT_TESTS_DIR, "
+                "place a clone at ../openwrt-tests next to this repo, or pass --labnet and --template.",
+                file=sys.stderr,
+            )
             sys.exit(1)
-        
+
         if args.labnet is None:
-            args.labnet = tests_dir / 'labnet.yaml'
-        
+            args.labnet = openwrt_root / "labnet.yaml"
+
         if args.template is None:
-            args.template = tests_dir / 'ansible' / 'files' / 'coordinator' / 'places.yaml.j2'
+            args.template = (
+                openwrt_root / "ansible" / "files" / "coordinator" / "places.yaml.j2"
+            )
     
     generate_places_yaml(
         lab_name=args.lab,

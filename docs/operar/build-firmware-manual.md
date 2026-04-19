@@ -57,7 +57,7 @@ Artifacts: `bin/targets/<target>/<subtarget>/`.
 
 ## 2. LibreMesh (lime-packages)
 
-Use for **community mesh** images: add the LibreMesh feeds and select `lime-*` packages (as required by the test suite or [libremesh-tests](https://github.com/francoriba/libremesh-tests)).
+Use for **community mesh** images: add the LibreMesh feeds and select `lime-*` packages (as required by the test suite or [libremesh-tests](https://github.com/fcefyn-testbed/libremesh-tests)).
 
 **1. Clone OpenWrt and enter build root**
 

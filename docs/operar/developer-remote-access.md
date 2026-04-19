@@ -35,7 +35,7 @@ sequenceDiagram
 | Exporter | Lab host | Publishes DUTs (serial, power, TFTP, SSH) |
 | `LG_PROXY` | Developer env var | Tells labgrid-client to tunnel through SSH |
 | `labgrid-dev` | Host user | Unprivileged account for developers |
-| `labnet.yaml` | libremesh-tests repo | Developer SSH keys and lab device inventory |
+| `labnet.yaml` | [openwrt-tests](https://github.com/aparcar/openwrt-tests/blob/main/labnet.yaml) | Developer SSH keys and lab device inventory (shared registry) |
 
 ---
 
@@ -50,7 +50,7 @@ cat ~/.ssh/id_ed25519.pub
 
 ### 2.2 Add public key to labnet.yaml
 
-In the [libremesh-tests](https://github.com/fcefyn-testbed/libremesh-tests) repo, branch `feat/add-fcefyn-labnet`:
+In [aparcar/openwrt-tests](https://github.com/aparcar/openwrt-tests) (`labnet.yaml` at repo root), open a branch and edit:
 
 ```yaml
 # labnet.yaml - add under developers:
@@ -72,7 +72,7 @@ Submit a PR with this change. A maintainer merges it.
 After the PR is merged, a lab admin runs the Ansible playbook on the lab host to copy the key to `/home/labgrid-dev/.ssh/authorized_keys`:
 
 ```bash
-cd libremesh-tests
+cd openwrt-tests
 ansible-playbook -i ansible/inventory.ini ansible/playbook_labgrid.yml --limit labgrid-fcefyn -K
 ```
 
@@ -183,7 +183,24 @@ uv run pytest tests/test_libremesh.py -v --log-cli-level=INFO
 uv run labgrid-client unlock
 ```
 
-### 4.3 Available places
+### 4.3 LibreMesh mesh (multi-node)
+
+Mesh tests boot N DUTs in parallel on VLAN 200 and assert connectivity (batman-adv, babeld). Two pieces require remote tunnelling that the test suite handles automatically:
+
+- **VLAN switching**: `conftest_vlan.py` invokes `switch-vlan` via SSH to `LG_PROXY` (the lab host owns the switch credentials in `/etc/switch.conf`). No local `dut-config.yaml` nor `labgrid-switch-abstraction` install is required on the laptop.
+- **SSH to mesh DUTs**: `SSHProxy` in `conftest_mesh.py` wraps `sudo labgrid-bound-connect vlan200 ... 22` inside `ssh ${LG_PROXY}` so the bound-connect runs on the host (which has the `vlan200` interface and `sudo NOPASSWD` for `labgrid-dev`). See [SSH access to DUTs - Remote developer](dut-ssh-access.md#remote-developer-lg_proxy).
+
+```bash
+export LG_PROXY=labgrid-fcefyn
+export LG_MESH_PLACES="labgrid-fcefyn-openwrt_one,labgrid-fcefyn-librerouter_1"
+export LG_IMAGE_MAP="labgrid-fcefyn-openwrt_one=$HOME/firmwares/lime-24.10.5-mediatek-filogic-openwrt_one-initramfs.itb,labgrid-fcefyn-librerouter_1=$HOME/firmwares/lime-24.10.5-ath79-generic-librerouter_librerouter-v1-initramfs-kernel.bin"
+
+uv run pytest tests/test_mesh.py -v --log-cli-level=INFO
+```
+
+The local `Host dut-*` SSH aliases in `~/.ssh/config` (section 3.1) target isolated VLANs and **cannot reach DUTs while they are on VLAN 200**. For interactive SSH to a node during a mesh test, use the nested `ProxyCommand` from [SSH access to DUTs - Remote developer](dut-ssh-access.md#remote-developer-lg_proxy).
+
+### 4.4 Available places
 
 List all devices in the lab:
 
@@ -199,9 +216,9 @@ uv run labgrid-client places
 | `labgrid-fcefyn-belkin_rt3200_3` | Belkin RT3200 / Linksys E8450 | `targets/linksys_e8450.yaml` |
 | `labgrid-fcefyn-bananapi_bpi-r4` | BananaPi BPi-R4 | `targets/bananapi_bpi-r4.yaml` |
 | `labgrid-fcefyn-openwrt_one` | OpenWrt One | `targets/openwrt_one.yaml` |
-| `labgrid-fcefyn-librerouter_1` | LibreRouter v1 | `targets/librerouter_librerouter_v1.yaml` |
+| `labgrid-fcefyn-librerouter_1` | LibreRouter v1 | `targets/librerouter_librerouter-v1.yaml` |
 
-### 4.4 Other labgrid-client commands
+### 4.5 Other labgrid-client commands
 
 ```bash
 # Power cycle a DUT

@@ -34,22 +34,22 @@ uv run pytest tests/test_libremesh.py tests/test_lan.py -v
 
 ## Multi-node LibreMesh test
 
-The libremesh-tests fixture moves DUT VLANs to 200 automatically (via `labgrid-switch-abstraction`).
+The libremesh-tests fixture moves DUT VLANs to 200 automatically via `switch-vlan` invoked from `conftest_vlan.py` (SSH to the lab host if `LG_PROXY` is set).
 
 ```bash
 LG_MESH_PLACES="labgrid-fcefyn-openwrt_one,labgrid-fcefyn-bananapi_bpi-r4,labgrid-fcefyn-librerouter_1,labgrid-fcefyn-belkin_rt3200_2" \
-LG_IMAGE_MAP="labgrid-fcefyn-openwrt_one=/srv/tftp/firmwares/openwrt_one/libremesh/lime-24.10.5-mediatek-filogic-openwrt_one-initramfs.itb,labgrid-fcefyn-bananapi_bpi-r4=/srv/tftp/firmwares/bananapi_bpi-r4/libremesh/lime-24.10.5-mediatek-filogic-bananapi_bpi-r4-initramfs-recovery.itb,labgrid-fcefyn-librerouter_1=/srv/tftp/firmwares/librerouter_librerouter_v1/libremesh/lime-24.10.5-ath79-generic-librerouter_librerouter-v1-initramfs-kernel.bin,labgrid-fcefyn-belkin_rt3200_2=/srv/tftp/firmwares/belkin_rt3200/libremesh/lime-24.10.5-mediatek-mt7622-linksys_e8450-initramfs-kernel.bin" \
+LG_IMAGE_MAP="labgrid-fcefyn-openwrt_one=/srv/tftp/firmwares/openwrt_one/libremesh/lime-24.10.5-mediatek-filogic-openwrt_one-initramfs.itb,labgrid-fcefyn-bananapi_bpi-r4=/srv/tftp/firmwares/bananapi_bpi-r4/libremesh/lime-24.10.5-mediatek-filogic-bananapi_bpi-r4-initramfs-recovery.itb,labgrid-fcefyn-librerouter_1=/srv/tftp/firmwares/librerouter_librerouter-v1/libremesh/lime-24.10.5-ath79-generic-librerouter_librerouter-v1-initramfs-kernel.bin,labgrid-fcefyn-belkin_rt3200_2=/srv/tftp/firmwares/belkin_rt3200/libremesh/lime-24.10.5-mediatek-mt7622-linksys_e8450-initramfs-kernel.bin" \
 LG_MESH_KEEP_POWERED=1 \
 uv run pytest tests/test_mesh.py -v
 ```
 
-`LG_MESH_KEEP_POWERED=1` leaves DUTs powered after the test (VLANs are still restored to isolated). SSH via alias: `ssh dut-belkin-rt3200-2`.
+`LG_MESH_KEEP_POWERED=1` leaves DUTs powered after the test (VLANs are still restored to isolated). On the host, manual SSH to a node still on VLAN 200: `sudo labgrid-bound-connect vlan200 <mesh_ssh_ip> 22`. From a developer laptop, the local `Host dut-*` aliases do **not** work for VLAN 200; use the nested `ProxyCommand` from [SSH access to DUTs - Remote developer](dut-ssh-access.md#remote-developer-lg_proxy).
 
 ---
 
 ## Running from a developer laptop
 
-A developer can run tests from their own machine using `LG_PROXY` to reach the lab. `LG_IMAGE` points to a **local file on the laptop**; Labgrid uploads it to the lab server automatically (see [TFTP staging](../configuracion/tftp-server.md#42-remote-image-staging)).
+A developer can run tests from their own machine using `LG_PROXY` to reach the lab. `LG_IMAGE` points to a **local file on the laptop**; Labgrid uploads it to the lab server automatically (see [TFTP staging](../configuracion/tftp-server.md#42-remote-image-staging)). Full guide: [Developer remote access](developer-remote-access.md).
 
 ```bash
 # On the developer laptop (not the lab host)
@@ -64,6 +64,8 @@ uv run pytest tests/test_base.py -v --log-cli-level=INFO
 The image is uploaded via SCP to `/var/cache/labgrid/<user>/<sha256>/` on the lab host, and a symlink is created in the DUT's TFTP directory. Subsequent runs with the same image skip the upload (hash match).
 
 **Requirements:** the developer's SSH key must be in `labnet.yaml` (see [openwrt-tests onboarding](../diseno/openwrt-tests-onboarding.md#52-generate-ssh-key-for-new-developer)), and the lab host must be reachable via `LG_PROXY`.
+
+The test suite locates `labnet.yaml` via `LABNET_PATH`, `OPENWRT_TESTS_DIR/labnet.yaml`, or `../openwrt-tests/labnet.yaml` (sibling of `libremesh-tests`). See [libremesh-tests CONTRIBUTING_LAB](https://github.com/fcefyn-testbed/libremesh-tests/blob/main/docs/CONTRIBUTING_LAB.md).
 
 ---
 

@@ -1,6 +1,6 @@
 # FCEFyN testbed documentation
 
-**Hardware-in-the-loop** testing for [OpenWrt](https://openwrt.org/) and [LibreMesh](https://libremesh.org/) at [FCEFyN](https://fcefyn.unc.edu.ar/), [Universidad Nacional de Córdoba](https://www.unc.edu.ar/). Source and tooling live in [fcefyn_testbed_utils](https://github.com/ccasanueva7/fcefyn_testbed_utils). Tests align with [openwrt-tests](https://github.com/aparcar/openwrt-tests) and [libremesh-tests](https://github.com/francoriba/libremesh-tests).
+**Hardware-in-the-loop** testing for [OpenWrt](https://openwrt.org/) and [LibreMesh](https://libremesh.org/) at [FCEFyN](https://fcefyn.unc.edu.ar/), [Universidad Nacional de Córdoba](https://www.unc.edu.ar/). Source and tooling live in [fcefyn_testbed_utils](https://github.com/ccasanueva7/fcefyn_testbed_utils). Tests align with [openwrt-tests](https://github.com/aparcar/openwrt-tests) and [libremesh-tests](https://github.com/fcefyn-testbed/libremesh-tests).
 
 ---
 
@@ -19,4 +19,3 @@ Relationship between orchestration host, switch, gateway, DUTs, power, and seria
 ![High-level diagram of the testbed and main components](img/diagrams/general-design-overview.png)
 
 The design builds on the **remote lab** model from [openwrt-tests](https://github.com/aparcar/openwrt-tests), but scope is not limited to **adding devices** to that network. It also **reuses and extends** the approach with **local infrastructure**, along the same axes (orchestration, network, power, serial) with a focus on **LibreMesh** testing.
-<!-- test comment mié 01 abr 2026 17:27:50 -03 -->

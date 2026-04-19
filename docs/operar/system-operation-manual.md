@@ -6,7 +6,7 @@ Vision, ownership, connectivity, and typical incidents for operators. Testbed pr
 
 ## Mission summary
 
-A testbed that can be accessed/operates remotely by allowed users validates **OpenWrt** and **LibreMesh** firmware automatically with **Labgrid** and **pytest**, on physical rack DUTs and, when applicable, emulated targets (QEMU). It integrates [openwrt-tests](https://github.com/aparcar/openwrt-tests) and the [libremesh-tests](https://github.com/francoriba/libremesh-tests) fork. Availability depends on the academic calendar and shared lab use; it is not a 24x7 service unless explicitly agreed.
+A testbed that can be accessed/operates remotely by allowed users validates **OpenWrt** and **LibreMesh** firmware automatically with **Labgrid** and **pytest**, on physical rack DUTs and, when applicable, emulated targets (QEMU). It integrates [openwrt-tests](https://github.com/aparcar/openwrt-tests) and the [libremesh-tests](https://github.com/fcefyn-testbed/libremesh-tests) fork. Availability depends on the academic calendar and shared lab use; it is not a 24x7 service unless explicitly agreed.
 
 ---
 
