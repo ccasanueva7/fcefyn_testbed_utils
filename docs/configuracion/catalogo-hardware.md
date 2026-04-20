@@ -250,8 +250,8 @@ Lab orchestration host is a **Lenovo ThinkPad T430** notebook with **Ubuntu**: L
 
 | Type | In the lab |
 |------|------------|
-| **FT232RNL** | Preferred: **one USB serial per unit**; **udev** may not depend on hub port. |
-| **CH340** | Acceptable budget option; clones share **VID/PID**. TTL level per jumper (**3.3 V** / **5 V**). |
+| **FT232RNL** | Preferred: **one USB serial per unit**; **udev** may not depend on hub port. **Required class** for **MediaTek UART recovery** ([mtk_uartboot](https://github.com/981213/mtk_uartboot)) on bricked MT7622 (Belkin RT3200): CH340 often fails mid-transfer after a good handshake. |
+| **CH340** | Acceptable budget option for **console at 115200**; clones share **VID/PID**. TTL level per jumper (**3.3 V** / **5 V**). **Not** reliable for **mtk_uartboot** (payload upload timeouts); use **FT232RNL** for that workflow. |
 | **CH341** | Budget; **not** reliable on **LibreRouter** console in the rack: during boot serial showed garbage and **U-Boot prompt could not be captured** with labgrid/minicom at 115200, breaking TFTP boot and tests. After **replacing the adapter** with an FT232RNL, console became readable. |
 | **Three cheap generics** (last 3 carousel photos) | **Not** used in rack: no DUT console; after DUT reboot **USB must be re-plugged** to recover serial; overheating or sporadic failures under test. |
 

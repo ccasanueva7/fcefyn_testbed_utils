@@ -204,6 +204,7 @@ Use [**mtk_uartboot**](https://github.com/981213/mtk_uartboot) + serial + TFTP t
 
 #### Prerequisites
 
+- **USB-serial adapter:** Use a **reliable** 3.3 V TTL adapter for this flow. **CH340** adapters often complete the BootROM handshake then **time out** while uploading the BL2 payload (`sending payload...` / panic in `bootrom.rs`) because they drop bytes under sustained traffic. **FT232RNL** (or another genuine **FTDI** / **CP210x** known to work at **460800+**) is strongly recommended. Plug the adapter **directly** into the PC when possible; long chains of **USB hubs** make CH340 failures more likely. See [USB-TTL serial adapters](catalogo-hardware.md#usb-ttl-serial-adapters).
 - 3.3V USB-serial TTL on J10 (router TX → adapter RX, RX → TX, common GND; do not connect VCC).
 - Ethernet cable LAN 1 to PC.
 - Files in a folder (e.g. `~/recoverBelkin`):
@@ -219,13 +220,15 @@ Use [**mtk_uartboot**](https://github.com/981213/mtk_uartboot) + serial + TFTP t
 
 #### Step by step
 
-1. **Run mtk_uartboot** (adjust `/dev/ttyUSB0` if needed):
+1. **Run mtk_uartboot** (adjust `/dev/ttyUSB0` if needed). If the serial adapter is marginal, try `--brom-load-baudrate 115200 --bl2-load-baudrate 115200` (slower but sometimes enough for CH340; **FT232RNL** usually needs no flags):
 
    ```bash
-   sudo ./mtk_uartboot -s /dev/ttyUSB0 -a -p mt7622-ram-1ddr-bl2.bin -f openwrt-23.05.5-mediatek-mt7622-linksys_e8450-ubi-bl31-uboot.fip && screen /dev/ttyUSB0 115200
+   sudo ./mtk_uartboot -s /dev/ttyUSB0 -a -p mt7622-ram-1ddr-bl2.bin -f openwrt-23.05.5-mediatek-mt7622-linksys_e8450-ubi-bl31-uboot.fip
    ```
 
-2. **Power on the router** right after pressing Enter. In 2-5 s you should see "Handshake succeeded" and enter screen.
+   After you see **Received FIP** / U-Boot output, open the console in a **second** terminal: `screen /dev/ttyUSB0 115200` (avoid `&& screen` in one line if the tool exits with a non-zero code).
+
+2. **Power on the router** right after pressing Enter. In a few seconds the handshake should complete and BL2 should start loading the FIP.
 
 3. **In screen:** press down arrow to interrupt autoboot and enter U-Boot menu.
 
@@ -239,6 +242,7 @@ Use [**mtk_uartboot**](https://github.com/981213/mtk_uartboot) + serial + TFTP t
 
 #### Notes
 
+- If **mtk_uartboot** panics with **Operation timed out** right after `sending payload...`, the cause is almost always the **USB-serial chip** (CH340 + hubs) or wiring; switching to **FT232RNL** fixed this in lab practice (April 2026).
 - If ARP retry fails: in U-Boot run `setenv ethaddr 00:11:22:33:44:55; saveenv`.
 - If it does not boot after process, repeat 1-6 (sometimes two attempts).
 - Verify: after boot, `grep "(release)" /dev/mtd0ro` should show v2.4 or fixed version.
