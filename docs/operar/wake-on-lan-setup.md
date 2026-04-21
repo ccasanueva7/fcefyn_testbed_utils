@@ -19,7 +19,7 @@ BIOS must allow WoL. On ThinkPad T430:
 
 ### 2.1 Enter BIOS
 
-1. Reboot the laptop.
+1. Reboot the machine.
 2. When the ThinkPad logo appears, press **F1**.
 3. **BIOS Setup Utility** opens.
 

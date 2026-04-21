@@ -104,12 +104,12 @@ TFTPProvider:
 
 The user running tests needs **write permission** on each DUT folder so Labgrid can create symlinks.
 
-### 4.2 Remote image staging (developer laptops and CI) {: #42-remote-image-staging }
+### 4.2 Remote image staging (developer machines and CI) {: #42-remote-image-staging }
 
-When a developer runs tests **from a laptop** (not the lab host), `LG_IMAGE` points to a **local file on the laptop**:
+When a developer runs tests **from a machine** (not the lab host), `LG_IMAGE` points to a **local file on the machine**:
 
 ```bash
-# On the developer's laptop
+# On the developer's machine
 export LG_IMAGE=$HOME/builds/lime-24.10.5-mediatek-filogic-openwrt_one-initramfs.itb
 export LG_PLACE=labgrid-fcefyn-openwrt_one
 export LG_PROXY=labgrid-fcefyn
@@ -120,7 +120,7 @@ The image does not exist on the lab server, but the DUT needs to download it via
 
 ```mermaid
 sequenceDiagram
-    participant Dev as Developer laptop
+    participant Dev as Developer machine
     participant Coord as Coordinator
     participant Lab as Lab host
     participant DUT as DUT (U-Boot)
@@ -135,7 +135,7 @@ sequenceDiagram
 
 | Step | What happens |
 |------|--------------|
-| 1. `get_image_path("root")` | Resolves `$LG_IMAGE` to the local path on the laptop. |
+| 1. `get_image_path("root")` | Resolves `$LG_IMAGE` to the local path on the machine. |
 | 2. `stage(local_path)` | Hashes the file (SHA-256). If the hash already exists in `/var/cache/labgrid/` on the lab host, skips the upload. Otherwise copies it via SCP. |
 | 3. Symlink | Creates a symlink in the DUT's `internal` directory (e.g. `/srv/tftp/openwrt_one/<filename>`) pointing at the cached file. |
 | 4. `setenv bootfile` | Sets the U-Boot bootfile to `<external>/<filename>` so the DUT can TFTP-download it. |

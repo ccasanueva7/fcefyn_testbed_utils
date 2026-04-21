@@ -43,16 +43,16 @@ LG_MESH_KEEP_POWERED=1 \
 uv run pytest tests/test_mesh.py -v
 ```
 
-`LG_MESH_KEEP_POWERED=1` leaves DUTs powered after the test (VLANs are still restored to isolated). On the host, manual SSH to a node still on VLAN 200: `sudo labgrid-bound-connect vlan200 <mesh_ssh_ip> 22`. From a developer laptop, the local `Host dut-*` aliases do **not** work for VLAN 200; use the nested `ProxyCommand` from [SSH access to DUTs - Remote developer](dut-ssh-access.md#remote-developer-lg_proxy).
+`LG_MESH_KEEP_POWERED=1` leaves DUTs powered after the test (VLANs are still restored to isolated). On the host, manual SSH to a node still on VLAN 200: `sudo labgrid-bound-connect vlan200 <mesh_ssh_ip> 22`. From a developer machine, the local `Host dut-*` aliases do **not** work for VLAN 200; use the nested `ProxyCommand` from [SSH access to DUTs - Remote developer](dut-ssh-access.md#remote-developer-lg_proxy).
 
 ---
 
-## Running from a developer laptop
+## Running from a developer machine
 
-A developer can run tests from their own machine using `LG_PROXY` to reach the lab. `LG_IMAGE` points to a **local file on the laptop**; Labgrid uploads it to the lab server automatically (see [TFTP staging](../configuracion/tftp-server.md#42-remote-image-staging)). Full guide: [Developer remote access](developer-remote-access.md).
+A developer can run tests from their own machine using `LG_PROXY` to reach the lab. `LG_IMAGE` points to a **local file on the machine**; Labgrid uploads it to the lab server automatically (see [TFTP staging](../configuracion/tftp-server.md#42-remote-image-staging)). Full guide: [Developer quickstart](developer-remote-access.md).
 
 ```bash
-# On the developer laptop (not the lab host)
+# On the developer machine (not the lab host)
 cd ~/pi/libremesh-tests
 export LG_PLACE=labgrid-fcefyn-bananapi_bpi-r4
 export LG_PROXY=labgrid-fcefyn

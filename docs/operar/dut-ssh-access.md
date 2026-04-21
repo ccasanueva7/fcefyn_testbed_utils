@@ -60,7 +60,7 @@ There are three addresses worth distinguishing during mesh tests:
 
 ### Remote developer (LG_PROXY) {: #remote-developer-lg_proxy }
 
-From a developer laptop, the `vlan200` interface lives on the lab host, not on the laptop. The bound-connect must therefore run **on the host** via SSH. The test suite handles this automatically (see `SSHProxy._build_ssh_cmd` in `conftest_mesh.py`); for manual SSH from a laptop:
+From a developer machine, the `vlan200` interface lives on the lab host, not on the developer machine. The bound-connect must therefore run **on the host** via SSH. The test suite handles this automatically (see `SSHProxy._build_ssh_cmd` in `conftest_mesh.py`); for manual SSH from a machine:
 
 ```bash
 ssh -o ProxyCommand="ssh ${LG_PROXY:-labgrid-fcefyn} sudo /usr/local/sbin/labgrid-bound-connect vlan200 <mesh_ssh_ip> 22" \
@@ -69,16 +69,16 @@ ssh -o ProxyCommand="ssh ${LG_PROXY:-labgrid-fcefyn} sudo /usr/local/sbin/labgri
 
 ```mermaid
 sequenceDiagram
-    participant Laptop as Dev laptop
+    participant Machine as Dev machine
     participant Host as Lab host (LG_PROXY)
     participant DUT as DUT mesh (10.13.200.x)
-    Laptop->>Host: ssh (LG_PROXY)
+    Machine->>Host: ssh (LG_PROXY)
     Host->>Host: sudo labgrid-bound-connect vlan200 IP 22
     Host->>DUT: TCP socket bound to vlan200
-    Laptop->>DUT: SSH session through nested ProxyCommand
+    Machine->>DUT: SSH session through nested ProxyCommand
 ```
 
-Pre-requisites on the host (already in place for `labgrid-dev` per [host-config 3.4](../configuracion/host-config.md#34-sudoers)): SSH user must have `sudo NOPASSWD` for `/usr/local/sbin/labgrid-bound-connect`. No local `dut-config.yaml` nor `labgrid-switch-abstraction` install is required on the laptop.
+Pre-requisites on the host (already in place for `labgrid-dev` per [host-config 3.4](../configuracion/host-config.md#34-sudoers)): SSH user must have `sudo NOPASSWD` for `/usr/local/sbin/labgrid-bound-connect`. No local `dut-config.yaml` nor `labgrid-switch-abstraction` install is required on the developer machine.
 
 Per-DUT isolated VLAN and mesh SSH IP table: [Rack cheatsheets - all DUTs](rack-cheatsheets.md#quick-reference-all-duts).
 

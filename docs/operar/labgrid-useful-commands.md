@@ -9,7 +9,7 @@ Copy-paste `labgrid-client` usage for the **labgrid-fcefyn** coordinator. Place 
 | Context | `LG_PROXY` | Typical use |
 |---------|------------|-------------|
 | On the **lab host** (or SSH session to it) | **Unset** | `who`, `places`, manual `unlock` (talks to local coordinator). |
-| **CI runner** or laptop via SSH jump | `ssh://labgrid-fcefyn` (or `labs.<lab>.proxy` from [openwrt-tests labnet.yaml](https://github.com/aparcar/openwrt-tests/blob/main/labnet.yaml)) | `reserve`, pytest, workflows that expect the remote proxy. |
+| **CI runner** or machine via SSH jump | `ssh://labgrid-fcefyn` (or `labs.<lab>.proxy` from [openwrt-tests labnet.yaml](https://github.com/aparcar/openwrt-tests/blob/main/labnet.yaml)) | `reserve`, pytest, workflows that expect the remote proxy. |
 
 For `who` / `places` / freeing stuck places, run on the host **without** `LG_PROXY` so the client hits the coordinator directly.
 
@@ -68,7 +68,7 @@ done
 
 ---
 
-## Release between test runs (host or dev laptop)
+## Release between test runs (host or dev machine)
 
 After a **crashed pytest**, an **aborted mesh run**, or before the **next** manual/CI run, places can stay **acquired** or locked by the previous session. Run **`release`** (same as `unlock`) on the **lab host** (coordinator local, `LG_PROXY` unset; see [Runtime context](#runtime-context)) or from a **developer machine** with `LG_PROXY` set if that machine has coordinator access to the same lab.
 

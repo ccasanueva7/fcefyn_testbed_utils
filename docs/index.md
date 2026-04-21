@@ -10,7 +10,9 @@
 
 - **Validate firmware** for *OpenWrt* and *LibreMesh*-based routers in an **automated, repeatable** way using the [Labgrid](https://labgrid.readthedocs.io/en/latest/) + [pytest](https://docs.pytest.org/en/stable/) ecosystem, following *openwrt-tests* and *libremesh-tests*.
 - **Cover physical and emulated targets**: tests on **physical devices** in a rack over physical links and on [QEMU](https://www.qemu.org/) instances with WiFi simulated via [vwifi](https://github.com/sysprog21/vwifi).
-- **Operate a shared lab**: one DUT inventory for both projects ([Lab architecture](diseno/lab-architecture.md)) and [remote access for developers](operar/developer-remote-access.md).
+- **Operate a shared lab**: one DUT inventory for both projects ([Lab architecture](diseno/lab-architecture.md)).
+
+**New developer?** Start here: **[Developer quickstart](operar/developer-remote-access.md)** - SSH setup, repos, firmware, and first test run.
 
 ### Testbed overview
 

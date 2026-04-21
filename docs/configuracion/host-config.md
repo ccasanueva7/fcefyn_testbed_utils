@@ -132,7 +132,7 @@ Each VLAN interface has **two addresses** because the host participates in two s
 |-----------|------|
 | **labgrid-bound-connect** | TCP (SSH) connections *bound* to a VLAN interface. Uses `socat` with `so-bindtodevice`. |
 
-Each DUT SSH alias uses a static `ProxyCommand` bound to the DUT's isolated VLAN (e.g. `labgrid-bound-connect vlan100 192.168.1.1 22`). Tests that need mesh VLAN 200 use their own SSH path internally; `conftest_vlan.py` always restores ports to isolated after teardown. For manual mesh access on the host: `sudo labgrid-bound-connect vlan200 <mesh_ssh_ip> 22`. From a developer laptop the bound-connect must run on the host via nested `ProxyCommand`; see [SSH access to DUTs - Remote developer](../operar/dut-ssh-access.md#remote-developer-lg_proxy).
+Each DUT SSH alias uses a static `ProxyCommand` bound to the DUT's isolated VLAN (e.g. `labgrid-bound-connect vlan100 192.168.1.1 22`). Tests that need mesh VLAN 200 use their own SSH path internally; `conftest_vlan.py` always restores ports to isolated after teardown. For manual mesh access on the host: `sudo labgrid-bound-connect vlan200 <mesh_ssh_ip> 22`. From a developer machine the bound-connect must run on the host via nested `ProxyCommand`; see [SSH access to DUTs - Remote developer](../operar/dut-ssh-access.md#remote-developer-lg_proxy).
 
 ### 3.2 Dynamic VLAN per test (labgrid-switch-abstraction / switch-vlan)
 
@@ -518,14 +518,14 @@ Playbook prefers host-specific file over default template.
 | **Developer** | Contributors listed in `labnet.yaml` | SSH `ProxyJump` via upstream `labgrid-coordinator:51818` (plus LAN when on site). No VPN. | `labgrid-dev` | Run tests, `labgrid-client` (lock, power, ssh, console), SSH to DUTs, TFTP symlinks. No general `sudo` (except `labgrid-bound-connect` and `switch-vlan` over SSH). |
 | **Administrator** | Lab maintainers | Direct SSH via ZeroTier (or LAN) | Personal user with `sudo` | All above plus: Ansible, service management, switch config, package install, `switch-vlan` locally, etc. |
 
-Developer access is the upstream openwrt-tests pattern and does not require ZeroTier. Setup on the developer laptop: [developer-remote-access](../operar/developer-remote-access.md#31-ssh-config).
+Developer access is the upstream openwrt-tests pattern and does not require ZeroTier. Setup on the developer machine: [Developer quickstart](../operar/developer-remote-access.md#2-configure-ssh).
 
 #### Developer access (Labgrid + `labgrid-dev`)
 
 No VPN. Two SSH hops:
 
 1. Developer public key in `labnet.yaml` → Ansible copies to `~labgrid-dev/.ssh/authorized_keys` on the lab host. The same key must also be registered on `~labgrid-dev/.ssh/authorized_keys` of the upstream `labgrid-coordinator` (upstream playbook does not deploy to the `[coordinator]` group - must be coordinated with upstream maintainer).
-2. Set `LG_PROXY=labgrid-fcefyn` on the laptop; SSH chain resolves via `~/.ssh/config` (ProxyJump through `labgrid-coordinator`).
+2. Set `LG_PROXY=labgrid-fcefyn` on the developer machine; SSH chain resolves via `~/.ssh/config` (ProxyJump through `labgrid-coordinator`).
 3. `labgrid-client` tunnels traffic (coordinator gRPC, exporter, SSH to DUTs) over SSH to host as `labgrid-dev`.
 4. DUT SSH runs on host via `labgrid-bound-connect`; `switch-vlan` runs on host via the same SSH session (credentials in `/etc/switch.conf` stay on host).
 
@@ -566,7 +566,7 @@ zerotier-cli listnetworks   # verify
 !!! note "ZeroTier role compatibility"
     Role targets Debian/Ubuntu (`ansible_os_family == "Debian"`).
 
-**External devices (laptops, PCs):** see [zerotier-remote-access](../operar/zerotier-remote-access.md).
+**External devices (machines):** see [zerotier-remote-access](../operar/zerotier-remote-access.md).
 
 ### 8.3.1 WireGuard (global-coordinator) {: #831-wireguard-global-coordinator }
 

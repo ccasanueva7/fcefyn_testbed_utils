@@ -510,7 +510,7 @@ Wildcard `zt+` matches any `zt*` interface. If the zone index changes, adjust (`
 | `ACCESS_DENIED` in `listnetworks` | Node not authorized | Authorize on my.zerotier.com |
 | `NOT_FOUND` for a NWID in `listnetworks` | Invalid NWID or missing network; often stale UCI `network` section (`earth`, etc.) | `uci delete zerotier.<name>` for that section; use only `option id` with correct NWID (see above) |
 | `listnetworks` shows header only (no networks) | Missing UCI `network` section with `id`, or only `openwrt_network.join` left | Add `uci set zerotier.fcefyn_vpn=network` + `id='b103a835d2ead2b6'` + `allow_*`; `commit`; `restart` |
-| `zerotier-cli info` ONLINE but SSH from outside: *No route to host* | Node not on ZT network or wrong IP | Check `listnetworks` OK on router; laptop on same ZT (`zerotier-cli listnetworks`) |
+| `zerotier-cli info` ONLINE but SSH from outside: *No route to host* | Node not on ZT network or wrong IP | Check `listnetworks` OK on router; machine on same ZT (`zerotier-cli listnetworks`) |
 | `Connection refused` SSH to ZeroTier IP | Firewall blocks zt* | Add `zt+` to firewall (above) |
 
 ### 5.8 Wake-on-LAN (remote host power-on) {: #58-wake-on-lan-remote-host-power-on }

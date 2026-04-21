@@ -169,7 +169,7 @@ Add the public key (`cat` output) to `labnet.yaml` under `developers.<github_use
 To use another PC, copy the key pair (`id_ed25519` + `id_ed25519.pub`) to `~/.ssh/` on the new machine with `chmod 600` on the private key. One `labnet.yaml` entry covers all PCs for the same developer.
 
 !!! warning "Do not confuse with host keys"
-    Orchestration host keys (`/etc/wireguard/public.key`, keys in `~labgrid-dev/.ssh/`) serve other purposes. Under `labnet.yaml → developers` only put **personal** keys for people who will run `labgrid-client` from laptops.
+    Orchestration host keys (`/etc/wireguard/public.key`, keys in `~labgrid-dev/.ssh/`) serve other purposes. Under `labnet.yaml → developers` only put **personal** keys for people who will run `labgrid-client` from their machines.
 
 ---
 

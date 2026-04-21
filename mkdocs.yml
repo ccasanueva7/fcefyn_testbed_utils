@@ -78,17 +78,17 @@ extra:
 nav:
   - Home: index.md
   - Lab operations:
+      - Developer quickstart: operar/developer-remote-access.md
+      - Running tests: operar/lab-running-tests.md
+      - SSH access to DUTs: operar/dut-ssh-access.md
+      - Labgrid commands: operar/labgrid-useful-commands.md
       - Operations manual: operar/system-operation-manual.md
       - Rack quick reference: operar/rack-cheatsheets.md
       - Routine operations: operar/lab-routine-operations.md
-      - SSH access to DUTs: operar/dut-ssh-access.md
-      - Running tests: operar/lab-running-tests.md
-      - Labgrid commands: operar/labgrid-useful-commands.md
       - Adding a DUT: operar/dut-onboarding.md
       - Build firmware: operar/build-firmware-manual.md
       - Wake-on-LAN: operar/wake-on-lan-setup.md
-      - Developer remote access: operar/developer-remote-access.md
-      - ZeroTier remote access: operar/zerotier-remote-access.md
+      - ZeroTier (admin-only): operar/zerotier-remote-access.md
   - Component configuration:
       - Hardware and rack reference:
           - Hardware catalog: configuracion/catalogo-hardware.md
