@@ -1,6 +1,9 @@
-# ZeroTier - install for lab access
+# ZeroTier - admin remote access
 
-How to install ZeroTier on external devices (admin laptops, etc.) and reach the lab host over VPN.
+!!! warning "Admin-only"
+    ZeroTier is for **lab administrators** who need `sudo` on the host (Ansible, service management, switch/MikroTik consoles). Developers do **not** need ZeroTier: they reach the lab via the upstream coordinator as `ProxyJump` - see [developer-remote-access](developer-remote-access.md).
+
+How to install ZeroTier on admin laptops and reach the lab host as an unprivileged / personal user over VPN.
 
 **Lab network:** `b103a835d2ead2b6` - [Join](https://joinzt.com/addnetwork?nwid=b103a835d2ead2b6&v=1).
 

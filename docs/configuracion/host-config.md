@@ -17,8 +17,8 @@ Configuration of the host (Lenovo T430, Ubuntu) as the HIL orchestration server.
 | **SSH to DUTs** | `labgrid-bound-connect vlanNNN 192.168.1.1 22` | Connects to DUT on its isolated VLAN. See [SSH access to DUTs](../operar/dut-ssh-access.md). |
 | **udev** | `/etc/udev/rules.d/99-serial-devices.rules` | Per-DUT serial symlinks (`/dev/belkin-rt3200-1`, etc.). |
 | **TFTP** | `/srv/tftp/<place>/` | Firmware per place. See [tftp-server](tftp-server.md). |
-| **ZeroTier** | Ansible role `zerotier` | Remote access to host via VPN. See [8.3](#83-zerotier-remote-access). |
-| **WireGuard** | Ansible role `wireguard` | Tunnel to openwrt-tests global coordinator. See [8.3.1](#831-wireguard-global-coordinator). |
+| **ZeroTier** | Ansible role `zerotier` | Admin-only remote access to host via VPN. See [8.3](#83-remote-access-zerotier-for-admins-proxyjump-for-developers). |
+| **WireGuard** | Ansible role `wireguard` | Tunnel to openwrt-tests global coordinator (upstream SSH jump host for developers and CI). See [8.3.1](#831-wireguard-global-coordinator). |
 | **Wake-on-LAN** | BIOS + ethtool + `wol.service` | Power on the host from off over LAN. See [wake-on-lan-setup](../operar/wake-on-lan-setup.md). |
 | **CI Runner** | `~/actions-runner/` | GitHub Actions self-hosted runner. See [ci-runner](ci-runner.md). |
 
@@ -466,7 +466,7 @@ Each symlink should exist when the corresponding device is plugged.
 - **arduino:** arduino-relay-daemon, udev rules for serial devices
 - **poe_switch:** poe_switch_control.py, switch_client, switch_drivers (PoE control)
 
-- **zerotier:** ZeroTier for remote host access (see [8.3](#83-zerotier-remote-access))
+- **zerotier:** ZeroTier for admin remote access (see [8.3](#83-remote-access-zerotier-for-admins-proxyjump-for-developers))
 - **wireguard:** WireGuard tunnel to openwrt-tests global coordinator (see [8.3.1](#831-wireguard-global-coordinator))
 - **wol:** persistent Wake-on-LAN (see [8.4](#84-wake-on-lan-persistence))
 
@@ -509,23 +509,25 @@ To automate host config with the openwrt-tests playbook:
 
 Playbook prefers host-specific file over default template.
 
-### 8.3 ZeroTier (remote access)
+### 8.3 Remote access (ZeroTier for admins, ProxyJump for developers)
 
 #### Two remote access levels
 
 | Level | Who | How | Host user | Can do |
 |-------|-----|-----|-------------|--------|
-| **Developer** | Contributors listed in `labnet.yaml` | Labgrid (`LG_PROXY`) or direct SSH | `labgrid-dev` | Run tests, `labgrid-client` (lock, power, ssh, console), SSH to DUTs, TFTP symlinks. No general `sudo` (except `labgrid-bound-connect`). |
-| **Administrator** | Lab maintainers | Direct SSH via ZeroTier (or LAN) | Personal user with `sudo` | All above plus: Ansible, service management, switch config, package install, `switch-vlan`, etc. |
+| **Developer** | Contributors listed in `labnet.yaml` | SSH `ProxyJump` via upstream `labgrid-coordinator:51818` (plus LAN when on site). No VPN. | `labgrid-dev` | Run tests, `labgrid-client` (lock, power, ssh, console), SSH to DUTs, TFTP symlinks. No general `sudo` (except `labgrid-bound-connect` and `switch-vlan` over SSH). |
+| **Administrator** | Lab maintainers | Direct SSH via ZeroTier (or LAN) | Personal user with `sudo` | All above plus: Ansible, service management, switch config, package install, `switch-vlan` locally, etc. |
+
+Developer access is the upstream openwrt-tests pattern and does not require ZeroTier. Setup on the developer laptop: [developer-remote-access](../operar/developer-remote-access.md#31-ssh-config).
 
 #### Developer access (Labgrid + `labgrid-dev`)
 
-Labgrid provides remote DUT access **without VPN**:
+No VPN. Two SSH hops:
 
-1. Developer public key in `labnet.yaml` → Ansible copies to `~labgrid-dev/.ssh/authorized_keys`.
-2. Set `LG_PROXY=labgrid-fcefyn` on local machine.
-3. `labgrid-client` tunnels traffic (coordinator, exporter, SSH to DUTs) over SSH to host as `labgrid-dev`.
-4. DUT SSH runs on host via `labgrid-bound-connect`.
+1. Developer public key in `labnet.yaml` → Ansible copies to `~labgrid-dev/.ssh/authorized_keys` on the lab host. The same key must also be registered on `~labgrid-dev/.ssh/authorized_keys` of the upstream `labgrid-coordinator` (upstream playbook does not deploy to the `[coordinator]` group - must be coordinated with upstream maintainer).
+2. Set `LG_PROXY=labgrid-fcefyn` on the laptop; SSH chain resolves via `~/.ssh/config` (ProxyJump through `labgrid-coordinator`).
+3. `labgrid-client` tunnels traffic (coordinator gRPC, exporter, SSH to DUTs) over SSH to host as `labgrid-dev`.
+4. DUT SSH runs on host via `labgrid-bound-connect`; `switch-vlan` runs on host via the same SSH session (credentials in `/etc/switch.conf` stay on host).
 
 Developer runs as `labgrid-dev` on host, no general `sudo`, cannot change system config.
 

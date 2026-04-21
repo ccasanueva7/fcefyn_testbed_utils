@@ -8,17 +8,19 @@ End-to-end guide for external developers who want to run tests on FCEFyN lab har
 
 ## 1. How remote access works
 
-Labgrid tunnels all traffic (coordinator, exporter, serial, SSH to DUTs) through an SSH connection to the lab host. The developer never needs VPN or direct network access to the lab.
+The developer never needs VPN. SSH jumps through the upstream **openwrt-tests coordinator** (public endpoint) to reach the lab host. From the lab host, labgrid tunnels all traffic (coordinator gRPC, exporter, serial, SSH to DUTs) through the same SSH session.
 
 ```mermaid
 sequenceDiagram
     participant Dev as Developer laptop
+    participant LGC as labgrid-coordinator<br/>(195.37.88.188:51818)
     participant Host as labgrid-fcefyn host
-    participant Coord as Coordinator
+    participant Coord as Coord gRPC
     participant Exp as Exporter
     participant DUT as DUT
 
-    Dev->>Host: SSH tunnel (LG_PROXY)
+    Dev->>LGC: SSH (ProxyJump)
+    LGC->>Host: SSH (WireGuard tunnel 10.0.0.10)
     Host->>Coord: gRPC (localhost:20408)
     Dev->>Coord: lock place (via tunnel)
     Dev->>Host: rsync firmware (via tunnel)
@@ -31,11 +33,14 @@ sequenceDiagram
 
 | Component | Where | What |
 |-----------|-------|------|
-| Coordinator | Lab host (localhost:20408) | Manages place reservations (lock/unlock) |
+| `labgrid-coordinator` | Upstream VM (public IP, port 51818) | SSH jump host to every lab (`ProxyJump`) |
+| Coordinator gRPC | Lab host (localhost:20408) | Manages place reservations (lock/unlock) |
 | Exporter | Lab host | Publishes DUTs (serial, power, TFTP, SSH) |
-| `LG_PROXY` | Developer env var | Tells labgrid-client to tunnel through SSH |
-| `labgrid-dev` | Host user | Unprivileged account for developers |
+| `LG_PROXY` | Developer env var | Tells labgrid-client to tunnel through SSH to the lab host alias |
+| `labgrid-dev` | Host user | Unprivileged account for developers on the lab host and on the coord |
 | `labnet.yaml` | [openwrt-tests](https://github.com/aparcar/openwrt-tests/blob/main/labnet.yaml) | Developer SSH keys and lab device inventory (shared registry) |
+
+ZeroTier is **not** required for developer access. It is used only by lab admins (see [ZeroTier (admin-only)](zerotier-remote-access.md)).
 
 ---
 
@@ -85,35 +90,51 @@ sudo chown labgrid-dev:labgrid-dev /home/labgrid-dev/.ssh/authorized_keys
 sudo chmod 600 /home/labgrid-dev/.ssh/authorized_keys
 ```
 
+### 2.4 Register the key on the upstream coordinator
+
+The upstream [playbook_labgrid.yml](https://github.com/aparcar/openwrt-tests/blob/main/ansible/playbook_labgrid.yml) deploys keys to the `[labs]` Ansible group only, not to `[coordinator]`. The developer key therefore must be added manually to `~labgrid-dev/.ssh/authorized_keys` on `labgrid-coordinator` by the upstream maintainer.
+
+After step 2.2 is merged, open an issue or ping the upstream maintainer ([@aparcar](https://github.com/aparcar)) with the public key fingerprint and username (same as in `labnet.yaml`). Without this, step 3.2 below fails with `Permission denied (publickey)` on the first hop.
+
 ---
 
 ## 3. Configure the developer machine
 
 ### 3.1 SSH config
 
-Add to `~/.ssh/config` on the developer laptop:
+Add the two blocks below to `~/.ssh/config` on the developer laptop. The first reaches the upstream coordinator; the second tells SSH to jump through it for any `labgrid-*` lab host (except the coordinator itself, to avoid a proxy loop):
 
 ```
-Host labgrid-fcefyn
-   HostName <HOST_IP>
-   User labgrid-dev
-   IdentityFile ~/.ssh/id_ed25519
+Host labgrid-coordinator
+    User labgrid-dev
+    HostName 195.37.88.188
+    Port 51818
+    IdentityFile ~/.ssh/id_ed25519
+
+Host labgrid-* !labgrid-coordinator
+    User labgrid-dev
+    ProxyJump labgrid-coordinator
+    IdentityFile ~/.ssh/id_ed25519
 ```
 
-`<HOST_IP>` depends on network location:
+Notes:
 
-| Location | HostName value |
-|----------|----------------|
-| Same LAN as the lab | Lab host LAN IP (e.g. `10.246.3.118`) |
-| Remote (via ZeroTier) | Lab host ZeroTier IP (see [ZeroTier setup](zerotier-remote-access.md)) |
+- The coordinator endpoint (IP and port) is maintained by the upstream project. Current value is `195.37.88.188:51818`; the upstream maintainer may move it. If the connection is refused, ask upstream for the current endpoint.
+- The `!labgrid-coordinator` negation in the wildcard prevents the coord from inheriting a `ProxyJump` to itself (infinite loop, manifests as banner-exchange timeouts).
+- The lab alias (`labgrid-fcefyn`) is resolved to its WireGuard IP by `/etc/hosts` on the coordinator. No `HostName` is needed in the second block.
 
 ### 3.2 Verify SSH access
 
+Three-step smoke test (run in order):
+
 ```bash
-ssh labgrid-fcefyn whoami
+nc -zv -w 5 195.37.88.188 51818                 # TCP reachable
+ssh -o ConnectTimeout=8 labgrid-coordinator whoami   # hop 1 → labgrid-dev
+ssh -o ConnectTimeout=15 labgrid-fcefyn whoami       # hop 2 → labgrid-dev
 ```
 
-Expected output: `labgrid-dev`. If it asks for a password, the public key was not deployed (see step 2.3).
+If hop 1 fails with `Permission denied (publickey)`: the key was not registered on the coordinator (see step 2.4).
+If hop 1 passes and hop 2 fails with `Could not resolve hostname labgrid-fcefyn`: add `HostName 10.0.0.10` (the lab's WireGuard IP) to a specific `Host labgrid-fcefyn` block above the wildcard.
 
 ### 3.3 Clone and install dependencies
 
@@ -239,8 +260,11 @@ Always unlock when done: `uv run labgrid-client unlock`.
 
 | Problem | Cause | Fix |
 |---------|-------|-----|
-| `Could not resolve hostname labgrid-fcefyn` | Missing `~/.ssh/config` entry | Add `Host labgrid-fcefyn` with `HostName` (section 3.1) |
-| `Permission denied (publickey,password)` | Key not deployed on host | Run Ansible playbook or add key manually (section 2.3) |
+| `Connection timed out during banner exchange` / `UNKNOWN port 65535` on `ssh labgrid-coordinator` | `Host labgrid-*` wildcard is matching the coord and adding a `ProxyJump` to itself | Add `!labgrid-coordinator` to the wildcard pattern (section 3.1) |
+| `Connection refused` on port 51818 | Upstream moved the coord endpoint | Ask upstream maintainer for the current IP/port |
+| `Permission denied (publickey)` on hop 1 (coord) | Key not registered on the coordinator | Register the key on `labgrid-coordinator` (section 2.4) |
+| `Permission denied (publickey,password)` on hop 2 (lab host) | Key not deployed on lab host | Run Ansible playbook or add key manually (section 2.3) |
+| `Could not resolve hostname labgrid-fcefyn` inside the ProxyJump | Coordinator's `/etc/hosts` does not have the alias | Add an explicit `HostName 10.0.0.10` block for `labgrid-fcefyn` (section 3.1) |
 | `no such identity: ...id_ed25519_fcefyn_lab` | Wrong `IdentityFile` in SSH config | Point to the developer's own private key (section 3.1) |
 | `RemoteTFTPProviderAttributes has no attribute external_ip` | Wrong labgrid version (PyPI instead of fork) | Run from `libremesh-tests/` dir with `uv run` (section 3.3) |
 | `Local file ... not found` | `LG_IMAGE` path does not exist locally | Download firmware from host first (section 3.4) |
@@ -255,5 +279,5 @@ Always unlock when done: `uv run labgrid-client unlock`.
 - [SSH access to DUTs](dut-ssh-access.md) - VLAN lifecycle and mesh SSH IPs
 - [TFTP / dnsmasq](../configuracion/tftp-server.md) - firmware layout and naming convention
 - [Host configuration](../configuracion/host-config.md) - full host setup including SSH keys (section 3.6)
-- [ZeroTier remote access](zerotier-remote-access.md) - VPN setup for admin access outside LAN
-- [openwrt-tests README](https://github.com/aparcar/openwrt-tests#remote-access) - upstream remote access documentation
+- [openwrt-tests README](https://github.com/aparcar/openwrt-tests#remote-access) - upstream remote access documentation (same `labgrid-coordinator` / `ProxyJump` pattern)
+- [ZeroTier (admin-only)](zerotier-remote-access.md) - VPN for lab admins, not needed by developers
