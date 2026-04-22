@@ -38,8 +38,8 @@ flowchart TD
 
 | # | Connection | Detail |
 |---|---|---|
-| 1 | Runners → Coordinator | WebSocket localhost:20408 (reserve / lock / unlock) |
-| 2 | Exporter → Coordinator | WebSocket via WireGuard (register resources) |
+| 1 | Runners → Coordinator | gRPC localhost:20408 (reserve / lock / unlock) |
+| 2 | Exporter → Coordinator | gRPC via WireGuard (register resources) |
 | 3 | Runners → bound-connect | SSH via WireGuard (LG_PROXY=labgrid-X) |
 | 4 | bound-connect → DUTs | socat with so-bindtodevice on correct VLAN interface |
 
@@ -47,10 +47,10 @@ All connections between labs and the VM traverse a **WireGuard** tunnel (point-t
 
 | Component | Location | Role |
 |-----------|----------|------|
-| **Coordinator** | Datacenter VM (public IP) | WebSocket server. Registers places (`places.yaml`), coordinates reservations and locks. Does **not** proxy SSH. |
+| **Coordinator** | Datacenter VM (public IP) | gRPC server (port 20408). Registers places (`places.yaml`), coordinates reservations and locks. Does **not** proxy SSH. |
 | **GitHub runners** | Same VM | Self-hosted runners executing CI workflow jobs against remote DUTs via `LG_PROXY`. |
 | **WireGuard** | Between each lab and the VM | Tunnel so runners can SSH to lab hosts and lab exporters can reach the coordinator. |
-| **Exporter** | Lab host | Registers local DUT resources (serial, power, network) with the coordinator over WebSocket. |
+| **Exporter** | Lab host | Registers local DUT resources (serial, power, network) with the coordinator over gRPC. |
 | **`labgrid-bound-connect`** | Lab host | SSH ProxyCommand invoked by the runner. Uses `socat` with `so-bindtodevice` to connect to a DUT IP on the correct VLAN interface. |
 | **Place** | Configuration | Abstraction of one DUT: resources (serial, power, SSH target), boot strategy, firmware. |
 
@@ -66,17 +66,17 @@ See [CI execution flow](openwrt-tests-ci-flow.md) for the full sequence of how a
 The exporter initiates the connection *toward* the coordinator.
 
 ```bash
-labgrid-exporter --coordinator ws://<coordinator_host>:<port> /etc/labgrid/exporter.yaml
+labgrid-exporter --coordinator <coordinator_host>:<port> /etc/labgrid/exporter.yaml
 ```
 
-In practice the exporter runs as a systemd service (`labgrid-exporter.service`) and the coordinator is set in config or environment (`LG_COORDINATOR`).
+In practice the exporter runs as a systemd service (`labgrid-exporter.service`) and the coordinator is set in config or environment (`LG_COORDINATOR=<host>:<port>`, default `127.0.0.1:20408`). Since Labgrid 25.0 (May 2025) the transport is **gRPC**; previous versions used WebSocket/WAMP via crossbar.
 
 **What you need from the upstream maintainer:**
 
-- Coordinator URL (host and WebSocket port).
+- Coordinator address (host and gRPC port, typically `20408`).
 - Coordinator SSH public key to add to `authorized_keys` for user `labgrid-dev` on the lab (already included in the openwrt-tests Ansible playbook).
 
-**Firewalls / NAT:** The lab must be able to connect *outbound* to the coordinator (outgoing WebSocket). The coordinator then uses SSH proxy over the same path to reach DUTs.
+**Firewalls / NAT:** The lab must be able to connect *outbound* to the coordinator (outgoing gRPC over TCP). The coordinator then uses SSH proxy over the same path to reach DUTs.
 
 ---
 
@@ -193,9 +193,9 @@ sequenceDiagram
     Lab->>Lab: Developer SSH ed25519 keys section_5_2
     Lab->>PR: PR labnet developers exporter netplan dnsmasq pdu docs
     Maint->>PR: Review and merge
-    Maint->>Lab: WebSocket coordinator URL if needed
+    Maint->>Lab: Coordinator gRPC address if needed
     Lab->>Lab: playbook_labgrid openwrt_tests authorized_keys exporter
-    Lab->>DC: Outbound exporter WebSocket
+    Lab->>DC: Outbound exporter gRPC
     DC->>Lab: SSH to lab via tunnel proxy DUTs
     DC->>DC: Places registered CI runners on VM
 ```
@@ -211,7 +211,7 @@ sequenceDiagram
 * Document the lab in `docs/labs/<lab>.md` (upstream)
 * Open PR to openwrt-tests with the above
 * After merge: run `playbook_labgrid.yml` from openwrt-tests on the host (or have the maintainer run it): coordinator SSH key ends up in `~labgrid-dev/.ssh/authorized_keys` and exporter is configured
-* Confirm `labgrid-exporter` points at the coordinator WebSocket
+* Confirm `labgrid-exporter` points at the coordinator gRPC address (`LG_COORDINATOR=<host>:20408`)
 * Verify places: `labgrid-client places` (with `LG_PROXY` per upstream README)
 
 ---

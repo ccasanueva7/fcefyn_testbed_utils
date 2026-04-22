@@ -69,7 +69,7 @@ flowchart LR
 
     COORD["labgrid-coordinator\n(datacenter VM)"]
 
-    EXP -->|"WebSocket via WireGuard\n(register resources)"| COORD
+    EXP -->|"gRPC via WireGuard\n(register resources)"| COORD
     SW -->|"access port\n(isolated or VLAN 200)"| DUTs
 ```
 

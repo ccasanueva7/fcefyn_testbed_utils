@@ -65,7 +65,7 @@ Summary of flows relevant to operations and incidents. Host firewall detail: [ho
 | INPUT | Inside | Host → DUT | SSH | 22 | Via `labgrid-bound-connect` (static isolated VLAN per DUT). |
 | INPUT | Inside | DUT → host | TFTP | 69/udp | Initramfs load from host (udp). |
 | INPUT | Inside | Host → switch | SSH | 22 | VLAN management (e.g. `switch-fcefyn`). |
-| OUTPUT | Cross | Exporter → global coordinator | WebSocket | 20408 | To coordinator on datacenter VM via WireGuard. |
+| OUTPUT | Cross | Exporter → global coordinator | gRPC (TCP) | 20408 | To coordinator on datacenter VM via WireGuard. |
 | INPUT | Public | Internet → Oracle VPS | HTTPS | 443 | Public Grafana (TLS on Nginx). |
 | INPUT | Public | Internet → VPS | SSH | 22 | VPS admin; Grafana reverse tunnel goes **from** the lab. |
 | OUTPUT | Cross / Public | DUT → Internet | HTTP/S | 80, 443, … | Per lab gateway NAT; see duts-config. |

@@ -265,30 +265,29 @@ uv run pytest tests/test_mesh.py -v --log-cli-level=INFO
 ```mermaid
 sequenceDiagram
     participant Dev as Developer machine
-    participant LGC as labgrid-coordinator<br/>(195.37.88.188:51818)
+    participant VM as Upstream VM<br/>(SSH :51818, gRPC :20408)
     participant Host as labgrid-fcefyn host
-    participant Coord as Coord gRPC
-    participant Exp as Exporter
+    participant Exp as Exporter (on host)
     participant DUT as DUT
 
-    Dev->>LGC: SSH (ProxyJump)
-    LGC->>Host: SSH (WireGuard tunnel 10.0.0.10)
-    Host->>Coord: gRPC (localhost:20408)
-    Dev->>Coord: lock place (via tunnel)
-    Dev->>Host: rsync firmware (via tunnel)
+    Dev->>VM: SSH (ProxyJump, :51818)
+    VM->>Host: SSH (WireGuard tunnel 10.0.0.10)
+    Exp->>VM: gRPC :20408 (register resources, via WireGuard)
+    Dev->>VM: gRPC :20408 lock place<br/>(tunneled via SSH through VM)
+    Dev->>Host: rsync firmware (via SSH tunnel)
     Host->>Exp: stage firmware on TFTP
     Dev->>Exp: power cycle, serial console (via tunnel)
     Exp->>DUT: boot via TFTP
     Dev->>DUT: run pytest (via tunnel)
-    Dev->>Coord: unlock place
+    Dev->>VM: gRPC :20408 unlock place
 ```
 
 | Component | Where | What |
 |-----------|-------|------|
-| `labgrid-coordinator` | Upstream VM (public IP, port 51818) | SSH jump host to every lab (`ProxyJump`) |
-| Coordinator gRPC | Lab host (localhost:20408) | Place reservations (lock/unlock) |
-| Exporter | Lab host | Publishes DUTs (serial, power, TFTP, SSH) |
-| `LG_PROXY` | Developer env var | Tells labgrid-client to tunnel through SSH |
+| `labgrid-coordinator` (SSH jump) | Upstream VM, port 51818 | SSH jump host to every lab (`ProxyJump`) |
+| `labgrid-coordinator` (gRPC) | Same VM, port 20408 | Place reservations (lock/unlock) over gRPC (Labgrid 25.0+, May 2025; earlier versions used WebSocket/WAMP) |
+| Exporter | Lab host | Publishes DUTs (serial, power, TFTP, SSH); connects outbound to the coordinator gRPC via WireGuard |
+| `LG_PROXY` | Developer env var | Tells labgrid-client to tunnel gRPC and SSH through the ProxyJump chain |
 | `labgrid-dev` | Host user | Unprivileged account for developers |
 | `labnet.yaml` | [openwrt-tests](https://github.com/aparcar/openwrt-tests/blob/main/labnet.yaml) | Shared device inventory and SSH keys |
 

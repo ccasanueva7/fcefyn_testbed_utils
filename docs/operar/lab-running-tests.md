@@ -73,8 +73,8 @@ The test suite locates `labnet.yaml` via `LABNET_PATH`, `OPENWRT_TESTS_DIR/labne
 
 ```bash
 # Aparcar coordinator is in the cloud; exporter does the work
-# LG_COORDINATOR is set in CI runner env
-export LG_COORDINATOR=ws://coordinator.aparcar.org:20408
+# LG_COORDINATOR is set in CI runner env (HOST:PORT, gRPC - Labgrid 25.0+)
+export LG_COORDINATOR=coordinator.aparcar.org:20408
 
 # List available places
 labgrid-client places

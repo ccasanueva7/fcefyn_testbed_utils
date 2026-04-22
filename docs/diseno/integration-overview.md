@@ -31,8 +31,8 @@ flowchart TD
 
 | # | Connection | Detail |
 |---|---|---|
-| 1 | Runner → Coordinator | WebSocket localhost:20408 (reserve / lock / unlock) |
-| 2 | Exporter → Coordinator | WebSocket via WireGuard (register resources) |
+| 1 | Runner → Coordinator | gRPC localhost:20408 (reserve / lock / unlock) |
+| 2 | Exporter → Coordinator | gRPC via WireGuard (register resources) |
 | 3 | Runner → DUTs | SSH via WireGuard (LG_PROXY=labgrid-X) |
 
 See [openwrt-tests CI flow](openwrt-tests-ci-flow.md) for the detailed sequence of how a single job runs end-to-end.
@@ -79,9 +79,9 @@ flowchart TD
 
 | # | Connection | Detail |
 |---|---|---|
-| 1 | openwrt-tests runner → Coordinator | WebSocket localhost:20408 (reserve / lock) |
-| 2 | Exporter → Coordinator | WebSocket via WireGuard (register resources) |
-| 3 | libremesh-tests runner → Coordinator | WebSocket via WireGuard (LG_COORDINATOR=WG_IP:20408) |
+| 1 | openwrt-tests runner → Coordinator | gRPC localhost:20408 (reserve / lock) |
+| 2 | Exporter → Coordinator | gRPC via WireGuard (register resources) |
+| 3 | libremesh-tests runner → Coordinator | gRPC via WireGuard (LG_COORDINATOR=WG_IP:20408) |
 | 4 | openwrt-tests runner → bound-connect | SSH via WireGuard (LG_PROXY=labgrid-fcefyn) |
 | 5 | libremesh-tests runner → bound-connect | SSH local (LG_PROXY=labgrid-fcefyn → 127.0.1.1) |
 | 6 | bound-connect → DUTs | socat bindtodevice → vlanXXX |
