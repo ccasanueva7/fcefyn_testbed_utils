@@ -252,7 +252,7 @@ Two trees need attention:
 
 ### 7.1 Automated cleanup: `tftp-cleanup.timer`
 
-The Ansible role [`ansible/roles/tftp_cleanup`](https://github.com/coronati-delacruz-pi/fcefyn_testbed_utils/tree/main/ansible/roles/tftp_cleanup) installs a systemd timer on the host. It runs `/usr/local/sbin/tftp-cleanup` on schedule and prunes:
+The Ansible role [`ansible/roles/tftp_cleanup`](https://github.com/fcefyn-testbed/fcefyn_testbed_utils/tree/main/ansible/roles/tftp_cleanup) installs a systemd timer on the host. It runs `/usr/local/sbin/tftp-cleanup` on schedule and prunes:
 
 1. **Broken symlinks** anywhere under `/srv/tftp/`. Recreated automatically on the next test run, so deletion is safe.
 2. **Orphan labgrid cache directories** under `/var/cache/labgrid/<user>/<sha>/` that are both older than `tftp_cleanup_retention_days` AND not referenced by any symlink under `/srv/tftp/`. Labgrid re-uploads on the next `stage()` if needed.

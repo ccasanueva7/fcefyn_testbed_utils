@@ -463,7 +463,7 @@ uci set zerotier.global.enabled='1'
 # Join lab network: OpenWrt init only applies UCI sections of type "network"
 # (see note below). Name "fcefyn_vpn" is arbitrary.
 uci set zerotier.fcefyn_vpn=network
-uci set zerotier.fcefyn_vpn.id='b103a835d2ead2b6'
+uci set zerotier.fcefyn_vpn.id='<ZT_NETWORK_ID>'
 uci set zerotier.fcefyn_vpn.allow_managed='1'
 uci set zerotier.fcefyn_vpn.allow_global='0'
 uci set zerotier.fcefyn_vpn.allow_default='0'
@@ -476,10 +476,10 @@ uci commit zerotier
 sleep 8
 
 zerotier-cli info            # ONLINE
-zerotier-cli listnetworks    # b103a835d2ead2b6 OK + IP (ej. 10.246.3.95/24)
+zerotier-cli listnetworks    # <ZT_NETWORK_ID> OK + IP (ej. <ROUTER_ZT_IP>/24)
 ```
 
-**UCI and persistence:** `/etc/init.d/zerotier` calls `config_foreach join_network network`: only UCI `config …` sections of type `network` with `option id '<nwid>'` are applied; it generates `networks.d/<nwid>.conf`. Other templates (e.g. `list join` / `openwrt_network`) are ignored: the service starts but does not join on reboot. If a `network` section has an invalid NWID (`zerotier.earth` → `NOT_FOUND`), remove it and keep only the entry with `b103a835d2ead2b6`.
+**UCI and persistence:** `/etc/init.d/zerotier` calls `config_foreach join_network network`: only UCI `config …` sections of type `network` with `option id '<nwid>'` are applied; it generates `networks.d/<nwid>.conf`. Other templates (e.g. `list join` / `openwrt_network`) are ignored: the service starts but does not join on reboot. If a `network` section has an invalid NWID (`zerotier.earth` → `NOT_FOUND`), remove it and keep only the entry with `<ZT_NETWORK_ID>`.
 
 **Typical cleanup** (if `listnetworks` shows a NWID in `NOT_FOUND` or leftover template junk):
 
@@ -491,7 +491,7 @@ uci commit zerotier
 
 Then add the `fcefyn_vpn` section (or equivalent) as above and `restart`.
 
-Authorize the node at [my.zerotier.com](https://my.zerotier.com) → network `b103a835d2ead2b6` → Members.
+Authorize the node at [my.zerotier.com](https://my.zerotier.com) → network `<ZT_NETWORK_ID>` → Members.
 
 **Firewall:** add ZeroTier interface to `testbed` zone:
 
@@ -509,7 +509,7 @@ Wildcard `zt+` matches any `zt*` interface. If the zone index changes, adjust (`
 | `missing port and zerotier-one.port not found` | Daemon not running | `/etc/init.d/zerotier restart` |
 | `ACCESS_DENIED` in `listnetworks` | Node not authorized | Authorize on my.zerotier.com |
 | `NOT_FOUND` for a NWID in `listnetworks` | Invalid NWID or missing network; often stale UCI `network` section (`earth`, etc.) | `uci delete zerotier.<name>` for that section; use only `option id` with correct NWID (see above) |
-| `listnetworks` shows header only (no networks) | Missing UCI `network` section with `id`, or only `openwrt_network.join` left | Add `uci set zerotier.fcefyn_vpn=network` + `id='b103a835d2ead2b6'` + `allow_*`; `commit`; `restart` |
+| `listnetworks` shows header only (no networks) | Missing UCI `network` section with `id`, or only `openwrt_network.join` left | Add `uci set zerotier.fcefyn_vpn=network` + `id='<ZT_NETWORK_ID>'` + `allow_*`; `commit`; `restart` |
 | `zerotier-cli info` ONLINE but SSH from outside: *No route to host* | Node not on ZT network or wrong IP | Check `listnetworks` OK on router; machine on same ZT (`zerotier-cli listnetworks`) |
 | `Connection refused` SSH to ZeroTier IP | Firewall blocks zt* | Add `zt+` to firewall (above) |
 
@@ -539,14 +539,14 @@ apk add etherwake
 Send WoL from any machine with ZeroTier access to the router:
 
 ```bash
-ssh root@<IP-ZeroTier-del-router> 'etherwake -i eth0.100 00:21:cc:c4:25:3b'
+ssh root@<IP-ZeroTier-del-router> 'etherwake -i eth0.100 <HOST_MAC>'
 ```
 
 | Parameter | Value | Notes |
 |-----------|-------|-------|
-| Router ZeroTier IP | `10.246.3.95` (current) | Check my.zerotier.com or `zerotier-cli listnetworks` |
+| Router ZeroTier IP | `<ROUTER_ZT_IP>` (current) | Check my.zerotier.com or `zerotier-cli listnetworks` |
 | Interface | `eth0.100` | VLAN 100 (any testbed VLAN works) |
-| Orchestration host MAC | `00:21:cc:c4:25:3b` | Host iface `enp0s25` |
+| Orchestration host MAC | `<HOST_MAC>` | Host iface `enp0s25` |
 
 **Magic packet via `eth0.100`:** WoL is L2 broadcast. The packet leaves on `eth0.100`, enters the switch trunk (port 10), the switch forwards tagged to the host (port 9) and the NIC accepts with 802.1Q.
 
@@ -572,10 +572,10 @@ Check: `sudo ethtool enp0s25 | grep Wake-on` (should be `g`, not `d`).
 
 **Sequence:**
 
-1. Admin connects to router over ZeroTier: `ssh root@10.246.3.95`
-2. Send WoL: `etherwake -i eth0.100 00:21:cc:c4:25:3b`
+1. Admin connects to router over ZeroTier: `ssh root@<ROUTER_ZT_IP>`
+2. Send WoL: `etherwake -i eth0.100 <HOST_MAC>`
 3. Orchestration host boots (~30-60s). `wol.service` re-enables WoL for the next shutdown.
-4. Admin can SSH to host over ZeroTier: `ssh laryc@10.246.3.118` (or host ZT IP)
+4. Admin can SSH to host over ZeroTier: `ssh <ADMIN_USER>@<HOST_ZT_IP>` (or host ZT IP)
 
 ---
 

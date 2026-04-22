@@ -5,7 +5,7 @@
 
 How to install ZeroTier on admin machines and reach the lab host as an unprivileged / personal user over VPN.
 
-**Lab network:** `b103a835d2ead2b6` - [Join](https://joinzt.com/addnetwork?nwid=b103a835d2ead2b6&v=1).
+**Lab network:** `<ZT_NETWORK_ID>` - request from lab admin. See [.sensitive-values.md](../../.sensitive-values.md) (not in repo).
 
 See [host-config](../configuracion/host-config.md#8-ansible-integration) for the Ansible role on the orchestration host, and [gateway](../configuracion/gateway.md#57-zerotier-remote-access) for gateway router install.
 
@@ -19,7 +19,7 @@ curl -fsSL https://install.zerotier.com | sudo bash
 sudo systemctl start zerotier-one
 sudo systemctl enable zerotier-one
 
-sudo zerotier-cli join b103a835d2ead2b6
+sudo zerotier-cli join <ZT_NETWORK_ID>
 
 zerotier-cli listnetworks   # ACCESS_DENIED until authorized
 ```
@@ -51,7 +51,7 @@ On OpenWrt 24.x with `apk`, the same UCI concepts apply; startup is still `/etc/
 
 ## 3. Authorization
 
-A lab admin must authorize the node in [my.zerotier.com](https://my.zerotier.com) → network `b103a835d2ead2b6` → Members → check **Auth** for the new device. The device then gets a ZeroTier IP.
+A lab admin must authorize the node in [my.zerotier.com](https://my.zerotier.com) → network `<ZT_NETWORK_ID>` → Members → check **Auth** for the new device. The device then gets a ZeroTier IP.
 
 ---
 

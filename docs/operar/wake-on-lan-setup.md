@@ -154,7 +154,7 @@ The magic packet must come from a device on the same subnet as the Lenovo (or br
 Testbed gateway is OpenWrt with `etherwake` installed and ZeroTier for remote access. Send WoL on a testbed VLAN:
 
 ```bash
-ssh root@<ZeroTier-IP-of-router> 'etherwake -i eth0.100 00:21:cc:c4:25:3b'
+ssh root@<ZeroTier-IP-of-router> 'etherwake -i eth0.100 <HOST_MAC>'
 ```
 
 See [gateway 5.8](../configuracion/gateway.md#58-wake-on-lan-remote-host-power-on) for full router configuration.
@@ -164,12 +164,12 @@ See [gateway 5.8](../configuracion/gateway.md#58-wake-on-lan-remote-host-power-o
 If a MikroTik were used again as testbed gateway:
 
 ```routeros
-/tool wol mac=00:21:CC:C4:25:3B interface=LAB-TRUNK
+/tool wol mac=<HOST_MAC> interface=LAB-TRUNK
 ```
 
 ### 7.3 Via ZeroTier (full flow)
 
-1. SSH to OpenWrt router via ZeroTier: `ssh root@10.246.3.95`
-2. Send WoL: `etherwake -i eth0.100 00:21:cc:c4:25:3b`
+1. SSH to OpenWrt router via ZeroTier: `ssh root@<ROUTER_ZT_IP>`
+2. Send WoL: `etherwake -i eth0.100 <HOST_MAC>`
 3. Wait ~2 min for the Lenovo to boot.
-4. SSH to host via ZeroTier: `ssh laryc@10.246.3.118`
+4. SSH to host via ZeroTier: `ssh <ADMIN_USER>@<HOST_ZT_IP>`

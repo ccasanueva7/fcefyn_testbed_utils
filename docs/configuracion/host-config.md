@@ -540,7 +540,7 @@ ZeroTier is installed on the **host** only, not DUTs. Host reachable from the In
 
 #### Install (Ansible role)
 
-`ansible/roles/zerotier` installs ZeroTier on the orchestration host and joins lab VPN (`b103a835d2ead2b6`, same as `defaults/main.yml` and [gateway 5.7](./gateway.md#57-zerotier-remote-access)).
+`ansible/roles/zerotier` installs ZeroTier on the orchestration host and joins lab VPN (`<ZT_NETWORK_ID>`, same as `defaults/main.yml` and [gateway 5.7](./gateway.md#57-zerotier-remote-access)).
 
 **Location:** `ansible/roles/zerotier/` - tasks in `tasks/main.yml`, `zerotier_network_id` in `defaults/main.yml`.
 
@@ -551,14 +551,14 @@ ZeroTier is installed on the **host** only, not DUTs. Host reachable from the In
 3. Temporary DNS (`resolvectl dns <iface> 8.8.8.8 8.8.4.4`) - needed if lab router does not resolve `install.zerotier.com`.
 4. Install ZeroTier via official script (`curl -fsSL https://install.zerotier.com | bash`).
 5. Start and enable `zerotier-one`.
-6. Run `zerotier-cli join b103a835d2ead2b6`.
+6. Run `zerotier-cli join <ZT_NETWORK_ID>`.
 
 ```bash
 cd fcefyn_testbed_utils
 ansible-playbook -i ansible/inventory/hosts.yml ansible/playbook_testbed.yml --tags zerotier -K
 ```
 
-After first run: authorize node in [my.zerotier.com](https://my.zerotier.com) → network `b103a835d2ead2b6` → Members → **Auth** for labgrid-fcefyn.
+After first run: authorize node in [my.zerotier.com](https://my.zerotier.com) → network `<ZT_NETWORK_ID>` → Members → **Auth** for labgrid-fcefyn.
 
 ```bash
 zerotier-cli listnetworks   # verify

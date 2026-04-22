@@ -44,6 +44,34 @@ sequenceDiagram
 
 ---
 
+## VLAN switching: local vs remote
+
+**Only the lab host owns the switch credentials** (SNMP access, `switch-vlan` CLI, `dut-config.yaml`). The developer machine does not.
+
+`conftest_vlan.py` handles both scenarios transparently:
+
+| Execution | `LG_PROXY` | How `switch-vlan` runs |
+|-----------|------------|------------------------|
+| From lab host (CI, local dev) | Not set | `subprocess.run(["switch-vlan", "dut", "200"])` |
+| From remote developer machine | `labgrid-fcefyn` | `subprocess.run(["ssh", "labgrid-fcefyn", "switch-vlan dut 200"])` |
+
+```mermaid
+flowchart LR
+    subgraph Remote["Developer machine"]
+        pytest["pytest"]
+    end
+    subgraph Host["Lab host"]
+        switch_vlan["switch-vlan"]
+        switch["TP-Link switch<br/>(SNMP)"]
+    end
+    pytest -->|"ssh labgrid-fcefyn<br/>switch-vlan dut 200"| switch_vlan
+    switch_vlan -->|SNMP| switch
+```
+
+**Result**: Developers do not need to install `switch-vlan`, configure switch credentials, or have `dut-config.yaml` locally. VLAN operations are delegated to the host via SSH.
+
+---
+
 ## Manual access to mesh VLAN 200
 
 If a test crashes before VLAN teardown, a DUT may be stuck on VLAN 200. From the **lab host** (where `vlan200` and `sudo NOPASSWD` for `labgrid-bound-connect` exist):

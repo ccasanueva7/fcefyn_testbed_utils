@@ -226,8 +226,9 @@ Environment variables:
 | `LG_MESH_KEEP_POWERED` | Set to `1` to keep DUTs powered after test (VLANs are still restored) |
 
 !!! note "Automatic VLAN and SSH handling"
-    - **VLAN switching**: `conftest_vlan.py` invokes `switch-vlan` via SSH to `LG_PROXY` (the lab host owns switch credentials). No local switch tools or config needed.
+    - **VLAN switching**: `conftest_vlan.py` detects `LG_PROXY` and invokes `switch-vlan` via SSH to the lab host (which owns switch SNMP credentials and `dut-config.yaml`). No local `switch-vlan` install or switch config needed on the developer machine.
     - **SSH to mesh DUTs**: `conftest_mesh.py` wraps `labgrid-bound-connect` via `ssh ${LG_PROXY}` automatically. The `Host dut-*` SSH aliases do **not** reach DUTs on VLAN 200; for interactive access during a mesh test use the nested `ProxyCommand` from [SSH access to DUTs](dut-ssh-access.md#remote-developer-lg_proxy).
+    - **Why does it work?** The `LG_PROXY` environment variable tells the test suite to delegate all host-side operations (VLAN switching, VLAN-bound SSH) through SSH. See [VLAN switching: local vs remote](dut-ssh-access.md#vlan-switching-local-vs-remote) for details.
 
 ### 6.6 Other labgrid-client commands
 

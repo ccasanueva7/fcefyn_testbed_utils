@@ -1,6 +1,6 @@
 # FCEFyN testbed documentation
 
-**Hardware-in-the-loop** testing for [OpenWrt](https://openwrt.org/) and [LibreMesh](https://libremesh.org/) at [FCEFyN](https://fcefyn.unc.edu.ar/), [Universidad Nacional de Córdoba](https://www.unc.edu.ar/). Source and tooling live in [fcefyn_testbed_utils](https://github.com/ccasanueva7/fcefyn_testbed_utils). Tests align with [openwrt-tests](https://github.com/aparcar/openwrt-tests) and [libremesh-tests](https://github.com/fcefyn-testbed/libremesh-tests).
+**Hardware-in-the-loop** testing for [OpenWrt](https://openwrt.org/) and [LibreMesh](https://libremesh.org/) at [FCEFyN](https://fcefyn.unc.edu.ar/), [Universidad Nacional de Córdoba](https://www.unc.edu.ar/). Source and tooling live in [fcefyn_testbed_utils](https://github.com/fcefyn-testbed/fcefyn_testbed_utils). Tests align with [openwrt-tests](https://github.com/aparcar/openwrt-tests) and [libremesh-tests](https://github.com/fcefyn-testbed/libremesh-tests).
 
 ---
 
