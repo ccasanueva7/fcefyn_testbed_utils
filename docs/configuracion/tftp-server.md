@@ -102,6 +102,8 @@ TFTPProvider:
 - **external**: Subpath the DUT requests over TFTP.
 - **external_ip**: TFTP server IP on that VLAN (via DHCP).
 
+Multi-node mesh tests set **`TFTP_SERVER_IP`** so U-Boot uses the TFTP server on **VLAN 200** (mesh segment) instead of each DUT's isolated `external_ip`. Rationale and Labgrid strategy flow: [Labgrid mesh strategy and orchestration](../diseno/labgrid-mesh-strategy.md).
+
 The user running tests needs **write permission** on each DUT folder so Labgrid can create symlinks.
 
 ### 4.2 Remote image staging (developer machines and CI) {: #42-remote-image-staging }

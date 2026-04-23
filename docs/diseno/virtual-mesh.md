@@ -2,6 +2,8 @@
 
 Multi-node LibreMesh tests on QEMU VMs with simulated WiFi via vwifi and mac80211_hwsim. Complements the physical lab ([Lab architecture](lab-architecture.md)) by enabling CI without dedicated hardware and local development without real devices.
 
+For the **single-QEMU** Labgrid path (`QEMUNetworkStrategyLibreMesh`, anygw `10.13.0.1`, dropbear wait), see [Labgrid mesh strategy and orchestration](labgrid-mesh-strategy.md) section 5. This page focuses on the **launcher-based** virtual mesh (N QEMUs plus vwifi).
+
 ---
 
 ## 1. Context and goal

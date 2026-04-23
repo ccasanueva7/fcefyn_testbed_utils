@@ -132,7 +132,7 @@ end
 ansible-playbook -i ansible/inventory/hosts.yml ansible/playbook_testbed.yml --tags poe_switch -K
 ```
 
-**Manual install:** Install `labgrid-switch-abstraction` (`pip install git+https://github.com/fcefyn-testbed/labgrid-switch-abstraction.git`). Copy `scripts/switch/poe_switch_control.py` to `/usr/local/bin/`. Switch config in `~/.config/switch.conf`.
+**Manual install:** the openwrt-tests [`playbook_labgrid.yml`](https://github.com/aparcar/openwrt-tests/blob/main/ansible/playbook_labgrid.yml) installs `labgrid-switch-abstraction` via pipx for every lab (see [Ansible and Labgrid](ansible-labgrid.md)); only run `pip install git+https://github.com/fcefyn-testbed/labgrid-switch-abstraction.git` manually if the playbook has not been applied. Copy `scripts/switch/poe_switch_control.py` to `/usr/local/bin/`. Switch config in `~/.config/switch.conf`.
 
 !!! warning "Credentials (out of repo)"
     That file holds the switch password: restrictive perms (`chmod 600`) and do not commit to git.

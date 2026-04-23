@@ -143,6 +143,8 @@ The primitive already exists on the driver interface (`assign_port_vlan_commands
 
 `tests/conftest_vlan.py` shells out to `switch-vlan` (not the Python API directly): when `LG_PROXY` is set, the command runs on the lab host via SSH, so a remote developer never needs the switch driver or credentials locally. The fixture switches each DUT to VLAN 200 at setup and always restores the isolated VLAN at teardown.
 
+For state-machine level detail of `UBootTFTPStrategy`, mesh subprocess boot (`mesh_boot_node.py`), and pytest fixture order (`mesh_vlan_multi`, `mesh_nodes`), see [Labgrid mesh strategy and orchestration](labgrid-mesh-strategy.md).
+
 ## 5. Repository split
 
 | Repo | Responsibility |

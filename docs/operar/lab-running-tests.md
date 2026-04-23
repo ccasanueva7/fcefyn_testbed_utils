@@ -34,7 +34,7 @@ uv run pytest tests/test_libremesh.py tests/test_lan.py -v
 
 ## Multi-node LibreMesh test
 
-The libremesh-tests fixture moves DUT VLANs to 200 automatically via `switch-vlan` invoked from `conftest_vlan.py` (SSH to the lab host if `LG_PROXY` is set).
+The libremesh-tests fixture moves DUT VLANs to 200 automatically via `switch-vlan` invoked from `conftest_vlan.py` (SSH to the lab host if `LG_PROXY` is set). Design background (Labgrid strategies, `TFTP_SERVER_IP`, parallel boot subprocesses): [Labgrid mesh strategy and orchestration](../diseno/labgrid-mesh-strategy.md).
 
 ```bash
 LG_MESH_PLACES="labgrid-fcefyn-openwrt_one,labgrid-fcefyn-bananapi_bpi-r4,labgrid-fcefyn-librerouter_1,labgrid-fcefyn-belkin_rt3200_2" \

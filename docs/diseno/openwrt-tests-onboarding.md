@@ -2,6 +2,9 @@
 
 Process for contributing hardware from a local lab to the [openwrt-tests](https://github.com/aparcar/openwrt-tests) ecosystem. Covers architecture, exporter connection, SSH keys, Ansible, and the step sequence to integrate DUTs with the upstream coordinator.
 
+!!! info "Two contribution paths"
+    This page focuses on the base openwrt-tests lab (Scenario A). For contributing a **libremesh-capable** lab (own self-hosted runner, managed switch with VLAN switching, multi-node mesh suite), see [Contributing a new lab](new-lab-contribution.md) which contrasts both paths.
+
 ---
 
 ## 1. Global-coordinator architecture
@@ -233,11 +236,15 @@ sequenceDiagram
 | Aspect | openwrt-tests (upstream) | libremesh-tests (fork) |
 |--------|--------------------------|------------------------|
 | Coordinator | Global (datacenter VM) | Same global coordinator |
+| CI runner | aparcar runners (datacenter VM) | Self-hosted runner per lab (e.g. `testbed-fcefyn`) |
 | Ansible control node | Aparcar infrastructure | The lab itself (self-setup) |
+| Managed switch | Optional | Required |
 | VLANs | Dynamic per test (isolated default, 192.168.1.x) | Dynamic per test (mesh VLAN 200, 10.13.x.x for multi-node) |
 | Multi-node tests | Not supported | Implemented in `conftest_mesh.py` |
 
 Both projects use the **same Labgrid inventory** ([Lab architecture](lab-architecture.md)): each test locks DUTs via Labgrid and sets the VLAN it needs at runtime.
+
+For a full side-by-side contribution walkthrough (which steps are shared, which are Scenario-B-only), see [Contributing a new lab](new-lab-contribution.md).
 
 ---
 

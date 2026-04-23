@@ -10,8 +10,11 @@ The **Ansible playbook** (`playbook_labgrid.yml` in [aparcar/openwrt-tests](http
 
 - User `labgrid-dev`, SSH keys, groups
 - Labgrid (pipx), PDUDaemon, dnsmasq
+- `labgrid-switch-abstraction` (pipx, provides the `switch-vlan` CLI)
 - Netplan (VLANs), exporter, coordinator
 - TFTP, udev, labgrid-bound-connect
+
+For the full contribution flow (openwrt-tests-only lab vs libremesh-capable lab), see [Contributing a new lab](../diseno/new-lab-contribution.md).
 
 Everything [host-config](host-config.md) describes as manual configuration can be deployed with this playbook, provided `ansible/files/exporter/<lab>/` exists with lab-specific files (netplan, dnsmasq, pdudaemon, exporter).
 
@@ -192,6 +195,7 @@ Approximate task order:
 | Install packages | pipx, microcom, ser2net, socat, iptables, etc. |
 | Install Labgrid | via pipx |
 | Install PDUDaemon | via pipx |
+| Install labgrid-switch-abstraction | via pipx (`switch-vlan` CLI for optional VLAN automation) |
 | Configure netplan | Copy host-specific `netplan.yaml` to `/etc/netplan/labnet.yaml` |
 | Configure dnsmasq | Copy host-specific `dnsmasq.conf` |
 | Configure PDUDaemon | Copy `pdudaemon.conf`, deploy unit |
