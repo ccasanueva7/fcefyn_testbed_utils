@@ -175,3 +175,43 @@ def test_bat0_mtu():
     assert rc == 0, "Could not read bat0 MTU"
     mtu = int(out.strip())
     assert mtu >= 1460, f"bat0 MTU too low: {mtu}"
+
+
+# ---------------------------------------------------------------------------
+# 11. Unique br-lan IPs across all nodes
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.skipif(N_NODES < 2, reason="Need at least 2 nodes")
+def test_unique_brlan_ips():
+    """Each node must have a distinct br-lan IP."""
+    ips = {}
+    for node in NODES:
+        rc, out, _ = ssh_run(
+            node["port"],
+            "ip -4 addr show br-lan | grep 'inet ' | awk '{print $2}' | cut -d/ -f1",
+        )
+        if rc == 0 and out.strip():
+            ip = out.strip()
+            assert ip not in ips.values(), (
+                f"{node['name']} has duplicate br-lan IP {ip} (also on {[k for k, v in ips.items() if v == ip]})"
+            )
+            ips[node["name"]] = ip
+    assert len(ips) == N_NODES, f"Could not get br-lan IP for all nodes: {ips}"
+
+
+# ---------------------------------------------------------------------------
+# 12. br-lan IP in expected mesh subnet
+# ---------------------------------------------------------------------------
+
+
+def test_brlan_in_mesh_subnet(node):
+    """br-lan IP must be in the 10.13.0.0/16 mesh subnet."""
+    rc, out, _ = ssh_run(
+        node["port"],
+        "ip -4 addr show br-lan | grep 'inet ' | awk '{print $2}' | cut -d/ -f1",
+    )
+    assert rc == 0 and out.strip(), f"{node['name']}: could not get br-lan IP"
+    ip = out.strip()
+    parts = ip.split(".")
+    assert parts[0] == "10" and parts[1] == "13", f"{node['name']}: br-lan IP {ip} not in 10.13.0.0/16"
