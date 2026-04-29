@@ -1,0 +1,118 @@
+name: Virtual mesh tests (GitHub-hosted)
+
+on:
+  workflow_dispatch:
+    inputs:
+      nodes:
+        description: "Number of nodes (2-5)"
+        required: false
+        default: "2"
+
+jobs:
+  virtual-mesh:
+    name: Virtual mesh (${{ matrix.nodes }} nodes)
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        nodes: [2, 5]
+      fail-fast: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            qemu-system-x86 \
+            openssh-client \
+            python3-pip \
+            git \
+            build-essential \
+            cmake \
+            libssl-dev
+
+      - name: Build and install vwifi
+        run: |
+          git clone --depth=1 https://github.com/Raizo62/vwifi.git /tmp/vwifi
+          cd /tmp/vwifi
+          make
+          sudo make install
+          which vwifi-server
+          which vwifi-ctrl
+
+      - name: Start vwifi-server
+        run: |
+          vwifi-server -u &
+          sleep 2
+          echo "vwifi-server started"
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Check firmware image exists
+        run: |
+          IMG=$(ls firmwares/qemu/libremesh/lime-*viwifi*x86*combined*.img 2>/dev/null | head -1)
+          if [ -z "$IMG" ]; then
+            echo "ERROR: no vwifi firmware image found in firmwares/qemu/libremesh/"
+            ls firmwares/qemu/libremesh/ || true
+            exit 1
+          fi
+          echo "Image: $IMG ($(du -h $IMG | cut -f1))"
+          echo "MESH_IMAGE=$IMG" >> $GITHUB_ENV
+
+      - name: Launch VMs
+        run: |
+          VIRTUAL_MESH_NODES=${{ matrix.nodes }} \
+          VIRTUAL_MESH_IMAGE=$MESH_IMAGE \
+          VIRTUAL_MESH_BOOT_TIMEOUT=180 \
+          bash vms/launch_debug_vms.sh &
+
+      - name: Wait for SSH on all nodes
+        run: |
+          for i in $(seq 1 ${{ matrix.nodes }}); do
+            PORT=$((2221 + i))
+            echo -n "Waiting for vm${i} (port ${PORT})..."
+            READY=0
+            for attempt in $(seq 1 60); do
+              if ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+                     -o ConnectTimeout=5 -o BatchMode=yes \
+                     -p ${PORT} root@127.0.0.1 echo ok 2>/dev/null | grep -q ok; then
+                echo " ready"
+                READY=1
+                break
+              fi
+              sleep 5
+              echo -n "."
+            done
+            if [ $READY -eq 0 ]; then
+              echo " TIMEOUT"
+              cat /tmp/qemu-vm${i}.log 2>/dev/null || true
+            fi
+          done
+
+      - name: Run tests
+        env:
+          VIRTUAL_MESH_NODES: ${{ matrix.nodes }}
+        run: |
+          pytest tests/mesh/ -v \
+            --timeout=120 \
+            --tb=short \
+            -x \
+            --ignore=tests/mesh/test_mesh_multihop.py
+
+      - name: Run multi-hop tests (5 nodes only)
+        if: matrix.nodes == 5
+        env:
+          VIRTUAL_MESH_NODES: 5
+        run: |
+          pytest tests/mesh/test_mesh_multihop.py -v \
+            --timeout=300 \
+            --tb=short
+
+      - name: Stop VMs
+        if: always()
+        run: |
+          pkill -f "qemu-system-x86_64" || true
+          pkill -f "vwifi-server" || true
