@@ -134,3 +134,49 @@ ansible-playbook playbook_labgrid.yml -l labgrid-fcefyn
 (Playbook path and inventory as in [ansible-labgrid](../configuracion/ansible-labgrid.md).)
 
 VLAN or switch issues are outside `labgrid-client`; see [Routine operations - DUTs and VLANs](lab-routine-operations.md#duts-and-vlans) and [switch-config](../configuracion/switch-config.md).
+
+---
+
+## Helper scripts
+
+These scripts live in `scripts/` and complement the labgrid workflow.
+
+### generate_places_yaml.py
+
+Generates `places.yaml` for the labgrid coordinator from `labnet.yaml` and a Jinja2 template. Run this after adding or removing DUTs from `labnet.yaml`.
+
+```bash
+# Generate for the default lab (labgrid-fcefyn)
+python3 scripts/generate_places_yaml.py
+
+# Generate for a different lab
+python3 scripts/generate_places_yaml.py --lab labgrid-hsn
+
+# Custom paths
+python3 scripts/generate_places_yaml.py \
+  --labnet /path/to/labnet.yaml \
+  --output ~/labgrid-coordinator/places.yaml
+```
+
+### resolve_target.py
+
+Resolves the labgrid target file for a given device name. Useful for debugging which `targets/<device>.yaml` would be used by pytest.
+
+```bash
+python3 scripts/resolve_target.py belkin_rt3200_1
+# Output: targets/linksys_e8450.yaml
+```
+
+!!! note
+    This script is optional. When running pytest, `LG_ENV` is resolved automatically from `LG_PLACE`. Use this only for debugging or manual environment setup.
+
+### provision_mesh_ip.py
+
+Sets up the per-DUT mesh SSH/control IP (`10.13.200.x`) on `br-lan` via serial. Run once per DUT after flashing.
+
+```bash
+python3 scripts/provision_mesh_ip.py --all           # all DUTs
+python3 scripts/provision_mesh_ip.py --all --dry-run # verify without applying
+```
+
+See [duts-config](../configuracion/duts-config.md) for the per-DUT IP table.
