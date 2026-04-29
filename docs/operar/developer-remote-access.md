@@ -313,7 +313,24 @@ ZeroTier is **not** required for developer access. It is used only by lab admins
 
 ---
 
-## 10. Reference
+## 10. Triggering the CI workflow as a developer
+
+Instead of running tests manually, you can trigger the full build + test pipeline from GitHub:
+
+1. Go to [fcefyn-testbed/fcefyn_testbed_utils → Actions → Build LibreMesh and Test on DUT](https://github.com/fcefyn-testbed/fcefyn_testbed_utils/actions/workflows/build-and-test-libremesh.yml)
+2. Click **Run workflow** and fill in:
+   - `duts`: the device you want to test
+   - `lime_ref`: the lime-packages branch, tag, or commit you want to validate
+   - `openwrt_version`: must be compatible with `lime_ref`
+3. The build runs on GitHub's servers (~20 min). The `flash_and_test` job then runs automatically on the lab hardware.
+
+This does **not** require SSH access to the lab. The only requirement is having a GitHub account with access to the repository.
+
+For full workflow documentation: [CI: Build & Test](ci-build-and-test.md).
+
+---
+
+## 11. Reference
 
 - [Running tests (host-side)](lab-running-tests.md)
 - [SSH access to DUTs](dut-ssh-access.md) - VLAN lifecycle and mesh SSH
