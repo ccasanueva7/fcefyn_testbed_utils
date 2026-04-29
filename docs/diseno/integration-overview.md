@@ -163,3 +163,6 @@ sequenceDiagram
 | Set up the WireGuard tunnel and contribute hardware to openwrt-tests | [openwrt-tests onboarding](openwrt-tests-onboarding.md) |
 | VLAN design, `switch-vlan` CLI, switch configuration | [Lab architecture](lab-architecture.md) |
 | Virtual mesh tests with QEMU and vwifi | [Virtual mesh](virtual-mesh.md) |
+| Build and test lime-packages from a PR via CI | [CI: Build & Test](../operar/ci-build-and-test.md) |
+| Understand the lime-packages fork CI build pipeline | [lime-packages CI build](lime-packages-ci-flow.md) |
+| Understand the lime-packages fork CI test pipeline | [lime-packages CI tests](lime-packages-test-flow.md) |
