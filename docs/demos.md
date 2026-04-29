@@ -2,6 +2,11 @@
 
 This section collects demo videos showing various operations on the testbed.
 
+| Demo | Topic |
+|------|-------|
+| [Remote access to the HIL testbed](#remote-access-to-the-hil-testbed) | Administrator access and lab infrastructure recovery |
+| [Developer remote access through Labgrid](#developer-remote-access-through-labgrid) | Developer SSH + multi-node mesh test run |
+
 ---
 
 ## Remote access to the HIL testbed
