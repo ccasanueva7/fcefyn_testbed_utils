@@ -84,9 +84,9 @@ TAP and user mode are **equivalent** for the control channel (SSH host→VM):
 | Labgrid for VMs | **No** | VMs are not places; custom launcher avoids coordinator |
 | ubuntu-latest limit | **3 nodes** | 2-core, 7GB RAM; 5 nodes failed in prior experiments |
 | self-hosted limit | **5 nodes** | More CPU/RAM available |
-| Tests in pull_requests | **No** | Lint only; physical tests need self-hosted |
-| Tests in dedicated workflow | **Yes** | virtual-mesh.yml with matrix [2, 3] on ubuntu-latest |
-| Job in daily.yml | **Yes** | virtual-mesh-smoke (2 nodes) on self-hosted |
+| Tests in pull_requests | **Yes (QEMU/vwifi)** | Single-node + 3-node mesh on ubuntu-latest, no lab time |
+| Workflow location | **`pi-lime-packages/build-firmware.yml`** | Unified PR/dispatch/schedule orchestrator since May 2026 |
+| Self-hosted virtual mesh | **Not used** | Hosted runners are sufficient for 3 nodes; lab self-hosted is reserved for physical-DUT jobs |
 
 ---
 
@@ -219,20 +219,17 @@ If `VIRTUAL_MESH_NODES > VIRTUAL_MESH_MAX_NODES`: fail at startup with a message
 
 ## 7. CI workflows
 
-| Workflow | Virtual tests | Runner | Nodes |
-|----------|---------------|--------|-------|
-| pull_requests.yml | No | - | - |
-| virtual-mesh.yml | Yes | ubuntu-latest | matrix [2, 3] |
-| daily.yml | virtual-mesh-smoke job | self-hosted | 2 fixed |
+The active orchestrator since May 2026 is **`pi-lime-packages/.github/workflows/build-firmware.yml`**. The legacy `daily.yml`, `pull_requests.yml`, and the standalone `virtual-mesh.yml` workflows that lived in `libremesh-tests` were retired when the CI was unified — see [`lime-packages-test-flow.md`](lime-packages-test-flow.md) for the full table of triggers.
 
-### 7.1 virtual-mesh.yml (new)
+The two QEMU/vwifi jobs there are:
 
-- **Triggers:** workflow_dispatch, push to main/develop, schedule
-- **Steps:** install vwifi, qemu, kmod-mac80211-hwsim; download/obtain image; start vwifi-server; pytest with `LG_VIRTUAL_MESH=1 VIRTUAL_MESH_NODES=N`
+| Job in `build-firmware.yml` | Runner | Nodes | Triggered on |
+|---|---|---|---|
+| `test-firmware-qemu-single` | ubuntu-latest | 1 | every trigger (pull_request, workflow_dispatch, schedule) |
+| `test-mesh-qemu` | ubuntu-latest | 3 (`VIRTUAL_MESH_NODES=3`) | every trigger (pull_request, workflow_dispatch, schedule) |
 
-### 7.2 daily.yml
+Both jobs build a x86_64 LibreMesh image (`qemu_x86_64` target with `extra_feeds: vwifi`) once, then exercise it on a GitHub-hosted Linux runner using `qemu-system-x86_64` in TCG mode (no `/dev/kvm` exposed on hosted runners). The `vwifi-server` host binary is built from `Raizo62/vwifi@4a9842e6` and cached under `~/.vwifi-server-bin/` between runs.
 
-- Keep existing physical jobs.
-- Add `virtual-mesh-smoke` job: 2 nodes, self-hosted, fast regression without physical hardware.
+`pi-lime-packages/docs/ci/firmware-build.md` documents the build-side wiring (extra_feeds, extra_packages, x86-combined image format, vwifi-server cache).
 
 ---
