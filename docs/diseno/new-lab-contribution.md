@@ -125,3 +125,4 @@ A lab can contribute to both paths at once: the infrastructure is shared. Scenar
 - [Switch](../configuracion/switch-config.md) - VLAN layout, `switch.conf` multi-user setup, `switch-vlan` invocation.
 - [Lab architecture](lab-architecture.md) - shared coordinator, VLAN scheduling, locking.
 - [CI runner](../configuracion/ci-runner.md) - self-hosted runner setup (Scenario B).
+- [CI: Build & Test](../operar/ci-build-and-test.md) - automated firmware build and test workflow using the self-hosted runner.
