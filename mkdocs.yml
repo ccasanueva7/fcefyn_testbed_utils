@@ -88,6 +88,7 @@ nav:
       - Adding a DUT: operar/dut-onboarding.md
       - Belkin U-Boot TFTP — PC Ethernet IP: operar/belkin-uboot-tftp-pc-network.md
       - Build firmware: operar/build-firmware-manual.md
+      - "CI: Build & Test": operar/ci-build-and-test.md
       - Wake-on-LAN: operar/wake-on-lan-setup.md
       - ZeroTier (admin-only): operar/zerotier-remote-access.md
   - Component configuration:
