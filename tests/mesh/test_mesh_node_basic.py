@@ -159,7 +159,7 @@ def test_no_kernel_panics(node):
 
 def test_babeld_running(node):
     """babeld process must be running."""
-    rc, out, _ = ssh_run(node["port"], "pgrep -x babeld || pgrep -x babeld-auto-gw")
+    rc, out, _ = ssh_run(node["port"], "pgrep -f babeld")
     assert rc == 0, f"{node['name']}: babeld is not running"
 
 
