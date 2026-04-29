@@ -1,0 +1,465 @@
+name: Build LibreMesh and Test on DUT
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Trigger: manual (workflow_dispatch) only.
+# Can be triggered from any branch — no PR required.
+#
+# Inputs:
+#   duts          Comma-separated list of DUTs to test.
+#                 Options: belkin_rt3200, openwrt_one, bananapi_r4, librerouter
+#                 Use "all" to test every lab DUT. Ex: "belkin_rt3200,openwrt_one"
+#   lime_ref      Branch, tag, or commit SHA of lime-packages.
+#   config_file   Path to a file inside this repo injected into the firmware as
+#                 /etc/config/<filename>. Leave empty for the base DUT config.
+#
+# Jobs:
+#   resolve_matrix  Parses the duts input into a GitHub Actions matrix (~5 sec).
+#   build           One instance per DUT, parallel, GitHub-hosted runners.
+#                   Builds the image via OpenWrt ImageBuilder + Docker (~10-15 min).
+#                   Does NOT touch the lab machine.
+#   flash_and_test  One instance per DUT, lab self-hosted runner.
+#                   Downloads the artifact, reserves the DUT via labgrid,
+#                   boots initramfs in RAM via TFTP (flash is never written),
+#                   and runs pytest (libremesh-tests).
+#
+# ── Testing the build job locally with act ───────────────────────────────────
+# act runs GitHub Actions workflows locally inside Docker containers.
+# Only the build job makes sense to test locally — flash_and_test requires
+# physical lab hardware and act will skip it automatically because its
+# runs-on label (self-hosted, fcefyn-lab) won't match any local runner.
+#
+# Install act:
+#   macOS:  brew install act
+#   Linux:  curl -s https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash
+#   docs:   https://github.com/nektos/act
+#
+# Run only the build job locally:
+#   act workflow_dispatch \
+#     --job build \
+#     --input duts="belkin_rt3200" \
+#     --input lime_ref="v2024.1" \
+#     --input config_file="" \
+#     -P ubuntu-latest=catthehacker/ubuntu:act-22.04
+#
+# Keep the produced .bin files after the run:
+#   act workflow_dispatch \
+#     --job build \
+#     --input duts="belkin_rt3200" \
+#     --input lime_ref="v2024.1" \
+#     --input config_file="" \
+#     -P ubuntu-latest=catthehacker/ubuntu:act-22.04 \
+#     --artifact-server-path /tmp/act-artifacts
+#
+# Notes:
+#   - catthehacker/ubuntu:act-22.04 includes Docker-in-Docker, required for
+#     the ImageBuilder step. First pull is ~1-2 GB, then cached locally.
+#   - Artifacts are not uploaded to GitHub when running with act (no API),
+#     but --artifact-server-path saves them to a local directory.
+#   - resolve_matrix also runs locally; act feeds its output to the build job.
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  workflow_dispatch:
+    inputs:
+
+      duts:
+        description: >
+          DUTs to test, comma-separated.
+          Options: belkin_rt3200, openwrt_one, bananapi_r4, librerouter.
+          Use "all" for every lab DUT. Ex: "belkin_rt3200,openwrt_one"
+        required: true
+        default: "belkin_rt3200"
+        type: string
+
+      lime_ref:
+        description: "lime-packages branch, tag, or commit SHA (e.g. v2024.1, master, abc1234)"
+        required: true
+        default: "v2024.1"
+        type: string
+
+      config_file:
+        description: >
+          Repo-relative path to a config file to inject into the image as
+          /etc/config/<filename>. Ex: firmware/configs/belkin_rt3200.conf
+          Leave empty to use the base config for the selected DUT.
+        required: false
+        default: ""
+        type: string
+
+      extra_packages:
+        description: >
+          Space-separated list of packages to add or remove on top of the base set.
+          Prefix with '-' to remove. Ex: "luci-app-dawn -lime-proto-batadv"
+        required: false
+        default: ""
+        type: string
+
+      openwrt_version:
+        description: >
+          OpenWrt version to use for SDK and ImageBuilder.
+          Must be compatible with the chosen lime_ref.
+          Ex: 23.05.5 (for lime v2024.1), 24.10.5 (for lime master)
+        required: false
+        default: "23.05.5"
+        type: string
+
+jobs:
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # JOB 0 — RESOLVE MATRIX
+  # Converts the duts input string into a GitHub Actions matrix JSON.
+  # Fast (~5 sec), runs on GitHub-hosted.
+  # ════════════════════════════════════════════════════════════════════════════
+  resolve_matrix:
+    name: "Resolve DUT list"
+    runs-on: ubuntu-latest
+
+    outputs:
+      matrix: ${{ steps.build_matrix.outputs.matrix }}
+
+    steps:
+      - name: Build matrix JSON from duts input
+        id: build_matrix
+        run: |
+          ALL_DUTS="belkin_rt3200 openwrt_one bananapi_r4 librerouter"
+          INPUT="${{ inputs.duts }}"
+
+          # "all" expands to every known lab DUT
+          if [ "$INPUT" = "all" ]; then
+            INPUT="$ALL_DUTS"
+          fi
+
+          # Normalize: replace commas and extra spaces, drop empty lines
+          # Result: JSON array ["belkin_rt3200","openwrt_one"]
+          DUTS_JSON=$(echo "$INPUT" \
+            | tr ',' '\n' \
+            | tr ' ' '\n' \
+            | sed '/^$/d' \
+            | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' \
+            | jq -R . \
+            | jq -sc .)
+
+          echo "Resolved DUTs: $DUTS_JSON"
+
+          # Validate each DUT name
+          for DUT in $(echo "$DUTS_JSON" | jq -r '.[]'); do
+            case "$DUT" in
+              belkin_rt3200|openwrt_one|bananapi_r4|librerouter) ;;
+              *)
+                echo "ERROR: unknown DUT '$DUT'"
+                echo "Valid options: belkin_rt3200, openwrt_one, bananapi_r4, librerouter"
+                exit 1
+                ;;
+            esac
+          done
+
+          echo "matrix={\"dut\":$DUTS_JSON}" >> $GITHUB_OUTPUT
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # JOB 1 — BUILD
+  # One instance per DUT, all running in parallel on GitHub-hosted runners.
+  # The lab machine is never involved in this job.
+  #
+  # DUT → ImageBuilder mapping:
+  #   belkin_rt3200  mediatek / mt7622  / linksys_e8450  (non-UBI → produces initramfs-kernel.bin for TFTP boot)
+  #   openwrt_one    mediatek / filogic / openwrt_one
+  #   bananapi_r4    mediatek / filogic / bananapi_bpi-r4
+  #   librerouter    ath79    / generic / librerouter_librerouter-v1
+  # ════════════════════════════════════════════════════════════════════════════
+  build:
+    name: "Build — ${{ matrix.dut }} @ lime-packages ${{ inputs.lime_ref }}"
+    runs-on: ubuntu-latest
+    needs: resolve_matrix
+
+    strategy:
+      matrix: ${{ fromJson(needs.resolve_matrix.outputs.matrix) }}
+      fail-fast: false   # keep building other DUTs if one fails
+
+    outputs:
+      artifact_name: ${{ steps.meta.outputs.artifact_name }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Resolve ImageBuilder metadata for ${{ matrix.dut }}
+        id: meta
+        run: |
+          case "${{ matrix.dut }}" in
+            belkin_rt3200)
+              TARGET="mediatek" ; SUBTARGET="mt7622"  ; PROFILE="linksys_e8450"              ; ARCH="aarch64_cortex-a53" ;;
+            openwrt_one)
+              TARGET="mediatek" ; SUBTARGET="filogic" ; PROFILE="openwrt_one"                ; ARCH="aarch64_cortex-a53" ;;
+            bananapi_r4)
+              TARGET="mediatek" ; SUBTARGET="filogic" ; PROFILE="bananapi_bpi-r4"            ; ARCH="aarch64_cortex-a53" ;;
+            librerouter)
+              TARGET="ath79"    ; SUBTARGET="generic" ; PROFILE="librerouter_librerouter-v1" ; ARCH="mips_24kc"          ;;
+          esac
+
+          echo "target=$TARGET"       >> $GITHUB_OUTPUT
+          echo "subtarget=$SUBTARGET" >> $GITHUB_OUTPUT
+          echo "profile=$PROFILE"     >> $GITHUB_OUTPUT
+          echo "arch=$ARCH"           >> $GITHUB_OUTPUT
+
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          ANAME="firmware-${{ matrix.dut }}-${{ inputs.lime_ref }}-${SHORT_SHA}"
+          echo "artifact_name=$ANAME" >> $GITHUB_OUTPUT
+
+          echo "DUT=${{ matrix.dut }}  target=$TARGET/$SUBTARGET  profile=$PROFILE"
+          echo "lime-packages ref: ${{ inputs.lime_ref }}"
+          echo "artifact: $ANAME"
+
+      - name: Prepare output and files directories
+        run: |
+          mkdir -p ./images
+          mkdir -p ./packages
+          mkdir -p ./ib_files/etc/config
+
+      - name: Inject config file into image (if provided)
+        if: inputs.config_file != ''
+        run: |
+          CONFIG_SRC="${{ inputs.config_file }}"
+
+          if [ ! -f "$CONFIG_SRC" ]; then
+            echo "ERROR: '$CONFIG_SRC' not found in the repository."
+            echo "Check the path or leave config_file empty to use the base config."
+            exit 1
+          fi
+
+          BASENAME=$(basename "$CONFIG_SRC")
+          cp "$CONFIG_SRC" "./ib_files/etc/config/$BASENAME"
+          echo "Injecting '$CONFIG_SRC' as /etc/config/$BASENAME"
+
+      - name: Build lime-packages with OpenWrt SDK (Docker)
+        run: |
+          TARGET="${{ steps.meta.outputs.target }}"
+          SUBTARGET="${{ steps.meta.outputs.subtarget }}"
+          ARCH="${{ steps.meta.outputs.arch }}"
+          LIME_REF="${{ inputs.lime_ref }}"
+          OPENWRT_VER="${{ inputs.openwrt_version }}"
+          SDK_IMAGE="ghcr.io/openwrt/sdk:${TARGET}-${SUBTARGET}-v${OPENWRT_VER}"
+
+          echo "SDK image          : $SDK_IMAGE"
+          echo "lime-packages ref  : $LIME_REF"
+          echo "arch               : $ARCH"
+
+          docker run --rm \
+            --user root \
+            -v "$(pwd)/packages:/packages" \
+            -v "$(pwd)/scripts/make_packages_index.py:/make_packages_index.py:ro" \
+            "$SDK_IMAGE" \
+            bash -c "
+              set -e
+
+              echo '--- Setting up lime-packages feed ---'
+              cp feeds.conf.default feeds.conf
+              echo \"src-git libremesh https://github.com/libremesh/lime-packages.git;${LIME_REF}\" >> feeds.conf
+
+              echo '--- Updating and installing feeds ---'
+              scripts/feeds update libremesh
+              scripts/feeds install -a -p libremesh
+
+              echo '--- Configuring build system ---'
+              make defconfig
+
+              echo '--- Compiling lime-packages ---'
+              for pkg in \
+                lime-system \
+                lime-proto-babeld \
+                lime-proto-batadv \
+                lime-proto-anygw \
+                lime-hwd-openwrt-wan \
+                lime-app \
+                shared-state \
+                shared-state-babeld_hosts \
+                shared-state-bat_hosts \
+                shared-state-nodes_and_links \
+                babeld-auto-gw-mode; do
+                echo \"--- Compiling \${pkg} ---\"
+                make -j\$(nproc) package/feeds/libremesh/\${pkg}/compile
+              done
+
+              echo '--- Copying packages ---'
+              cp bin/packages/${ARCH}/libremesh/*.ipk /packages/
+
+              echo '--- Creating package index ---'
+              python3 /make_packages_index.py /packages
+
+              echo '--- Package list ---'
+              ls -lh /packages/
+            "
+
+      - name: Build firmware with OpenWrt ImageBuilder (Docker)
+        run: |
+          TARGET="${{ steps.meta.outputs.target }}"
+          SUBTARGET="${{ steps.meta.outputs.subtarget }}"
+          PROFILE="${{ steps.meta.outputs.profile }}"
+          OPENWRT_VER="${{ inputs.openwrt_version }}"
+          EXTRA_PACKAGES="${{ inputs.extra_packages }}"
+          IB_IMAGE="ghcr.io/openwrt/imagebuilder:${TARGET}-${SUBTARGET}-v${OPENWRT_VER}"
+
+          echo "ImageBuilder image : $IB_IMAGE"
+          echo "Profile            : $PROFILE"
+          echo "extra packages     : $EXTRA_PACKAGES"
+
+          docker run --rm \
+            --user root \
+            -v "$(pwd)/images:/images" \
+            -v "$(pwd)/packages:/packages" \
+            -v "$(pwd)/ib_files:/ib_files:ro" \
+            "$IB_IMAGE" \
+            bash -c "
+              set -e
+
+              echo '--- Signing local feed ---'
+              USIGN=\$(find /builder/staging_dir /usr/bin -name 'usign' 2>/dev/null | head -1)
+              echo \"usign: \$USIGN\"
+              if [ -n \"\$USIGN\" ]; then
+                \"\$USIGN\" -G -s /tmp/feed.key -p /tmp/feed.pub
+                \"\$USIGN\" -S -m /packages/Packages -s /tmp/feed.key
+                FP=\$(\"\$USIGN\" -F -p /tmp/feed.pub)
+                mkdir -p /builder/keys
+                cp /tmp/feed.pub /builder/keys/\$FP
+                echo \"Feed signed, fingerprint: \$FP\"
+              else
+                echo 'WARNING: usign not found'
+                find /builder -name 'usign' 2>/dev/null || true
+              fi
+
+              echo '--- Adding local lime-packages feed ---'
+              echo 'src/gz local_lime file:///packages' >> repositories.conf
+
+              echo '--- Building image for profile: ${PROFILE} ---'
+              make image \
+                REPOS_SIGNING="" \
+                PROFILE='${PROFILE}' \
+                PACKAGES=' \
+                  lime-system \
+                  lime-proto-babeld \
+                  lime-proto-batadv \
+                  lime-proto-anygw \
+                  lime-hwd-openwrt-wan \
+                  lime-app \
+                  shared-state \
+                  shared-state-babeld_hosts \
+                  shared-state-bat_hosts \
+                  shared-state-nodes_and_links \
+                  babeld-auto-gw-mode \
+                  -dnsmasq \
+                  -odhcpd-ipv6only \
+                  ${EXTRA_PACKAGES} \
+                ' \
+                FILES='/ib_files' \
+                BIN_DIR='/images'
+
+              echo '--- Generated files ---'
+              ls -lh /images/
+            "
+
+      - name: Locate firmware image
+        id: find_fw
+        run: |
+          FW=$(docker run --rm \
+            -v "$(pwd)/images:/images:ro" \
+            alpine:latest \
+            sh -c 'ls /images/*initramfs* /images/*sysupgrade* 2>/dev/null | grep -Ev "sha256|manifest|profiles|json" | head -1')
+          if [ -z "$FW" ]; then
+            echo "ERROR: no firmware produced. Check the build log above."
+            exit 1
+          fi
+          echo "Firmware: $FW"
+          echo "firmware_file=$(basename $FW)" >> $GITHUB_OUTPUT
+
+      - name: Upload firmware artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.meta.outputs.artifact_name }}
+          path: |
+            ./images/*.bin
+            ./images/*.itb
+          if-no-files-found: error
+          retention-days: 7
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # JOB 2 — FLASH AND TEST
+  # One instance per DUT, runs on the lab self-hosted runner.
+  # Downloads the artifact, boots it in RAM via TFTP (labgrid),
+  # and runs pytest (libremesh-tests).
+  # The DUT's flash is never written — initramfs only.
+  # ════════════════════════════════════════════════════════════════════════════
+  flash_and_test:
+    name: "Flash and test — ${{ matrix.dut }}"
+    runs-on: [self-hosted, testbed-fcefyn]
+    needs: [resolve_matrix, build]
+    if: success()
+
+    strategy:
+      matrix: ${{ fromJson(needs.resolve_matrix.outputs.matrix) }}
+      fail-fast: false
+
+    env:
+      LG_PLACE: "fcefyn-${{ matrix.dut }}"
+      LG_PROXY: "labgrid-fcefyn"
+
+    steps:
+      - name: Checkout libremesh-tests
+        uses: actions/checkout@v4
+        with:
+          repository: fcefyn-testbed/libremesh-tests
+          path: libremesh-tests
+
+      - name: Download firmware artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: firmware-${{ matrix.dut }}-${{ inputs.lime_ref }}-${{ github.sha }}
+          path: ./firmware
+
+      - name: Set LG_IMAGE
+        run: |
+          FW=$(ls ./firmware/*initramfs* 2>/dev/null | head -1)
+          if [ -z "$FW" ]; then
+            FW=$(ls ./firmware/*.bin 2>/dev/null | head -1)
+          fi
+          echo "Firmware: $FW"
+          echo "LG_IMAGE=$(realpath $FW)" >> $GITHUB_ENV
+
+      - name: Install libremesh-tests dependencies
+        working-directory: libremesh-tests
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh || true
+          uv sync
+
+      - name: Reserve DUT via labgrid
+        working-directory: libremesh-tests
+        run: |
+          echo "Waiting for $LG_PLACE to become free..."
+          eval $(uv run labgrid-client reserve --wait --shell device=${{ matrix.dut }})
+          uv run labgrid-client -p "+$LG_TOKEN" lock
+          echo "LG_TOKEN=$LG_TOKEN"                     >> $GITHUB_ENV
+          echo "LG_PLACE=+"                             >> $GITHUB_ENV
+          echo "LG_ENV=targets/${{ matrix.dut }}.yaml" >> $GITHUB_ENV
+          echo "DUT ${{ matrix.dut }} reserved and locked."
+
+      - name: Run libremesh-tests on ${{ matrix.dut }}
+        working-directory: libremesh-tests
+        run: |
+          echo "LG_IMAGE = $LG_IMAGE"
+          echo "LG_PLACE = $LG_PLACE"
+          echo "DUT      = ${{ matrix.dut }}"
+          echo "lime ref = ${{ inputs.lime_ref }}"
+
+          uv run pytest tests/ \
+            --lg-env "$LG_ENV" \
+            --lg-log \
+            --log-cli-level=CONSOLE \
+            --lg-colored-steps \
+            --firmware "$LG_IMAGE" \
+            -v
+
+      - name: Power off and release DUT
+        if: always()
+        working-directory: libremesh-tests
+        run: |
+          uv run labgrid-client power off               || true
+          uv run labgrid-client -p "+$LG_TOKEN" unlock  || true
+          echo "DUT ${{ matrix.dut }} released."
