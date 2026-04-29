@@ -73,3 +73,28 @@ To move the runner from one repo to another (or user to org):
 ## 6. Ownership transfer (if needed in near future)
 
 When the repo transfers to an org, attached runners move with it. The systemd service name may still reference the old owner; this should not affect operation.
+
+---
+
+## 7. Workflows that use this runner
+
+The following workflows in `fcefyn-testbed/fcefyn_testbed_utils` target this runner with `runs-on: [self-hosted, testbed-fcefyn]`:
+
+| Workflow | Trigger | What it does on the runner |
+|----------|---------|---------------------------|
+| `build-and-test-libremesh.yml` | Manual (`workflow_dispatch`) | Downloads firmware artifact built on GitHub-hosted runners, reserves the DUT via labgrid, loads firmware, and runs libremesh-tests with pytest. |
+
+The `build` job of that workflow runs on GitHub-hosted runners (no lab hardware needed). Only the `flash_and_test` job lands on this runner.
+
+See [CI: Build & Test](../operar/ci-build-and-test.md) for full usage instructions.
+
+---
+
+## 8. Troubleshooting
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| Runner shows **Offline** in GitHub | Service stopped | `sudo systemctl restart actions.runner.*` |
+| `flash_and_test` job queued but never starts | Runner offline or label mismatch | Check runner labels include `testbed-fcefyn` |
+| `PermissionError` on labgrid coordinator | Wrong `/etc/labgrid` ownership | See §4 above |
+| Job fails at "Reserve DUT" | DUT locked by a previous run | `labgrid-client -p <place> unlock` |
