@@ -389,7 +389,7 @@ jobs:
   # ════════════════════════════════════════════════════════════════════════════
   flash_and_test:
     name: "Flash and test — ${{ matrix.dut }}"
-    runs-on: [self-hosted, fcefyn-lab]
+    runs-on: [self-hosted, testbed-fcefyn]
     needs: [resolve_matrix, build]
     if: success()
 
