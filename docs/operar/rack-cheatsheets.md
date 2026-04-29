@@ -37,6 +37,24 @@ LibreMesh feeds, `menuconfig`, lime packages, QEMU/vwifi: [build-firmware-manual
 
 ---
 
+## CI workflow quick reference
+
+Trigger a firmware build and test from GitHub Actions without touching the lab manually.
+
+**Go to:** GitHub → Actions → **Build LibreMesh and Test on DUT** → Run workflow
+
+| Input | Example | Notes |
+|-------|---------|-------|
+| `duts` | `belkin_rt3200` or `all` | Comma-separated or `all` |
+| `lime_ref` | `v2024.1` | Branch, tag, or commit SHA |
+| `openwrt_version` | `23.05.5` | Must match `lime_ref` |
+| `extra_packages` | `luci-app-dawn` | Prefix with `-` to remove |
+| `config_file` | `firmware/configs/belkin_rt3200.conf` | Optional, injected as `/etc/config/<name>` |
+
+The `flash_and_test` job runs on the **T430Runner** (`testbed-fcefyn`). Full guide: [CI: Build & Test](ci-build-and-test.md).
+
+---
+
 ## SSH: Oracle VPS and OpenWrt gateway
 
 From the **orchestration host** (same machine as Labgrid). Requires `~/.ssh/config` per repo templates.
