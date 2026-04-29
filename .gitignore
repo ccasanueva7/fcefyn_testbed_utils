@@ -4,3 +4,10 @@ configs/poe_switch_control.conf
 .idea/
 *.iml
 out/
+# VM disk images - too large for git
+*.img
+vms/node*.img
+vms/README2.md
+# Python cache
+__pycache__/
+*.pyc

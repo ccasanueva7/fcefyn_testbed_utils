@@ -5,23 +5,21 @@ Arduino Relay Control Script - Version with persistent connection cache
 
 import argparse
 import fcntl
+import json
 import logging
-import serial
+import socket
 import sys
 import time
 from enum import IntEnum
-from typing import Optional, Dict, Any, Iterable, List
+from typing import Any, Dict, Iterable, List, Optional
 
-import socket
-import json
+import serial
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 RELAY_CHANNEL_COUNT = 11  # 8 DUTs + 3 SSR (Switch, Cooler, Fuente)
+
 
 class RelayChannel(IntEnum):
     CHANNEL_0 = 0
@@ -32,8 +30,8 @@ class RelayChannel(IntEnum):
     CHANNEL_5 = 5
     CHANNEL_6 = 6
     CHANNEL_7 = 7
-    CHANNEL_8 = 8   # SSR Switch
-    CHANNEL_9 = 9   # SSR Cooler
+    CHANNEL_8 = 8  # SSR Switch
+    CHANNEL_9 = 9  # SSR Cooler
     CHANNEL_10 = 10  # SSR Fuente
 
 
@@ -60,12 +58,12 @@ class PersistentArduinoController:
     Controller that maintains an open connection using a lockfile
     to avoid Arduino auto-reset.
     """
-    
+
     _instance = None
     _connection = None
     _lockfile = None
-    
-    def __new__(cls, port: str = '/dev/arduino-relay', baudrate: int = 115200):
+
+    def __new__(cls, port: str = "/dev/arduino-relay", baudrate: int = 115200):
         # Singleton per port
         if cls._instance is None or cls._instance.port != port:
             cls._instance = super().__new__(cls)
@@ -74,96 +72,93 @@ class PersistentArduinoController:
             cls._instance.timeout = 2.0
             cls._instance._lockfile_path = f"/tmp/arduino-relay-{port.replace('/', '_')}.lock"
         return cls._instance
-    
+
     def get_connection(self) -> Optional[serial.Serial]:
         """Gets the persistent connection, creating it if necessary."""
-        
+
         # If we already have an active connection, use it
         if self._connection and self._connection.is_open:
             return self._connection
-            
+
         # Try to acquire the lock
         try:
-            self._lockfile = open(self._lockfile_path, 'w')
+            self._lockfile = open(self._lockfile_path, "w")
             fcntl.flock(self._lockfile.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-            
+
             # We're the only ones with the lock, create connection
             logging.info(f"Acquiring persistent connection to {self.port}")
-            
+
             self._connection = serial.Serial(
-                port=self.port,
-                baudrate=self.baudrate,
-                timeout=self.timeout,
-                write_timeout=self.timeout
+                port=self.port, baudrate=self.baudrate, timeout=self.timeout, write_timeout=self.timeout
             )
-            
+
             # Only wait for reset the first time
             time.sleep(2)
             self._connection.reset_input_buffer()
             self._connection.reset_output_buffer()
-            
+
             # Verify it works
             self._connection.write(b"ID\n")
             self._connection.flush()
-            response = self._connection.readline().decode('utf-8', errors='ignore').strip()
-            
+            response = self._connection.readline().decode("utf-8", errors="ignore").strip()
+
             if "RELAY-CTRL" not in response:
                 raise Exception(f"Invalid Arduino response: {response}")
-                
+
             logging.info("Persistent Arduino connection established")
             return self._connection
-            
+
         except (IOError, OSError):
             # Another process has the lock, connection already exists
             # Wait a bit and retry
             logging.debug("Another process holds the Arduino connection")
             time.sleep(0.1)
             return None
-            
+
         except Exception as e:
             logging.error(f"Failed to create persistent connection: {e}")
             self._cleanup()
             return None
-    
+
     def send_command(self, command: str) -> Optional[str]:
         """Sends a command using the persistent connection."""
-        
+
         max_retries = 3
         for attempt in range(max_retries):
             conn = self.get_connection()
             if not conn:
                 time.sleep(0.1)
                 continue
-                
+
             try:
                 # Send command
-                cmd_bytes = f"{command}\n".encode('utf-8')
+                cmd_bytes = f"{command}\n".encode("utf-8")
                 conn.write(cmd_bytes)
                 conn.flush()
-                
+
                 # Read response
                 response_lines = []
                 for _ in range(10):
-                    line = conn.readline().decode('utf-8', errors='ignore').strip()
+                    line = conn.readline().decode("utf-8", errors="ignore").strip()
                     if line:
                         response_lines.append(line)
                         if any(term in line for term in ["STATUS", "ERR", "OK", "RELAY-CTRL"]):
                             break
                     else:
                         break
-                        
-                response = '\n'.join(response_lines)
+
+                response = "\n".join(response_lines)
                 logging.debug(f"Command: {command} -> Response: {response}")
                 return response
-                
+
             except Exception as e:
-                logging.error(f"Error sending command (attempt {attempt+1}): {e}")
+                logging.error(f"Error sending command (attempt {attempt + 1}): {e}")
                 self._cleanup()
                 if attempt < max_retries - 1:
                     time.sleep(0.5)
-                    
+
         return None
-    
+
     def _cleanup(self):
         """Cleans up connection and lockfile."""
         if self._connection:
@@ -172,7 +167,7 @@ class PersistentArduinoController:
             except Exception:
                 pass
             self._connection = None
-            
+
         if self._lockfile:
             try:
                 fcntl.flock(self._lockfile.fileno(), fcntl.LOCK_UN)
@@ -180,7 +175,7 @@ class PersistentArduinoController:
             except Exception:
                 pass
             self._lockfile = None
-    
+
     def __del__(self):
         self._cleanup()
 
@@ -188,8 +183,8 @@ class PersistentArduinoController:
 # Update main class to use persistent controller
 class ArduinoRelayController:
     """Compatible interface that uses persistent connection internally."""
-    
-    def __init__(self, port: str = '/dev/arduino-relay', baudrate: int = 115200, timeout: float = 2.0):
+
+    def __init__(self, port: str = "/dev/arduino-relay", baudrate: int = 115200, timeout: float = 2.0):
         self.port = port
         self.baudrate = baudrate
         self.timeout = timeout
@@ -303,20 +298,23 @@ class ArduinoRelayController:
         try:
             response_lines = []
             for _ in range(max_lines):
-                line = self._persistent.send_command("STATUS") # Use persistent send_command
+                line = self._persistent.send_command("STATUS")  # Use persistent send_command
                 if line:
                     response_lines.append(line)
                     # Stop early on clear terminators
-                    if any(ind in line for ind in (
-                        ArduinoResponses.STATUS_OK,
-                        ArduinoResponses.ERROR,
-                        ArduinoResponses.OK,
-                        ArduinoResponses.DEVICE_ID
-                    )):
+                    if any(
+                        ind in line
+                        for ind in (
+                            ArduinoResponses.STATUS_OK,
+                            ArduinoResponses.ERROR,
+                            ArduinoResponses.OK,
+                            ArduinoResponses.DEVICE_ID,
+                        )
+                    ):
                         break
                 else:
                     break
-            response = '\n'.join(response_lines) if response_lines else None
+            response = "\n".join(response_lines) if response_lines else None
             logger.debug(f"Response received:\n{response}")
             return response
         except Exception as e:
@@ -327,10 +325,11 @@ class ArduinoRelayController:
         if not response:
             return False
         # STATUS lines after commands are considered OK if they don't include ERR
-        return (ArduinoResponses.STATUS_OK in response or
-                ArduinoResponses.OK in response or
-                ArduinoResponses.DEVICE_ID in response) and \
-               ArduinoResponses.ERROR not in response
+        return (
+            ArduinoResponses.STATUS_OK in response
+            or ArduinoResponses.OK in response
+            or ArduinoResponses.DEVICE_ID in response
+        ) and ArduinoResponses.ERROR not in response
 
     def _parse_status_response(self, response: str) -> Dict[str, Any]:
         """
@@ -346,19 +345,14 @@ class ArduinoRelayController:
         if status_line:
             parts = status_line.split()[1:]  # skip "STATUS"
             for tok in parts:
-                if ':' in tok:
-                    idx, val = tok.split(':', 1)
+                if ":" in tok:
+                    idx, val = tok.split(":", 1)
                     try:
                         ch = int(idx)
-                        channels[ch] = (val.upper() == 'ON')
+                        channels[ch] = val.upper() == "ON"
                     except ValueError:
                         continue
-        return {
-            'raw_response': response,
-            'timestamp': time.time(),
-            'connected': True,
-            'channels': channels
-        }
+        return {"raw_response": response, "timestamp": time.time(), "connected": True, "channels": channels}
 
     def _cleanup_connection(self) -> None:
         # This method is no longer needed as connection is persistent
@@ -375,10 +369,10 @@ class ArduinoRelayController:
 
 class DaemonClient:
     """Simple client to communicate with the daemon."""
-    
+
     def __init__(self, socket_path: str = "/tmp/arduino-relay.sock"):
         self.socket_path = socket_path
-    
+
     def is_daemon_running(self) -> bool:
         """Checks if daemon is running."""
         try:
@@ -388,19 +382,19 @@ class DaemonClient:
                 return True
         except Exception:
             return False
-    
+
     def send_command(self, command: str) -> dict:
         """Sends command to daemon."""
         try:
             with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as sock:
                 sock.settimeout(5.0)
                 sock.connect(self.socket_path)
-                
+
                 request = {"command": command}
-                sock.send(json.dumps(request).encode('utf-8'))
-                
+                sock.send(json.dumps(request).encode("utf-8"))
+
                 response_data = sock.recv(4096)
-                return json.loads(response_data.decode('utf-8'))
+                return json.loads(response_data.decode("utf-8"))
         except Exception as e:
             return {"success": False, "error": str(e)}
 
@@ -426,53 +420,70 @@ Exit Codes:
   1 - Connection error
   2 - Command execution error
   3 - Invalid arguments
-        """
+        """,
     )
 
     # Global options
-    parser.add_argument('--port', default='/dev/arduino-relay',
-                        help='Serial port path (default: /dev/arduino-relay)')
-    parser.add_argument('--baudrate', type=int, default=115200,
-                        help='Serial communication speed (default: 115200)')
-    parser.add_argument('--timeout', type=float, default=2.0,
-                        help='Communication timeout in seconds (default: 2.0)')
-    parser.add_argument('--verbose', '-v', action='store_true',
-                        help='Enable verbose logging output')
+    parser.add_argument("--port", default="/dev/arduino-relay", help="Serial port path (default: /dev/arduino-relay)")
+    parser.add_argument("--baudrate", type=int, default=115200, help="Serial communication speed (default: 115200)")
+    parser.add_argument("--timeout", type=float, default=2.0, help="Communication timeout in seconds (default: 2.0)")
+    parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose logging output")
 
-    subparsers = parser.add_subparsers(dest='action', help='Available actions')
+    subparsers = parser.add_subparsers(dest="action", help="Available actions")
 
     # ON
-    on_parser = subparsers.add_parser('on', help='Turn ON one or more channels')
-    on_parser.add_argument('channels', nargs='+', type=int, choices=range(RELAY_CHANNEL_COUNT),
-                           help=f'Relay channels (0-{RELAY_CHANNEL_COUNT - 1}). Multiple allowed. 8=Switch, 9=Cooler, 10=Fuente.')
-    on_parser.add_argument('--glinet-sequence', action='store_true',
-                           help='Use GL.iNet MT300N-v2 power sequence: disconnect serial (relay 1) before power on (relay 0), then reconnect serial after boot')
+    on_parser = subparsers.add_parser("on", help="Turn ON one or more channels")
+    on_parser.add_argument(
+        "channels",
+        nargs="+",
+        type=int,
+        choices=range(RELAY_CHANNEL_COUNT),
+        help=f"Relay channels (0-{RELAY_CHANNEL_COUNT - 1}). Multiple allowed. 8=Switch, 9=Cooler, 10=Fuente.",
+    )
+    on_parser.add_argument(
+        "--glinet-sequence",
+        action="store_true",
+        help="Use GL.iNet MT300N-v2 power sequence: disconnect serial (relay 1) before power on (relay 0), then reconnect serial after boot",
+    )
 
     # OFF
-    off_parser = subparsers.add_parser('off', help='Turn OFF one or more channels')
-    off_parser.add_argument('channels', nargs='+', type=int, choices=range(RELAY_CHANNEL_COUNT),
-                            help=f'Relay channels (0-{RELAY_CHANNEL_COUNT - 1}). Multiple allowed.')
-    off_parser.add_argument('--glinet-sequence', action='store_true',
-                            help='Use GL.iNet MT300N-v2 power off sequence: power off (relay 0) then reconnect serial (relay 1)')
+    off_parser = subparsers.add_parser("off", help="Turn OFF one or more channels")
+    off_parser.add_argument(
+        "channels",
+        nargs="+",
+        type=int,
+        choices=range(RELAY_CHANNEL_COUNT),
+        help=f"Relay channels (0-{RELAY_CHANNEL_COUNT - 1}). Multiple allowed.",
+    )
+    off_parser.add_argument(
+        "--glinet-sequence",
+        action="store_true",
+        help="Use GL.iNet MT300N-v2 power off sequence: power off (relay 0) then reconnect serial (relay 1)",
+    )
 
     # TOGGLE
-    tog_parser = subparsers.add_parser('toggle', help='Toggle one or more channels')
-    tog_parser.add_argument('channels', nargs='+', type=int, choices=range(RELAY_CHANNEL_COUNT),
-                            help=f'Relay channels (0-{RELAY_CHANNEL_COUNT - 1}). Multiple allowed.')
+    tog_parser = subparsers.add_parser("toggle", help="Toggle one or more channels")
+    tog_parser.add_argument(
+        "channels",
+        nargs="+",
+        type=int,
+        choices=range(RELAY_CHANNEL_COUNT),
+        help=f"Relay channels (0-{RELAY_CHANNEL_COUNT - 1}). Multiple allowed.",
+    )
 
     # PULSE
-    pulse_parser = subparsers.add_parser('pulse', help='Pulse a channel for ms')
-    pulse_parser.add_argument('channel', type=int, choices=range(RELAY_CHANNEL_COUNT),
-                              help=f'Relay channel (0-{RELAY_CHANNEL_COUNT - 1})')
-    pulse_parser.add_argument('milliseconds', type=int,
-                              help='Pulse width in milliseconds (1..60000)')
+    pulse_parser = subparsers.add_parser("pulse", help="Pulse a channel for ms")
+    pulse_parser.add_argument(
+        "channel", type=int, choices=range(RELAY_CHANNEL_COUNT), help=f"Relay channel (0-{RELAY_CHANNEL_COUNT - 1})"
+    )
+    pulse_parser.add_argument("milliseconds", type=int, help="Pulse width in milliseconds (1..60000)")
 
     # STATUS
-    subparsers.add_parser('status', help='Show status of all relay channels')
+    subparsers.add_parser("status", help="Show status of all relay channels")
 
     # ALL-ON / ALL-OFF
-    subparsers.add_parser('all-on', help='Turn ON all relay channels')
-    subparsers.add_parser('all-off', help='Turn OFF all relay channels')
+    subparsers.add_parser("all-on", help="Turn ON all relay channels")
+    subparsers.add_parser("all-off", help="Turn OFF all relay channels")
 
     return parser
 
@@ -490,14 +501,14 @@ def main() -> int:
 
     # GL.iNet sequence requires direct execution (daemon doesn't support sequences)
     use_daemon = False
-    if hasattr(args, 'glinet_sequence') and args.glinet_sequence:
+    if hasattr(args, "glinet_sequence") and args.glinet_sequence:
         logger.info("GL.iNet sequence requested - using direct connection")
         return _execute_direct(args)
-    
+
     # Detect if daemon is running
     daemon_client = DaemonClient()
     use_daemon = daemon_client.is_daemon_running()
-    
+
     if use_daemon:
         logger.info("Using Arduino daemon (no reset)")
         return _execute_via_daemon(args, daemon_client)
@@ -505,58 +516,61 @@ def main() -> int:
         logger.info("Using direct connection (may cause reset)")
         return _execute_direct(args)
 
+
 def _execute_via_daemon(args, daemon_client: DaemonClient) -> int:
     """Executes commands via daemon."""
     try:
         # Build command for daemon
-        if args.action == 'on':
+        if args.action == "on":
             cmd = f"ON {' '.join(map(str, args.channels))}"
-        elif args.action == 'off':
+        elif args.action == "off":
             cmd = f"OFF {' '.join(map(str, args.channels))}"
-        elif args.action == 'toggle':
+        elif args.action == "toggle":
             cmd = f"TOGGLE {' '.join(map(str, args.channels))}"
-        elif args.action == 'pulse':
+        elif args.action == "pulse":
             cmd = f"PULSE {args.channel} {args.milliseconds}"
-        elif args.action == 'status':
+        elif args.action == "status":
             cmd = "STATUS"
-        elif args.action == 'all-off':
+        elif args.action == "all-off":
             cmd = "ALLOFF"
-        elif args.action == 'all-on':
+        elif args.action == "all-on":
             cmd = "ALLON"
         else:
             return 3
-            
+
         # Send to daemon
         result = daemon_client.send_command(cmd)
-        
+
         if result.get("success", False):
-            if args.action == 'status':
+            if args.action == "status":
                 print(result.get("response", ""))
             return 0
         else:
             logger.error(f"Daemon command failed: {result.get('error', 'Unknown error')}")
             return 2
-            
+
     except Exception as e:
         logger.error(f"Error communicating with daemon: {e}")
         return 2
 
+
 def _execute_direct(args) -> int:
     """Executes commands directly (original method)."""
-    controller = ArduinoRelayController(
-        port=args.port,
-        baudrate=args.baudrate,
-        timeout=args.timeout
-    )
+    controller = ArduinoRelayController(port=args.port, baudrate=args.baudrate, timeout=args.timeout)
     if not controller.connect():
         logger.error("Failed to connect to Arduino device")
         return 1
 
     try:
         success = False
-        if args.action == 'on':
+        if args.action == "on":
             # GL.iNet special sequence: disconnect serial (relay 1) → power on (relay 0) → wait → reconnect serial (relay 1 OFF)
-            if hasattr(args, 'glinet_sequence') and args.glinet_sequence and len(args.channels) == 1 and args.channels[0] == 0:
+            if (
+                hasattr(args, "glinet_sequence")
+                and args.glinet_sequence
+                and len(args.channels) == 1
+                and args.channels[0] == 0
+            ):
                 logger.info("Using GL.iNet MT300N-v2 power sequence")
                 # 1. Disconnect serial (relay 1 ON)
                 if not controller.relay_on(1):
@@ -580,9 +594,14 @@ def _execute_direct(args) -> int:
             else:
                 success = controller.relays_on(args.channels)
 
-        elif args.action == 'off':
+        elif args.action == "off":
             # GL.iNet special sequence: power off (relay 0) → reconnect serial (relay 1 OFF)
-            if hasattr(args, 'glinet_sequence') and args.glinet_sequence and len(args.channels) == 1 and args.channels[0] == 0:
+            if (
+                hasattr(args, "glinet_sequence")
+                and args.glinet_sequence
+                and len(args.channels) == 1
+                and args.channels[0] == 0
+            ):
                 logger.info("Using GL.iNet MT300N-v2 power off sequence")
                 # 1. Power off device (relay 0 OFF)
                 if not controller.relay_off(0):
@@ -600,24 +619,24 @@ def _execute_direct(args) -> int:
             else:
                 success = controller.relays_off(args.channels)
 
-        elif args.action == 'toggle':
+        elif args.action == "toggle":
             success = controller.relays_toggle(args.channels)
 
-        elif args.action == 'pulse':
+        elif args.action == "pulse":
             success = controller.pulse(args.channel, args.milliseconds)
 
-        elif args.action == 'status':
+        elif args.action == "status":
             status = controller.get_status()
             success = status is not None
             if success and status:
-                ch_map = status.get('channels', {})
-                pretty = ' '.join(f'{k}:{ "ON" if v else "OFF"}' for k, v in sorted(ch_map.items()))
-                print(f"STATUS {pretty}" if pretty else status['raw_response'])
+                ch_map = status.get("channels", {})
+                pretty = " ".join(f"{k}:{'ON' if v else 'OFF'}" for k, v in sorted(ch_map.items()))
+                print(f"STATUS {pretty}" if pretty else status["raw_response"])
 
-        elif args.action == 'all-off':
+        elif args.action == "all-off":
             success = controller.all_relays_off()
 
-        elif args.action == 'all-on':
+        elif args.action == "all-on":
             success = controller.all_relays_on()
 
         return 0 if success else 2
@@ -632,5 +651,5 @@ def _execute_direct(args) -> int:
         controller.disconnect()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

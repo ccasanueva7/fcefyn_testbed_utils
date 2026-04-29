@@ -215,7 +215,7 @@ def main() -> int:
 
     ip = resolve_ip(args.device, args.ip, config_path)
     if not ip:
-            print(f"ERROR: No IP for {args.device}. Use --ip or add to dut-config.yaml", file=sys.stderr)
+        print(f"ERROR: No IP for {args.device}. Use --ip or add to dut-config.yaml", file=sys.stderr)
         return 1
 
     print(f"Device: {args.device} -> Mesh IP: {ip}")

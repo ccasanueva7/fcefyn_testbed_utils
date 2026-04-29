@@ -21,17 +21,21 @@ try:
 except ImportError:
     yaml = None
 
-from switch_abstraction.constants import MESH_GATEWAY, MESH_DNS
+from switch_abstraction.constants import MESH_DNS, MESH_GATEWAY
 
 logger = logging.getLogger(__name__)
 
 SSH_TIMEOUT = 10
 SSH_BASE_CMD = [
     "ssh",
-    "-o", "StrictHostKeyChecking=no",
-    "-o", "UserKnownHostsFile=/dev/null",
-    "-o", f"ConnectTimeout={SSH_TIMEOUT}",
-    "-o", "LogLevel=ERROR",
+    "-o",
+    "StrictHostKeyChecking=no",
+    "-o",
+    "UserKnownHostsFile=/dev/null",
+    "-o",
+    f"ConnectTimeout={SSH_TIMEOUT}",
+    "-o",
+    "LogLevel=ERROR",
 ]
 
 DEFAULT_SETTLE_SECONDS = 5
@@ -55,19 +59,19 @@ def load_duts(config_path: Path) -> list[dict]:
         mesh_ip = hw.get("libremesh_fixed_ip", "")
         if vlan and ssh_alias:
             last_octet = mesh_ip.split(".")[-1] if mesh_ip else ""
-            result.append({
-                "id": dut_id,
-                "vlan": vlan,
-                "ssh_alias": ssh_alias,
-                "mesh_src_ip": f"192.168.200.{last_octet}" if last_octet else "",
-                "ip_last_octet": last_octet,
-            })
+            result.append(
+                {
+                    "id": dut_id,
+                    "vlan": vlan,
+                    "ssh_alias": ssh_alias,
+                    "mesh_src_ip": f"192.168.200.{last_octet}" if last_octet else "",
+                    "ip_last_octet": last_octet,
+                }
+            )
     return result
 
 
-def build_gateway_script(
-    mode: str, vlan: int, mesh_src_ip: str = "", ip_last_octet: str = ""
-) -> str:
+def build_gateway_script(mode: str, vlan: int, mesh_src_ip: str = "", ip_last_octet: str = "") -> str:
     """Build a shell script that updates the gateway on a DUT instantly.
 
     Args:
@@ -101,15 +105,13 @@ def build_gateway_script(
     if mode == "mesh" and mesh_src_ip:
         src_ip = mesh_src_ip
         lines += [
-            f"ip addr show dev br-lan | grep -q '{src_ip}/' || "
-            f"ip addr add {src_ip}/24 dev br-lan",
+            f"ip addr show dev br-lan | grep -q '{src_ip}/' || ip addr add {src_ip}/24 dev br-lan",
             f"ip route replace default via {gateway} dev br-lan src {src_ip}",
         ]
     elif ip_last_octet:
         src_ip = f"192.168.{vlan}.{ip_last_octet}"
         lines += [
-            f"ip addr show dev br-lan | grep -q '{src_ip}/' || "
-            f"ip addr add {src_ip}/24 dev br-lan",
+            f"ip addr show dev br-lan | grep -q '{src_ip}/' || ip addr add {src_ip}/24 dev br-lan",
             f"ip route replace default via {gateway} dev br-lan src {src_ip}",
         ]
     else:
@@ -166,7 +168,10 @@ def update_dut_gateways(
         for dut in duts:
             mode = dut_modes[dut["id"]]
             script = build_gateway_script(
-                mode, dut["vlan"], dut.get("mesh_src_ip", ""), dut.get("ip_last_octet", ""),
+                mode,
+                dut["vlan"],
+                dut.get("mesh_src_ip", ""),
+                dut.get("ip_last_octet", ""),
             )
             logger.info("  [DRY-RUN] %s (%s, %s):\n%s", dut["id"], dut["ssh_alias"], mode, script)
         return
@@ -180,13 +185,14 @@ def update_dut_gateways(
 
         mode = dut_modes[dut["id"]]
         script = build_gateway_script(
-            mode, dut["vlan"], dut.get("mesh_src_ip", ""), dut.get("ip_last_octet", ""),
+            mode,
+            dut["vlan"],
+            dut.get("mesh_src_ip", ""),
+            dut.get("ip_last_octet", ""),
         )
         cmd = SSH_BASE_CMD + [ssh_alias, script]
         logger.debug("  Launching SSH to %s (%s, mode=%s)", dut["id"], ssh_alias, mode)
-        proc = subprocess.Popen(
-            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-        )
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         procs.append((dut, proc))
 
     for dut, proc in procs:

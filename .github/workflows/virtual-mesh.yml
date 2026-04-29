@@ -1,0 +1,94 @@
+name: Virtual mesh tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      nodes:
+        description: "Number of nodes (2-5)"
+        required: false
+        default: "2"
+  push:
+    branches: [test]
+    paths:
+      - "tests/mesh/**"
+      - "vms/**"
+      - "firmwares/**"
+
+jobs:
+  virtual-mesh:
+    name: Virtual mesh (${{ matrix.nodes }} nodes)
+    runs-on: self-hosted
+    strategy:
+      matrix:
+        nodes: [2, 5]
+      fail-fast: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Check vwifi-server is running
+        run: |
+          if ! pgrep -x vwifi-server > /dev/null; then
+            echo "ERROR: vwifi-server is not running on the host"
+            exit 1
+          fi
+          echo "vwifi-server OK"
+
+      - name: Check firmware image exists
+        run: |
+          IMG=firmwares/qemu/libremesh/lime-vwifi-x86-64-ext4-combined.img
+          if [ ! -f "$IMG" ]; then
+            echo "ERROR: firmware image not found at $IMG"
+            exit 1
+          fi
+          echo "Image OK: $(du -h $IMG | cut -f1)"
+
+      - name: Launch VMs
+        run: |
+          VIRTUAL_MESH_NODES=${{ matrix.nodes }} bash vms/launch_debug_vms.sh &
+          echo "Waiting for VMs to boot..."
+          sleep 90
+
+      - name: Wait for SSH on all nodes
+        run: |
+          for i in $(seq 1 ${{ matrix.nodes }}); do
+            PORT=$((2221 + i))
+            echo -n "Waiting for vm${i} (port ${PORT})..."
+            for attempt in $(seq 1 30); do
+              if ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+                     -o ConnectTimeout=5 -p ${PORT} root@127.0.0.1 echo ok 2>/dev/null; then
+                echo " ready"
+                break
+              fi
+              sleep 5
+            done
+          done
+
+      - name: Run tests
+        env:
+          VIRTUAL_MESH_NODES: ${{ matrix.nodes }}
+        run: |
+          pytest tests/mesh/ -v \
+            --timeout=120 \
+            --tb=short \
+            -x \
+            --ignore=tests/mesh/test_mesh_multihop.py
+
+      - name: Run multi-hop tests (5 nodes only)
+        if: matrix.nodes == 5
+        env:
+          VIRTUAL_MESH_NODES: 5
+        run: |
+          pytest tests/mesh/test_mesh_multihop.py -v \
+            --timeout=180 \
+            --tb=short
+
+      - name: Stop VMs
+        if: always()
+        run: |
+          pkill -f "qemu-system-x86_64.*lime" || true
+          echo "VMs stopped"
