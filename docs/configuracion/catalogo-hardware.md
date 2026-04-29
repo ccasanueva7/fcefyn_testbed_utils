@@ -4,7 +4,7 @@
 
 ## Sponsors and acknowledgments {: #sponsors-and-acknowledgments }
 
-Part of the equipment arrived as **donations** from manufacturers and institutions:
+Part of the equipment arrived as **donations** from manufacturers, institutions or people:
 
 | Sponsor | Equipment |
 |---------|-----------|
@@ -28,7 +28,7 @@ Part of the equipment arrived as **donations** from manufacturers and institutio
 
 ## Arduino-controlled rack relays {: #arduino-rack-relays }
 
-The **Arduino Nano** switches power to DUTs and rack infrastructure (cooler, PSU) via **11** USB-serial channels; it does **not** switch the network switch feed. Details: [arduino-relay.md](arduino-relay.md).
+The **Arduino Nano** switches power to DUTs and rack infrastructure (cooler, PSU) by sending GPIO signals to the control pins of the relays. More details[here](arduino-relay.md).
 
 ### Arduino Nano
 
@@ -48,7 +48,7 @@ The **Arduino Nano** switches power to DUTs and rack infrastructure (cooler, PSU
 
 ### 4-channel SSR module (Omron G3MB-202P)
 
-**CH2** feeds the AC cooler (channel 9). **CH1** (channel 8, D10) has signal on the UTP but **no load** in the current build: it does not switch the network switch feed (SG2016P stays on fixed mains). **CH3** and **CH4**: wiring per [arduino-relay.md](arduino-relay.md).
+Placed inside the rack's [AC control box](arduino-relay.md#ac-control-box-lab-build).
 
 <div class="catalog-hardware-row catalog-hardware-row--balanced" markdown="block">
 
@@ -65,6 +65,8 @@ The **Arduino Nano** switches power to DUTs and rack infrastructure (cooler, PSU
 </div>
 
 ### Fotek SSR-25DA (channel 10)
+
+Placed inside the rack's [AC control box](arduino-relay.md#ac-control-box-lab-build).
 
 This SSR cuts phase to the **AC** load on channel 10 (rack PSU). In Arduino firmware logic is **active high** (channel 10: HIGH = ON; channels 0-9: LOW = ON).
 
@@ -111,7 +113,7 @@ Reference parts for **AC** (outlet), **12 V DC** positive from DUT relays toward
 
 <div class="rack-gallery rack-gallery--catalog-safety" data-rack-gallery tabindex="0">
   <div class="rack-gallery__viewport">
-    <figure class="rack-gallery__slide" data-caption="Modular outlet (phase break, AC branch).">
+    <figure class="rack-gallery__slide" data-caption="x4 Modular outlets used in the AC control box (phase break, AC branch).">
       <img src="../../img/hardware/caja-toma.png" alt="Modular flush outlet reference" loading="lazy" decoding="async">
     </figure>
     <figure class="rack-gallery__slide" data-caption="Polyamide terminal block: 12 V+ from DUT relays to jacks.">
@@ -153,7 +155,7 @@ The PSU feeding that **AC** branch plugs behind the **Fotek**; channel 10 role i
 
 ## Bosser 120 mm AC fan {: #bosser-120mm-rack-fan }
 
-**120 mm** frame axial fan at **220 V** mains at the **rack base** (not the Arduino 12 V supply). Pushes air into the curved printed duct; assembly with 3D parts is in [Physical rack](../diseno/rack-diseno-3d.md).
+**120 mm** frame axial fan at **220 V** mains at the **rack base** (not the Arduino 12 V supply). Pushes air into the curved printed duct; assembly with 3D parts is in [Physical rack](../diseno/diy-rack.md).
 
 <div class="catalog-hardware-row catalog-hardware-row--balanced catalog-hardware-row--cooler-photo" markdown="block">
 

@@ -1,6 +1,6 @@
 # Virtual LibreMesh tests with QEMU and vwifi
 
-Multi-node LibreMesh tests on QEMU VMs with simulated WiFi via vwifi and mac80211_hwsim. Complements the physical lab ([hybrid-lab-proposal](hybrid-lab-proposal.md)) by enabling CI without dedicated hardware and local development without real devices.
+Multi-node LibreMesh tests on QEMU VMs with simulated WiFi via vwifi and mac80211_hwsim. Complements the physical lab ([Lab architecture](lab-architecture.md)) by enabling CI without dedicated hardware and local development without real devices.
 
 ---
 
@@ -93,41 +93,38 @@ TAP and user mode are **equivalent** for the control channel (SSH host→VM):
 ### 4.1 Conceptual diagram
 
 ```mermaid
-flowchart TB
-    subgraph Host [Orchestration host]
-        vwifiServer[vwifi-server TCP]
-        launcher[virtual_mesh_launcher]
-        pytest[pytest]
+flowchart TD
+    subgraph Host ["Orchestration host"]
+        launcher["virtual_mesh_launcher"]
+        vwifiServer["vwifi-server (TCP)"]
+        pytest["pytest"]
     end
 
-    subgraph VM1 [VM 1 - QEMU]
-        vwifiClient1[vwifi-client 10.0.2.2]
-        lime1[LibreMesh + mac80211_hwsim]
+    subgraph VMs ["QEMU VMs (N instances)"]
+        VM1["VM 1: LibreMesh + vwifi-client + mac80211_hwsim"]
+        VM2["VM 2: LibreMesh + vwifi-client + mac80211_hwsim"]
+        VMn["VM N: LibreMesh + vwifi-client + mac80211_hwsim"]
     end
 
-    subgraph VM2 [VM 2 - QEMU]
-        vwifiClient2[vwifi-client 10.0.2.2]
-        lime2[LibreMesh + mac80211_hwsim]
-    end
-
-    subgraph VMn [VM N]
-        vwifiClientN[vwifi-client 10.0.2.2]
-        limeN[LibreMesh]
-    end
-
-    launcher -->|qemu -netdev user| VM1
-    launcher -->|qemu| VM2
-    launcher -->|qemu| VMn
-    launcher -->|start| vwifiServer
-    pytest -->|SSH 127.0.0.1:2222| VM1
-    pytest -->|SSH 127.0.0.1:2223| VM2
-    pytest -->|SSH 127.0.0.1:22xx| VMn
-    vwifiServer <-->|TCP| vwifiClient1
-    vwifiServer <-->|TCP| vwifiClient2
-    vwifiServer <-->|TCP| vwifiClientN
-    lime1 <-.->|802.11 mesh via vwifi| lime2
-    lime2 <-.->|802.11 mesh| limeN
+    launcher -- "1" --> vwifiServer
+    launcher -- "2" --> VMs
+    pytest -- "3" --> VM1
+    pytest -- "3" --> VM2
+    pytest -- "3" --> VMn
+    vwifiServer -- "4" --> VM1
+    vwifiServer -- "4" --> VM2
+    vwifiServer -- "4" --> VMn
+    VM1 -. "5" .-> VM2
+    VM2 -. "5" .-> VMn
 ```
+
+| # | Connection | Detail |
+|---|---|---|
+| 1 | launcher → vwifi-server | Starts the frame relay server |
+| 2 | launcher → VMs | Starts N QEMUs with `-netdev user,hostfwd=tcp:127.0.0.1:PORT-:22` |
+| 3 | pytest → VMs | SSH to 127.0.0.1:2222, :2223, ..., :222N |
+| 4 | vwifi-server ↔ VMs | TCP (vwifi-client in each VM connects to host 10.0.2.2) |
+| 5 | VM ↔ VM | 802.11 mesh via vwifi frame relay |
 
 ### 4.2 Addressing
 

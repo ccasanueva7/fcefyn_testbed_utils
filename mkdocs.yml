@@ -3,6 +3,12 @@ site_description: HIL testbed documentation for OpenWrt and LibreMesh
 site_url: https://fcefyn-testbed.github.io/fcefyn_testbed_utils/
 docs_dir: docs
 
+plugins:
+  - search
+  - panzoom:
+      full_screen: true
+      always_show_hint: true
+
 # README.md is a GitHub pointer; index.md is the site home (same URL would conflict).
 exclude_docs: |
   README.md
@@ -54,6 +60,7 @@ markdown_extensions:
 
 extra_css:
   - stylesheets/theme-colors.css
+  - stylesheets/nav-primary-sections.css
   - stylesheets/institutional-logos.css
   - stylesheets/demos.css
   - stylesheets/rack-gallery.css
@@ -71,19 +78,20 @@ extra:
 nav:
   - Home: index.md
   - Lab operations:
-      - Operations manual: operar/SOM.md
-      - Lab procedures: operar/lab-procedures.md
-      - Rack cheatsheet: operar/rack-cheatsheets.md
+      - Operations manual: operar/system-operation-manual.md
+      - Rack quick reference: operar/rack-cheatsheets.md
+      - Routine operations: operar/lab-routine-operations.md
       - SSH access to DUTs: operar/dut-ssh-access.md
-      - Manual firmware build: operar/build-firmware-manual.md
-      - Labgrid useful commands: operar/labgrid-useful-commands.md
-      - Adding a DUT: operar/adding-dut-guide.md
+      - Running tests: operar/lab-running-tests.md
+      - Labgrid commands: operar/labgrid-useful-commands.md
+      - Adding a DUT: operar/dut-onboarding.md
+      - Build firmware: operar/build-firmware-manual.md
       - Wake-on-LAN: operar/wake-on-lan-setup.md
-      - ZeroTier (remote access): operar/zerotier-remote-access.md
+      - ZeroTier remote access: operar/zerotier-remote-access.md
   - Component configuration:
       - Hardware and rack reference:
           - Hardware catalog: configuracion/catalogo-hardware.md
-          - "Physical rack (photos and 3D)": diseno/rack-diseno-3d.md
+          - "DIY Rack": diseno/diy-rack.md
       - Network and DUTs:
           - Host: configuracion/host-config.md
           - Switch: configuracion/switch-config.md
@@ -98,8 +106,9 @@ nav:
           - Lab host stack (Prometheus and Grafana): configuracion/observabilidad.md
           - Remote HTTPS access (Oracle VPS): configuracion/grafana-public-access.md
   - Design:
-      - Unified pool architecture: diseno/unified-pool.md
+      - Integration overview: diseno/integration-overview.md
+      - Lab architecture: diseno/lab-architecture.md
       - openwrt-tests onboarding: diseno/openwrt-tests-onboarding.md
-      - CI use cases: diseno/ci-use-cases.md
+      - openwrt-tests CI flow: diseno/openwrt-tests-ci-flow.md
       - Virtual mesh: diseno/virtual-mesh.md
   - Demos: demos.md

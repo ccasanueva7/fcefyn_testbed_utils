@@ -7,7 +7,7 @@ See also: [observabilidad.md](observabilidad.md) for the Prometheus + Grafana st
 ## URL and access {: #url-and-access }
 
 - **Site:** [https://fcefyn-testbed.duckdns.org/](https://fcefyn-testbed.duckdns.org/)
-- Access is **by invitation** - contacts in [SOM - Ownership and support](../operar/SOM.md#ownership-and-support).
+- Access is **by invitation** - contacts in [SOM - Ownership and support](../operar/system-operation-manual.md#ownership-and-support).
 
 ---
 

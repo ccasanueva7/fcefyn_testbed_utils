@@ -9,41 +9,52 @@ Process for contributing hardware from a local lab to the [openwrt-tests](https:
 The openwrt-tests **global-coordinator** is a **VM in a datacenter** with a public IP, maintained by Paul (aparcar). All remote labs connect to it over **WireGuard**. **GitHub Actions self-hosted runners** also run on that VM and reach labs through the WireGuard tunnel to run tests.
 
 ```mermaid
-flowchart TB
-    subgraph datacenter ["Datacenter VM (global-coordinator)"]
-        GC["labgrid-coordinator<br/>(websocket + SSH jump)"]
-        RUNNERS["GitHub Actions<br/>self-hosted runners (x5)"]
+flowchart TD
+    subgraph datacenter ["Datacenter VM"]
+        GC["labgrid-coordinator :20408"]
+        RUNNERS["GitHub Actions runners"]
     end
+
     subgraph lab_aparcar ["Aparcar lab"]
         EXP_A["labgrid-exporter"]
+        BC_A["labgrid-bound-connect"]
         DUT_A["DUTs"]
     end
+
     subgraph lab_fcefyn ["FCEFyN lab"]
         EXP_F["labgrid-exporter"]
+        BC_F["labgrid-bound-connect"]
         DUT_F["DUTs"]
     end
-    subgraph dev_pc ["Developer PC"]
-        DEV["labgrid-client"]
-    end
-    EXP_A -->|"ws (WebSocket)"| GC
-    EXP_F -->|"ws (WebSocket)"| GC
-    lab_aparcar <-->|WireGuard| datacenter
-    lab_fcefyn <-->|WireGuard| datacenter
-    RUNNERS -->|"lock + test"| GC
-    DEV -->|"SSH proxy (LG_PROXY)"| GC
-    GC -->|"SSH proxy"| EXP_A
-    GC -->|"SSH proxy"| EXP_F
-    EXP_A --> DUT_A
-    EXP_F --> DUT_F
+
+    RUNNERS -- "1" --> GC
+    EXP_A -- "2" --> GC
+    EXP_F -- "2" --> GC
+    RUNNERS -- "3" --> BC_A
+    RUNNERS -- "3" --> BC_F
+    BC_A -- "4" --> DUT_A
+    BC_F -- "4" --> DUT_F
 ```
+
+| # | Connection | Detail |
+|---|---|---|
+| 1 | Runners → Coordinator | WebSocket localhost:20408 (reserve / lock / unlock) |
+| 2 | Exporter → Coordinator | WebSocket via WireGuard (register resources) |
+| 3 | Runners → bound-connect | SSH via WireGuard (LG_PROXY=labgrid-X) |
+| 4 | bound-connect → DUTs | socat with so-bindtodevice on correct VLAN interface |
+
+All connections between labs and the VM traverse a **WireGuard** tunnel (point-to-point VPN).
 
 | Component | Location | Role |
 |-----------|----------|------|
-| **Coordinator** | Datacenter VM (public IP) | Central service that registers places, coordinates locks, and acts as SSH jump host. |
-| **GitHub runners** | Same VM | 5 self-hosted runners running CI workflows against remote DUTs. |
-| **WireGuard** | Between each lab and the VM | Tunnel so the coordinator can reach labs over SSH (proxy to DUTs). Configured manually with the maintainer. |
-| **Exporter** | Lab host | Process that publishes local DUTs to the coordinator over WebSocket. |
-| **Place** | Configuration | Abstraction of one DUT: resources (serial, power, SSH), boot strategy, firmware. |
+| **Coordinator** | Datacenter VM (public IP) | WebSocket server. Registers places (`places.yaml`), coordinates reservations and locks. Does **not** proxy SSH. |
+| **GitHub runners** | Same VM | Self-hosted runners executing CI workflow jobs against remote DUTs via `LG_PROXY`. |
+| **WireGuard** | Between each lab and the VM | Tunnel so runners can SSH to lab hosts and lab exporters can reach the coordinator. |
+| **Exporter** | Lab host | Registers local DUT resources (serial, power, network) with the coordinator over WebSocket. |
+| **`labgrid-bound-connect`** | Lab host | SSH ProxyCommand invoked by the runner. Uses `socat` with `so-bindtodevice` to connect to a DUT IP on the correct VLAN interface. |
+| **Place** | Configuration | Abstraction of one DUT: resources (serial, power, SSH target), boot strategy, firmware. |
+
+See [CI execution flow](openwrt-tests-ci-flow.md) for the full sequence of how a workflow job runs end-to-end.
 
 !!! note "WireGuard latency"
     If the WireGuard link between the datacenter and the lab is poor (high latency), tests may fail on timeout. The maintainer cited this as a known issue with labs in Eastern Europe.
@@ -226,7 +237,7 @@ sequenceDiagram
 | VLANs | Dynamic per test (isolated default, 192.168.1.x) | Dynamic per test (mesh VLAN 200, 10.13.x.x for multi-node) |
 | Multi-node tests | Not supported | Implemented in `conftest_mesh.py` |
 
-Both projects share the same DUT pool with a [unified pool architecture](unified-pool.md): each test locks DUTs via Labgrid and sets the VLAN it needs at runtime.
+Both projects use the **same Labgrid inventory** ([Lab architecture](lab-architecture.md)): each test locks DUTs via Labgrid and sets the VLAN it needs at runtime.
 
 ---
 

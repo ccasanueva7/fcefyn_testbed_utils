@@ -1,6 +1,6 @@
 # GitHub Actions self-hosted runner
 
-To run libremesh-tests workflows on the lab host, install a **GitHub Actions self-hosted runner**. Daily, Healthcheck, and Pull Request jobs run on this hardware instead of GitHub-hosted or third-party runners.
+To run libremesh-tests workflows on the lab host, we installed a **GitHub Actions self-hosted runner**. Daily, Healthcheck, and Pull Request jobs run on this hardware instead of GitHub-hosted or third-party runners.  This is on overview of the steps to set up a function runner for the testbed.
 
 ---
 
@@ -59,7 +59,7 @@ sudo systemctl restart labgrid-coordinator
 
 ---
 
-## 5. Move runner to another repo
+## 5. Move runner to another repo (if needed)
 
 To move the runner from one repo to another (or user to org):
 
@@ -70,19 +70,6 @@ To move the runner from one repo to another (or user to org):
 
 ---
 
-## 6. Ownership transfer
+## 6. Ownership transfer (if needed in near future)
 
 When the repo transfers to an org, attached runners move with it. The systemd service name may still reference the old owner; this should not affect operation.
-
----
-
-## 7. Setup performed (FCEFyN)
-
-Summary of steps to bring the runner online on host labgrid-fcefyn:
-
-1. **Runner install** under `~/actions-runner` per [section 2](#2-installation).
-2. **Initial config:** Runner linked to fork (`francoriba/libremesh-tests`). Name: `runner-fcefyn`. Labels: `self-hosted`, `testbed-fcefyn`.
-3. **systemd service:** Installed with `sudo ./svc.sh install`. Service name: `actions.runner.francoriba-libremesh-tests.runner-fcefyn.service`.
-4. **Re-registration:** The runner was first installed on `libremesh-tests Private`. To attach it to the fork: `./config.sh remove --token TOKEN` (token from original repo UI), then `./config.sh` with fork URL, then `sudo ./svc.sh uninstall` + `sudo ./svc.sh install` + `sudo ./svc.sh start`.
-5. **Permissions /etc/labgrid:** Coordinator failed with `PermissionError` writing `/etc/labgrid`. Fixed with `sudo chown -R labgrid-dev:labgrid-dev /etc/labgrid`. openwrt-tests playbook updated so "Create labgrid folder" uses `owner: labgrid-dev` and `group: labgrid-dev`.
-6. **Verification:** Daily, Healthcheck, and Pull Request jobs run on the runner with `runs-on: [self-hosted, testbed-fcefyn]`. Tests validated with openwrt_one.

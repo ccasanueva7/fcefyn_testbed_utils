@@ -1,50 +1,47 @@
-# Unified pool architecture (dynamic VLAN per test)
+# Lab architecture (dynamic VLAN per test) {: #lab-architecture }
 
-**Technical design document** - current lab architecture; the [fixed-pool approach](hybrid-lab-proposal.md) remains as historical reference. Context: labs contributing simultaneously to [openwrt-tests](https://github.com/openwrt/openwrt-tests) and [LibreMesh](https://libremesh.org/).
+**Technical design document** for the current HIL lab: one global coordinator, one exporter, shared DUT inventory, and VLAN as a per-test attribute. Context: [openwrt-tests](https://github.com/openwrt/openwrt-tests) and [LibreMesh](https://libremesh.org/) workloads on the same hardware.
 
 ---
 
-## 1. Problem
+## 1. Scope
 
-The previous approach splits DUTs into fixed pools (`dut-config.yaml`) with manual rebalancing. If openwrt-tests is busy, it cannot use DUTs assigned to libremesh and vice versa. That underuses hardware and requires admin intervention.
+- All DUTs are scheduled from a **single Labgrid inventory** (`dut-config.yaml` `duts` as hardware DB).
+- VLAN changes apply only where a test requires them (e.g. mesh); openwrt-tests runs on isolated VLANs by default.
+
+---
 
 ## 2. Design principle
 
-A switch port VLAN **is not owned by a pool**: it is a **transient attribute of the test** that holds the lock. Each test sets the VLAN it needs at start and restores it on teardown. Labgrid locking provides mutual exclusion.
+The VLAN on a DUT port follows the **test run that holds the Labgrid lock**: the test applies the VLAN it needs at start and restores the port on teardown. Labgrid locking serializes access so two jobs do not reconfigure the same port at once.
+
+---
 
 ## 3. Architecture
 
 ### 3.1 One coordinator, one exporter
 
-| Component | Before (fixed pools) | Now (unified pool) |
-|-----------|------------------------|---------------------|
-| Coordinator | 2 (global + local) | 1 (Paul's global, datacenter VM) |
-| Exporter | 2 systemd services | 1 `labgrid-exporter` process |
-| Pool config | `pools.openwrt` + `pools.libremesh` | No pools; only `duts` (hardware DB) |
-| Mode change | Global mode + pool scripts (historical; see [hybrid-lab-proposal](hybrid-lab-proposal.md)) | No global mode; VLAN changes per test |
+| Component | Role |
+|-----------|------|
+| Coordinator | One global (datacenter VM, via WireGuard) |
+| Exporter | One `labgrid-exporter` process for all DUTs |
+| DUT inventory | `dut-config.yaml` `duts` (hardware database for Labgrid) |
+| VLAN / scheduling | Per-test VLAN where needed; Labgrid lock serializes access |
 
-The global coordinator is the single source of locks. libremesh-tests points `LG_COORDINATOR` at the coordinator WireGuard IP instead of `localhost:20408`.
+The global coordinator is the single source of locks. libremesh-tests points `LG_COORDINATOR` at the coordinator WireGuard IP instead of `localhost:20408`. For the full connection topology (runners, WireGuard, LG_PROXY) see [Integration overview](integration-overview.md).
 
 ```mermaid
-flowchart TB
-    subgraph dc [VM Datacenter]
-        COORD[Global Coordinator\nLabGrid]
-        R1[Runners openwrt-tests]
+flowchart LR
+    subgraph lab ["FCEFyN lab host"]
+        EXP["labgrid-exporter"]
+        SW["Switch TP-Link\n(VLANs 100-108, 200)"]
+        DUTs["DUTs"]
     end
 
-    subgraph lab [Host Lab FCEFyN]
-        EXP["Single exporter\nall DUTs"]
-        R2[Runner libremesh-tests]
-        SW[Switch TP-Link\nVLAN per port]
-        DUTs[DUTs]
-    end
+    COORD["labgrid-coordinator\n(datacenter VM)"]
 
-    EXP -->|WireGuard| COORD
-    R1 -->|local| COORD
-    R2 -->|WireGuard| COORD
-    R1 -->|"SSH via WG"| DUTs
-    R2 -->|SSH local| DUTs
-    SW --> DUTs
+    EXP -->|"WebSocket via WireGuard\n(register resources)"| COORD
+    SW -->|"access port\n(isolated or VLAN 200)"| DUTs
 ```
 
 ### 3.2 Default state: isolated (fail-safe)
@@ -150,7 +147,7 @@ flowchart TB
     TF --> WF
 ```
 
-**Layer 1** addresses Paul's ask: "I wonder if we can come up with an abstract layer for switches or for network topologies."
+**Layer 1** supports an abstract layer for switches or network topologies.
 
 **Layer 2** enables multi-device tests for openwrt-tests (WiFi speed, golden-device pattern).
 
@@ -167,15 +164,7 @@ The `vlan_manager` module in **labgrid-switch-abstraction** is the library base 
 | dnsmasq complexity | 9+ VLANs at once | One-time config; independent instances |
 | VLAN switching overhead | 2-5 s per test (libremesh only) | Negligible vs flash+boot |
 
-## 9. What the previous approach removed
-
-Compared to **fixed pools** and global mode (detail in [hybrid-lab-proposal](hybrid-lab-proposal.md) and [hybrid-lab-tracking](hybrid-lab-tracking.md)):
-
-- `pools` section in `dut-config.yaml` (only `duts` remains as hardware DB)
-- Two exporters and local coordinator replaced by one global coordinator and one exporter
-- Manual whole-testbed "mode" switching (replaced by per-test VLAN with Labgrid lock)
-
-## 10. What is reused
+## 9. What is reused
 
 - `SwitchClient` + `tplink_jetstream.py` driver
 - `assign_port_vlan_commands()` (driver interface)

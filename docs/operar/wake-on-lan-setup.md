@@ -1,15 +1,15 @@
 # Wake-on-LAN - Lenovo ThinkPad T430 (orchestration host)
 
-Wake-on-LAN setup to power on the Lenovo T430 orchestration host remotely when it is off. WoL lets testbed admins power the lab from outside without physical access.
+The Wake-on-LAN setup allows to power on the orchestration host remotely if it is off. WoL lets testbed admins power the lab from outside without physical access.
 
-**Context:** A powered-off host does not receive ZeroTier traffic. The WoL packet must be sent from an always-on device on the same LAN (the OpenWrt gateway router, which runs ZeroTier). See [gateway 5.8](../configuracion/gateway.md#58-wake-on-lan-remote-host-power-on) for the full remote flow.
+**Context:** If powered-off, the host does not receive ZeroTier traffic. The WoL packet must be sent from an always-on device on the same LAN (the OpenWrt gateway router, which runs ZeroTier). See [gateway 5.8](../configuracion/gateway.md#58-wake-on-lan-remote-host-power-on) for the full remote flow.
 
 ---
 
 ## 1. Prerequisites
 
-- Active Ethernet interface (on the T430 host: `enp0s25`).
-- Ethernet cable to switch/gateway (same VLAN/LAN as the Lenovo).
+- Active Ethernet interface (on our T430 host: `enp0s25`).
+- Ethernet cable to switch/gateway (same VLAN/LAN as the orchestration host).
 
 ---
 

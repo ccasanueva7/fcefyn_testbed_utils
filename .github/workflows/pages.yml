@@ -6,6 +6,7 @@ on:
     paths:
       - 'docs/**'
       - 'mkdocs.yml'
+      - 'requirements-docs.txt'
 
 permissions:
   contents: read
@@ -26,7 +27,7 @@ jobs:
         with:
           python-version: '3.x'
 
-      - run: pip install mkdocs-material
+      - run: pip install -r requirements-docs.txt
 
       - run: mkdocs build #--strict
 
