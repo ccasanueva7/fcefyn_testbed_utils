@@ -150,3 +150,43 @@ def test_memory_not_oom(node):
 def test_no_kernel_panics(node):
     rc, out, _ = ssh_run(node["port"], "dmesg | grep -i 'kernel panic' || true")
     assert "kernel panic" not in out.lower(), f"{node['name']}: kernel panic detected in dmesg"
+
+
+# ---------------------------------------------------------------------------
+# Babeld
+# ---------------------------------------------------------------------------
+
+
+def test_babeld_running(node):
+    """babeld process must be running."""
+    rc, out, _ = ssh_run(node["port"], "pgrep -x babeld || pgrep -x babeld-auto-gw")
+    assert rc == 0, f"{node['name']}: babeld is not running"
+
+
+# ---------------------------------------------------------------------------
+# Hostname
+# ---------------------------------------------------------------------------
+
+
+def test_hostname_format(node):
+    """Hostname must follow LibreMesh format LiMe-XXXXXX."""
+    rc, out, _ = ssh_run(node["port"], "cat /proc/sys/kernel/hostname")
+    assert rc == 0, f"{node['name']}: could not read hostname"
+    hostname = out.strip()
+    assert hostname.lower().startswith("lime-"), (
+        f"{node['name']}: hostname does not follow LiMe-XXXXXX format: {hostname}"
+    )
+    assert len(hostname) >= 9, f"{node['name']}: hostname too short: {hostname}"
+
+
+# ---------------------------------------------------------------------------
+# Disk
+# ---------------------------------------------------------------------------
+
+
+def test_disk_not_full(node):
+    """Root filesystem should have some space available."""
+    rc, out, _ = ssh_run(node["port"], "df / | tail -1 | awk '{print $5}' | tr -d '%'")
+    assert rc == 0, f"{node['name']}: could not read disk usage"
+    usage = int(out.strip())
+    assert usage < 95, f"{node['name']}: root filesystem nearly full: {usage}%"
