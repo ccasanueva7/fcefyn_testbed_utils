@@ -1,26 +1,37 @@
 # lime-packages CI: hardware test stage
 
-How **fcefyn-testbed/lime-packages** reuses built firmware artifacts on the **self-hosted** runner `testbed-fcefyn` to run **libremesh-tests** (`staging` branch) against physical DUTs after `build-image` succeeds.
+How **fcefyn-testbed/lime-packages** consumes the firmware artifacts
+produced by `build-image` and exercises them on the self-hosted lab
+runner (`testbed-fcefyn`) and on QEMU. Single source of truth:
+[build-firmware.yml][wf].
 
-Build pipeline overview: [lime-packages CI: firmware build](lime-packages-ci-flow.md).
+Build pipeline overview:
+[lime-packages CI: firmware build](lime-packages-ci-flow.md).
 
-`build-firmware.yml` is the **single orchestrator** of active CI in this project. The legacy daily / pull_requests workflows that lived in `fcefyn-testbed/libremesh-tests` were retired in May 2026; only `formal.yml` (Python lint) remains there.
+[wf]: https://github.com/fcefyn-testbed/lime-packages/blob/master/.github/workflows/build-firmware.yml
 
 ---
 
-## 1. When do tests run?
+## 1. Trigger matrix
 
-Three triggers fire `build-firmware.yml`. Hardware jobs are gated per trigger:
+| Trigger                  | `test-firmware` | `test-mesh` | `test-mesh-pairs` | `test-firmware-qemu` | `test-mesh-qemu` |
+|--------------------------|-----------------|-------------|-------------------|----------------------|-------------------|
+| `pull_request`           | 1 random place  | forced N=3  | skipped           | run                  | run               |
+| `workflow_dispatch` (`physical_single=true`) | every place    | per `physical_mesh_count` (0/2/3) | skipped | run                  | run               |
+| `schedule` (cron 06:00 UTC) | every place  | skipped     | 3 walking pairs   | run                  | run               |
 
-| Trigger | `test-firmware` (single-node, physical) | `test-mesh` (manual N=2/3, physical) | `test-mesh-pairs` (walking chain, physical) |
-|---|---|---|---|
-| `pull_request` | skipped | skipped | skipped |
-| `workflow_dispatch` with `physical_single=true` | runs (per place × release) | runs only if `physical_mesh_count != 0` | skipped |
-| `schedule` (cron 06:00 UTC) | runs (per place × release) | skipped | runs (3 sequential pairs) |
+Notes:
 
-`workflow_dispatch` jobs are gated behind the GitHub `physical-lab` environment (required reviewers); the cron is unattended and does not require approval. All physical-lab-bound runs share the workflow-level concurrency group `physical-lab-shared`, so two lab-bound triggers never reserve the same place at once.
+- All jobs that touch the lab use `environment: physical-lab` for
+  GitHub-side approval gating. One environment approval covers every
+  `physical-lab`-bound job in the run (i.e. one click per PR).
+- The workflow concurrency group `physical-lab-shared` makes sure that
+  no two lab-bound triggers run at once.
+- Fork PRs (no environment access) get the QEMU jobs only.
 
-Fork PRs only get **build-feed** + **build-image** + the QEMU jobs on GitHub-hosted runners.
+The `prepare-matrix` job downsamples `test_targets_matrix` to one
+random entry on `pull_request` so PRs do not block the lab on every
+device.
 
 ---
 
@@ -28,66 +39,146 @@ Fork PRs only get **build-feed** + **build-image** + the QEMU jobs on GitHub-hos
 
 ```mermaid
 flowchart LR
-  A[firmware-* artifact]
-  B[download-artifact on lab runner]
-  C[Stage under /srv/tftp/firmwares/ci/RUN_ID/]
-  D[labgrid lock]
-  E[pytest libremesh-tests]
-  F[upload test-results-*]
-  A --> B --> C --> D --> E --> F
+  A[firmware-* artifacts] --> B[download-artifact on testbed-fcefyn]
+  B --> C[Stage under /srv/tftp/firmwares/ci/RUN_ID/]
+  C --> D[labgrid lock]
+  D --> E[pytest libremesh-tests]
+  E --> F[upload test-results-*]
 ```
 
-| Step | What happens |
-|------|----------------|
-| **Artifacts** | `build-image` uploads `firmware-<device>-<release>` per matrix device × release. |
-| **Checkout** | `libremesh-tests` @ `staging`, `aparcar/openwrt-tests` @ `main` (for `labnet.yaml` / `OPENWRT_TESTS_DIR`). |
-| **Staging** | Firmware copied to `/srv/tftp/firmwares/ci/<run_id>/<place>/<release>/` (single-node) or `…/mesh/<release>/` (manual mesh) or `…/mesh-pairs/<pair>/<release>/` (walking chain). Each parallel job gets its own staging dir so cleanup never races. |
-| **Single-node** | Per place: lock `labgrid-fcefyn-<place>` directly, set **`LG_IMAGE`** to the staged file, run `pytest tests/test_libremesh.py`. |
-| **Manual mesh** (`test-mesh`) | Maintainer-selected N=2 or N=3 nodes from `workflow_dispatch`. Stages every device the mesh shape needs, sets **`LG_MESH_PLACES`** + **`LG_IMAGE_MAP`** dynamically, runs `pytest tests/test_mesh.py`. |
-| **Walking chain** (`test-mesh-pairs`) | Three sequential 2-node pairs (max-parallel: 1). Pair 1: belkin_rt3200_2 ↔ openwrt_one; Pair 2: openwrt_one ↔ bpi-r4; Pair 3: bpi-r4 ↔ belkin_rt3200_3. Covers every active lab device twice per day; excludes `belkin_rt3200_1` (in repair). |
-| **Artifacts** | Console / JUnit uploaded as `test-results-<place>-<release>`, `test-results-mesh-<release>`, or `test-results-mesh-pairs-<pair>-<release>`. |
+| Step      | What happens                                                      |
+|-----------|-------------------------------------------------------------------|
+| Artifacts | `build-image` uploads `firmware-<device>-<release>` per matrix.   |
+| Checkout  | `libremesh-tests@staging`, `aparcar/openwrt-tests@main`.          |
+| Staging   | Firmware copied to `/srv/tftp/firmwares/ci/<run_id>/<place>/<release>/` (single-node), `.../mesh/<release>/`, or `.../mesh-pairs/<pair>/<release>/`. Per-job staging dirs avoid races. |
+| Single    | Per place: lock `labgrid-fcefyn-<place>`, set `LG_IMAGE`, run `pytest tests/test_libremesh.py`. |
+| Mesh      | `test-mesh`: stage every device the mesh shape needs, set `LG_MESH_PLACES` + `LG_IMAGE_MAP`, run `pytest tests/test_mesh.py`. |
+| Pairs     | `test-mesh-pairs` (cron only): three sequential 2-node pairs, `max-parallel: 1`. Covers every active lab device twice per day. |
+
+Each step is implemented in [tools/ci/lab_stage_firmware.sh][stage-fw]
+and [tools/ci/lab_stage_mesh.sh][stage-mesh]; the workflow steps
+themselves are 2-3 lines plus env vars.
+
+[stage-fw]: https://github.com/fcefyn-testbed/lime-packages/blob/master/tools/ci/lab_stage_firmware.sh
+[stage-mesh]: https://github.com/fcefyn-testbed/lime-packages/blob/master/tools/ci/lab_stage_mesh.sh
 
 ---
 
-## 3. Why `LG_IMAGE` as an absolute path?
+## 3. Mesh-after-firmware serialisation
 
-CI does **not** edit `configs/firmware-catalog.yaml` in libremesh-tests. Instead it exports **`LG_IMAGE`** (single-node) or **`LG_IMAGE_MAP`** (multi-node) pointing at files under `/srv/tftp/firmwares/ci/<run_id>/…`. That matches how developers run tests locally (see [libremesh-tests README](https://github.com/fcefyn-testbed/libremesh-tests/blob/staging/README.md)).
+`test-mesh` and `test-mesh-pairs` declare `needs: [..., test-firmware]`
+so they cannot start while a `test-firmware` job is holding a labgrid
+lock on the same place. Without this, both jobs race for the same lock
+and one fails with `You have already acquired this place`.
+
+The QEMU jobs run in parallel with the lab jobs since they do not
+share lab resources.
 
 ---
 
-## 4. Labgrid reservation contract (single-node)
+## 4. PR strategy
 
-Every `test_targets_matrix` entry now carries an explicit **`place`** field expanded by `prepare-matrix` from `targets.yml`'s `test_places:` list. The hardware-test job locks `labgrid-fcefyn-<place>` directly — no more `labgrid-client reserve --shell device=…` discovery flow:
+```mermaid
+flowchart LR
+  PR[Pull request] --> PM[prepare-matrix downsample]
+  PM -->|1 random place| TF[test-firmware]
+  PM -->|forced N=3| TM[test-mesh]
+  PR --> TQ[test-firmware-qemu + test-mesh-qemu]
+```
+
+- One random target from `test_targets_matrix` runs single-node
+  (cheap representative coverage).
+- `test-mesh` is forced to `physical_mesh_count=3` on PRs because
+  `pull_request` cannot pass workflow inputs and N=3 is the most
+  representative shape (3 different SoC families).
+- The full sweep is reserved for the daily cron.
+
+---
+
+## 5. Walking-chain mesh (cron only)
+
+Three sequential pairs run in `test-mesh-pairs` with `max-parallel: 1`:
+
+| Pair | A                 | B                 |
+|------|-------------------|-------------------|
+| 1    | belkin_rt3200_2   | openwrt_one       |
+| 2    | openwrt_one       | bananapi_bpi-r4   |
+| 3    | bananapi_bpi-r4   | belkin_rt3200_3   |
+
+Every active device is exercised twice per day with a different mesh
+peer. `belkin_rt3200_1` is excluded (in repair) - re-include it by
+adding it back to `mesh_pairs:` in `prepare_matrix.sh`.
+
+---
+
+## 6. QEMU coverage
+
+| Job                  | Purpose                                                             |
+|----------------------|---------------------------------------------------------------------|
+| `test-firmware-qemu` | Single-node `qemu_x86_64` boot: `test_libremesh.py`, `test_base.py`, `test_lan.py`. |
+| `test-mesh-qemu`     | Multi-node mesh on QEMU using `vwifi` (kmod-mac80211-hwsim with USR1 broadcast). |
+
+Both run on GitHub-hosted runners with KVM. The
+[tools/ci/enable_kvm.sh][kvm] step installs a udev rule that grants the
+runner user `rw` on `/dev/kvm` (default permissions deny non-root
+access). `udevadm trigger --name-match=kvm` is used so the rule applies
+to the existing device node, not just future hot-plugs.
+
+[kvm]: https://github.com/fcefyn-testbed/lime-packages/blob/master/tools/ci/enable_kvm.sh
+
+---
+
+## 7. Labgrid reservation contract
+
+### Single-node
 
 - **Lock:** `uv run labgrid-client -v -p labgrid-fcefyn-<place> lock`.
-- **Unlock + power off:** in an `if: always()` step, `labgrid-client -p $LG_PLACE power off` + `labgrid-client -p $LG_PLACE unlock`. Calling the same commands without `-p` would fall back to labgrid's empty default and refuse to act ("pattern matches multiple places").
+- **Unlock + power-off:** in an `if: always()` step,
+  `labgrid-client -p $LG_PLACE power off` then `... unlock`. The `-p`
+  flag is required: without it labgrid falls back to its empty default
+  and refuses to act.
 - **Teardown:** remove `/srv/tftp/firmwares/ci/<run_id>/<place>/<release>/`.
 
-This makes the lock deterministic across devices that share a hardware profile: the three Belkin RT3200 units (`belkin_rt3200_1`/`_2`/`_3`) all run the `linksys_e8450` build artefact under per-place TFTP staging and per-place labgrid locks.
+The three Belkin RT3200 units (`belkin_rt3200_1`/`_2`/`_3`) all run
+the `linksys_e8450` artefact under per-place TFTP staging and per-place
+labgrid locks - the lock keys on the place name, not the device.
 
-Environment for pytest: **`LG_PROXY=labgrid-fcefyn`**, **`LG_PLACE=labgrid-fcefyn-<place>`**, **`LG_ENV=targets/<device>.yaml`**, **`OPENWRT_TESTS_DIR`** pointing at the checked-out **openwrt-tests** tree.
+Environment for pytest: `LG_PROXY=labgrid-fcefyn`,
+`LG_PLACE=labgrid-fcefyn-<place>`, `LG_ENV=targets/<device>.yaml`,
+`OPENWRT_TESTS_DIR=<aparcar/openwrt-tests checkout>`.
 
----
+### Mesh
 
-## 5. Multi-node contract
+Mesh fixtures (`tests/conftest_mesh.py` in libremesh-tests) require:
 
-Physical mesh tests (see `tests/conftest_mesh.py` in libremesh-tests) require:
+- `LG_MESH_PLACES`: comma-separated place names.
+- `LG_IMAGE_MAP`: `place1=/abs/path1,place2=/abs/path2`.
 
-- **`LG_MESH_PLACES`:** comma-separated place names (e.g. `labgrid-fcefyn-openwrt_one,labgrid-fcefyn-bananapi_bpi-r4`).
-- **`LG_IMAGE_MAP`:** `place1=/abs/path1,place2=/abs/path2` (or **`LG_IMAGE`** for one image for all nodes).
-
-VLAN 200 / switch configuration is handled by the mesh fixtures (`conftest_vlan` / lab host SSH) when not disabled with **`VLAN_SWITCH_DISABLED=1`**.
-
----
-
-## 6. Debugging a failed run
-
-1. Open the workflow run on GitHub → failed **test-firmware** or **test-mesh** job.
-2. Download **`test-results-<device>`** or **`test-results-mesh`** — contains **`--lg-log`** console output and **`report.xml`** (JUnit).
-3. On the lab host, confirm coordinator/exporter, TFTP path permissions under `/srv/tftp/firmwares/ci/`, and that no stale lock remains (`labgrid-client who`).
+VLAN 200 / switch configuration is handled by `conftest_vlan` (lab host
+SSH); set `VLAN_SWITCH_DISABLED=1` to skip it.
 
 ---
 
-## 7. Runner prerequisites
+## 8. Debugging a failed run
 
-The `testbed-fcefyn` labels must match a machine that already runs libremesh-tests workflows: **`uv`**, **`labgrid-client`** on PATH via `uv run`, write access to **`/srv/tftp/firmwares/`**, and reachability of **`LG_PROXY`**. See [CI runner](../configuracion/ci-runner.md) and [Running tests](../operar/lab-running-tests.md).
+1. Open the run on GitHub, find the failed `test-firmware*` or
+   `test-mesh*` job.
+2. Download `test-results-<device>` / `test-results-mesh-*`. Each
+   bundle has `--lg-log` console output and `report.xml` (JUnit).
+3. On the lab host, check coordinator/exporter, TFTP permissions under
+   `/srv/tftp/firmwares/ci/`, and stale locks via `labgrid-client who`.
+4. For QEMU jobs, the `qemu-*-logs` artifact contains the QEMU console
+   plus pytest's `--lg-log`.
+
+---
+
+## 9. Runner prerequisites
+
+The `testbed-fcefyn` runner must already run libremesh-tests
+workflows: `uv` and `labgrid-client` on `PATH` (via `uv run`), write
+access to `/srv/tftp/firmwares/`, reachability of `LG_PROXY`.
+See [CI runner](../configuracion/ci-runner.md) and
+[Running tests](../operar/lab-running-tests.md).
+
+For a brand-new device that has not been onboarded yet, follow
+[Adding a device](lime-packages-add-device.md).

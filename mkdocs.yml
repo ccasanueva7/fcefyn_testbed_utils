@@ -116,5 +116,10 @@ nav:
       - openwrt-tests CI flow: diseno/openwrt-tests-ci-flow.md
       - "lime-packages CI: build": diseno/lime-packages-ci-flow.md
       - "lime-packages CI: tests": diseno/lime-packages-test-flow.md
+      - "lime-packages CI: adding a device": diseno/lime-packages-add-device.md
+      - "lime-packages CI internals":
+          - "Belkin RT3200 layout 1.0 DTB patch": diseno/lime-packages/belkin-rt3200-dtb.md
+          - "ImageBuilder limits for ath79 / legacy linksys_e8450": diseno/lime-packages/imagebuilder-limits.md
+          - "QEMU + vwifi virtual mesh": diseno/lime-packages/qemu-vwifi.md
       - Virtual mesh: diseno/virtual-mesh.md
   - Demos: demos.md
