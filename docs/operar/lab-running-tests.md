@@ -82,3 +82,5 @@ labgrid-client places
 # Reserve a specific FCEFYN place
 labgrid-client -p labgrid-fcefyn-openwrt_one reserve --wait --token mytoken
 ```
+
+Manual console or SSH access follows the same rule: use only places that are free or already reserved by you, never a place currently held by CI or another remote developer.

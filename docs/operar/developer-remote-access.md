@@ -166,6 +166,9 @@ uv run labgrid-client who       # connected users
 uv run labgrid-client places    # available DUTs
 ```
 
+!!! note "Manual access follows reservations"
+    Serial console, `labgrid-client ssh`, and direct SSH to a DUT are for places that are free or reserved by the current developer. Do not access a DUT manually while a CI run or another remote developer holds that place.
+
 ### 6.2 Available DUTs
 
 | Place | Device | Target YAML |
@@ -237,6 +240,8 @@ uv run labgrid-client power cycle     # power cycle DUT
 uv run labgrid-client console         # interactive serial console
 uv run labgrid-client --state shell console   # boot to shell + console
 ```
+
+These interactive commands assume `LG_PLACE` points to a place that is not reserved by CI or another remote developer, and that the current developer holds the corresponding reservation when required.
 
 Always unlock when done: `uv run labgrid-client unlock`.
 

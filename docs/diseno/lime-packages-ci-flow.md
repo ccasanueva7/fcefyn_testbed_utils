@@ -45,16 +45,46 @@ Each job is keyed on `<device, openwrt_release>`; matrices in
 
 ---
 
-## 2. Two-stage build
+## 2. How developer changes become firmware
+
+When a developer opens a pull request or pushes to a branch, the CI
+**compiles the packages from that exact commit** and builds firmware
+images that include those changes. The flow is:
+
+```mermaid
+flowchart LR
+  PR[Developer opens PR] --> CO[actions/checkout<br/>fetches PR code]
+  CO --> BF["build-feed compiles<br/>packages/ from PR"]
+  BF --> BI["build-image builds<br/>firmware with PR packages"]
+  BI --> TF[Tests run on<br/>firmware with PR code]
+```
+
+This means:
+
+- If you modify `packages/lime-system/`, the resulting firmware will
+  contain **your modified `lime-system`**, not the upstream version.
+- If you add a new package under `packages/`, it will be compiled and
+  available (add it to `PACKAGES` in `targets.yml` to install it).
+- Tests (`test-firmware`, `test-mesh`, `test-mesh-qemu`) exercise the
+  firmware built from your PR, so failures indicate issues with your
+  changes.
+
+The artifact names include `GITHUB_SHA`, making each build traceable
+to a specific commit.
+
+---
+
+## 3. Two-stage build
 
 ### `build-feed` (per arch, per release)
 
 - Container: `ghcr.io/openwrt/sdk:<sdk_arch>` (e.g.
   `aarch64_cortex-a53-openwrt-24.10`).
-- Action: `openwrt/gh-action-sdk@v9` mounts the repo as feed
-  `lime_packages` and compiles every directory under `packages/` that has
-  a `Makefile`. The full list is needed because no `lime-*` recipe
-  defaults to `y/m`, so an empty `PACKAGES` produces an empty feed.
+- Action: `openwrt/gh-action-sdk@v9` mounts the **checked-out
+  repository** (your PR code) as feed `lime_packages` and compiles
+  every directory under `packages/` that has a `Makefile`. The full
+  list is needed because no `lime-*` recipe defaults to `y/m`, so an
+  empty `PACKAGES` produces an empty feed.
 - Indexing:
   - **24.10.x (`PKG_FORMAT=ipk`)**: `ipkg-make-index.sh` builds
     `Packages` + `Packages.gz` with relative `Filename:` paths so the
@@ -83,7 +113,7 @@ Each job is keyed on `<device, openwrt_release>`; matrices in
 
 ---
 
-## 3. Multi-version OpenWrt (24.10 + 25.12)
+## 4. Multi-version OpenWrt (24.10 + 25.12)
 
 `openwrt_releases:` in `targets.yml` lists every release built per
 target. The two formats coexist in the same matrix:
@@ -109,7 +139,7 @@ References:
 
 ---
 
-## 4. Image formats
+## 5. Image formats
 
 | `image_format`  | Used by                            | Artifact                                    |
 |-----------------|------------------------------------|---------------------------------------------|
@@ -130,7 +160,7 @@ initramfs.
 
 ---
 
-## 5. DTB patches
+## 6. DTB patches
 
 Two optional, independent transforms are applied to the FIT-shipped DTB
 when their gating env-vars are on. Both share a single dtc round-trip
@@ -165,7 +195,7 @@ diagnosis.
 
 ---
 
-## 6. Caching
+## 7. Caching
 
 - **Cache path:** `feed-artifact/lime_packages/` (merged arch + `all`
   packages + index files).
@@ -184,7 +214,7 @@ binary caches.
 
 ---
 
-## 7. QEMU virtual build
+## 8. QEMU virtual build
 
 The `qemu_x86_64` matrix entry is built with `image_format:
 x86-combined` and an extra src-git feed for `vwifi`:
@@ -217,7 +247,7 @@ consumes this artifact.
 
 ---
 
-## 8. File map
+## 9. File map
 
 | Path                                          | Role                                  |
 |-----------------------------------------------|---------------------------------------|
