@@ -1,0 +1,740 @@
+[00:00] Speaker 1: No, I think it's going to be completely...
+
+[00:10] Speaker 2: What?
+
+[00:10] Speaker 1: It seems like it's going to be just Paul. Paul.
+
+[00:21] Speaker 2: Good, because I thought we were going to see it.
+
+[00:34] Speaker 1: Yes.
+
+[00:34] Speaker 2: I'm in the office. Well, I'm not going to change.
+
+[00:38] Speaker 1: That's right.
+
+[00:38] Speaker 2: I don't think they criticize my wardrobe. Where did he come from?
+
+[01:24] Speaker 1: I think he's in Germany, but if he's from Germany or else, if he lives in Germany, then we'll find out because he's... Careful, Javier, how you erased it.
+
+[02:35] Speaker 2: Yeah, saw that in Santa Fe 1, there's a shooting.
+
+[02:42] Speaker 1: In Santa Fe, here?
+
+[02:44] Speaker 2: Yeah, bro. Or sea, he only killed one and I think he hurt two, but... He took out a shotgun and... Today in the morning, today at this hour.
+
+[03:08] Speaker 1: I didn't see anything. Did he kill anyone?
+
+[03:22] Speaker 2: Yes, he killed one.
+
+[03:23] Speaker 1: They shot him with a gun.
+
+[03:23] Speaker 2: Or sea, I don't know what's going on. An adolescent of 15 years old killed a partner of 13 and injured another friend. He made a video that could establish what motivated him.
+
+[03:28] Speaker 1: There, there he comes. (notification bar chimes) Hi, Paul, how are you? Welcome.
+
+[03:39] Speaker 3: Hi, good to see you.
+
+[03:42] Speaker 1: Nice to meet you.
+
+[03:42] Speaker 3: I'm good. I hope the internet is okay. If you have any... If I'm stacking or anything, please let me know.
+
+[03:53] Speaker 1: Sure. Tha- thank you for making the time to meeting with us.
+
+[03:59] Speaker 3: Yeah, sure.
+
+[04:00] Speaker 1: Hope we don't-
+
+[04:01] Speaker 3: So-
+
+[04:01] Speaker 1: Hopefully, we don't steal a lot of time from you. Uh, just wanted to-
+
+[04:04] Speaker 3: No worries. I'm glad you're interested in the project. It's, uh, been a bit out of my focus lately, um, but I'll try to spend more time on it again. So I'm glad there are more people involved. So no worries.
+
+[04:21] Speaker 1: Amazing. So if it's... Yes, it is. Okay. Hello?
+
+[04:35] Speaker 2: Hello.
+
+[04:37] Speaker 1: Hi, welcome. How are you?
+
+[04:43] Speaker 2: Hi. Fine, thanks. S- sorry for the late.
+
+[04:47] Speaker 1: No worries. Thank you for being here. Um, okay, so I'm not sure if anyone else will be joining us. Uh, Javier will not be here today with us because he was busy at university. Um, but I think we can start by giving you some context of what we have been working on so far. Um, well, basically, we are students at UNC, and we are working on our thesis project. Uh, and Javier basically proposed us with a project involving building a test bed.
+
+[05:33] Speaker 1: Uh, the, well, the idea is to be able to access it, uh, remotely and, um, using it for validating OpenWrt and LibreMesh, uh, frameworks, uh, but mainly focused on LibreMesh
+
+[05:55] Speaker 3: True.
+
+[05:56] Speaker 1: Um, well, uh, I will share my screen very quickly just so I can show you what we have so far. Um, give me a second.Okay. Thanks. This one... Uh, can you see my, my screen all right?
+
+[06:19] Speaker 4: Yep. Yep.
+
+[06:22] Speaker 1: Great. Um, so basically this is what we have built so far. Uh, it's like, uh, high levels of the infrastructure. Um, and it's basically based on what is required for, uh, joining a lab, uh, into OpenWRT tests. Um, where we are already capable of accessing, uh, our infrastructure remotely. We use a lot of relays for that, um, uh, as well as some wake-on-LAN strategy for powering off our orchestration hosts. Um, and let me show you also the... We have built a DIY rack which looks like this.
+
+[07:13] Speaker 4: Mm-hmm. Amazing.
+
+[07:13] Speaker 1: Um, we have a lot of devices. Well, uh, right now, um, there are six devices-
+
+[07:20] Speaker 4: Mm-hmm.
+
+[07:20] Speaker 1: ... which are stacked in this structure (laughs) . And, well, it has these little 3D printer ducts that we made for being able to, um, improve the airflow, um, most than anything on the devi- on the devices, uh, up in the top, which are the ones that-
+
+[07:40] Speaker 4: Mm-hmm.
+
+[07:41] Speaker 1: ... would suffer most the heat. Um, and well, we're pretty advanced in this part, but we are now entering, uh, most... More on the, uh, development side of the project-
+
+[07:58] Speaker 4: Mm-hmm.
+
+[07:59] Speaker 1: ... uh, which basically involves, um, being able to contribute to OpenWRT tests and also-
+
+[08:06] Speaker 4: Mm-hmm.
+
+[08:06] Speaker 1: ... building our own infrastructure for LibreMesh tests. Um, the original idea that Javier proposed us is to use our own, uh, GitHub self-hosted runner for, uh, tests that are LibreMesh-specific.
+
+[08:25] Speaker 4: Mm-hmm.
+
+[08:26] Speaker 1: And, well, uh, I will now, uh, show you some slides that we have prepared, uh, to look a little bit more professional. Uh, but well, basically the idea is to, uh, achieve some alignment on the next steps for the project.
+
+[08:46] Speaker 4: Mm-hmm.
+
+[08:48] Speaker 1: And I think we can start, uh, with a quick overview on OpenWRT tests, uh, for this. Uh, please, if something is not 100% accurate, uh, let us know about.
+
+[09:01] Speaker 4: Mm-hmm. Mm-hmm. Sure.
+
+[09:02] Speaker 1: Uh, this is based on, on what we have when researching of, of the project. So, uh, basically, it currently has, uh... It is a single node testing environment with layer two, uh, installation.
+
+[09:19] Speaker 4: Mm-hmm.
+
+[09:19] Speaker 1: Uh, this means that, uh, the current infrastructure, uh, basically, uh, uses isolated VLANs for each device, and, uh, we understand that this is, uh, basically for, um, achieving non-interference and reproducibility for the tests.
+
+[09:41] Speaker 4: Mm-hmm.
+
+[09:41] Speaker 1: And also for, uh, the fact that, uh, with OpenWRT, all devices boot, uh, by default on the IP 192.168.1.1.
+
+[09:56] Speaker 4: Mm-hmm.
+
+[09:57] Speaker 1: Um, so it is, uh, a necessity to have all devices isolated. Um, this is not true for LibreMesh, since they use, um, a, uh, another IP, um, u- based on the MAC address for each device. Um, on the infrastructure side, um, it has right now, I think, uh, six remote labs, um, including... I think this is including the potential contribution that we would make, make.
+
+[10:35] Speaker 4: Mm-hmm.
+
+[10:36] Speaker 1: And, and these... Yes. Um, basically all these labs are, uh, we think, uh, are provisioned with Ansible. Uh, we are not so sure about, um, how advanced this is, uh, and if, so far, labs have been, uh, been provisioned by, uh, by you or if each, uh, lab owner, uh, deploys, uh, his own infrastructure with Ansible. Um, but we have some questions within-
+
+[11:17] Speaker 4: Do...
+
+[11:17] Speaker 1: Yes, please.
+
+[11:18] Speaker 4: Uh, do you want to ask questions later or do you wanna... Do you want feedback right now or... Um, you can always ask, right? So just let me know.
+
+[11:28] Speaker 1: Yeah. Um, I think all questions are, uh, in one of the next slides, so.
+
+[11:32] Speaker 4: Oh, okay. Perfect. All right. Sorry.
+
+[11:33] Speaker 1: But if, if there's something important that, uh, needs to be corrected here, uh, let me know. Uh, there's no problem.
+
+[11:42] Speaker 4: Mm-hmm.
+
+[11:44] Speaker 1: Um, and well, all these labs are basically orchestrated by the global coordinator. Uh, we also have some questions about the global coordinator, uh, that we can also address, uh, in a bit, and the environment, uh, level it supports both v- both virtual and, um, let's say, real tests, uh, on real devices.
+
+[12:10] Speaker 4: Mm-hmm.
+
+[12:11] Speaker 1: Um, for real devices, it's... It uses, um, TFTP with uboot strategy.Um, basically putting the devices in, uh, in recovery mode. And, well, this is basically the, the overview of OpenWrt tests, and what we see here as the main, uh, challenge for what we want to do for Libre Mesh, um, it's basically the fact that the current design, uh, doesn't account for, uh, capability for what we call, uh, multi-node, uh, tests for, uh, mesh infrastructure. Um, and for that, uh, we think we would need, um, all devices to be, uh, within the same VLAN, uh, which is, uh, different from what we have with OpenWrt tests.
+
+[13:13] Speaker 3: Mm-hmm.
+
+[13:15] Speaker 1: Um, yeah, so basically this is the main, uh, architectural difference between, uh, the current design of, of OpenWrt tests and, uh, what we are planning for Libre Mesh.
+
+[13:32] Speaker 3: Mm-hmm.
+
+[13:34] Speaker 1: Uh, basically, what we want for Libre Mesh is to be able to, uh, not only run tests which are single node, uh, which is supported currently by OpenWrt tests, but also these, uh, tests that will validate, um, the interaction between different routers at, uh, mesh level, uh, for example, uh, testing, uh, Batman or Babel, uh, protocols.
+
+[14:08] Speaker 3: Mm-hmm.
+
+[14:09] Speaker 1: Um, well, so here the main question that we are facing is how do we reconcile these needs, uh, for supporting both, uh, approaches. Um, well, and we have been thinking of some ideas for solving this. Um, one is basically the one that we are mainly considering, which is this hybrid approach, uh, where basically we will have, uh, OpenWrt tests, uh, taking care of all vanilla OpenWrt tests as it is today. And we, uh, would just contribute our lab to the ecosystem, and we will use our own infrastructure for, um, Libre Mesh specific tests. And for this, uh, we would implement, uh, some kind of hybrid, uh, mode for our, um, host, so it can be able to serve both, uh, projects, uh, at the same time, uh, basically dividing the total amount of devices we have into two different pools. Um, so devices in each pool would be usable for, um, two different projects.
+
+[15:41] Speaker 1: And this would require, for example, um, running two laboratory test portals, uh, one of which would be tied to the global coordinator, uh, for testing OpenWrt, um, and another which would be tied to our own, uh, coordinator running in our host. And, well, there are some considerations with this idea, uh, about some changes that would be required, um, for being able to access the devices, uh, while the tests are being executed. And the main advantages that we see for this approach is, uh, we will keep a clear separation of concerns between tests, uh, for OpenWrt tests, uh, OpenWrt Vanilla and, and Libre Mesh. Um, and we wouldn't be, uh, disrupting so much on the upstream, which would be OpenWrt tests.
+
+[16:48] Speaker 1: Um, and well, the other option that we see is, uh, if there's a possibility to contribute to the upstream, um, and maybe, uh, use a different approach where we, for example, uh, create a different, uh, workflow for continuous integration which directs our runner instead, uh, of the current one, uh, just for tests that are, uh, for Libre Mesh. Um, and well, basically those are the two main ideas. Um, I think that's all for this part, and I don't know if you have any, uh, questions, something that you didn't understand because my English is not very good, so
+
+[17:44] Speaker 3: No, no, no. Your English is great. No worries. Um, yeah, I got a, I got a bunch of questions. So, um, so when I, when I kind of, let's say, designed this, I, I kind of put pieces together which I found at this point, um, usable together. So I came up with like, let's use GitHub Actions, and I, I made this setup with a Wireguard instance, so like all the labs are connected to the central controller. And I somewhat used Ansible, um, to set things up, but then the switches, um, had to be set up manually because it's not really supported by...... um, by, by, um, Ansible and so on, so it was really stitched together, so not really a nice setup that would be easily reproducible by others. Um, so I always had this issue that people would try to, to create this type of lab, but then end up having, having issues here and there. And then I would always do some manual debugging.
+
+[18:47] Speaker 3: So I think the approach I, I came up here is by no means ready or, um, or perfect in any way, so I'm very happy to, um, toss all of this and find a, a different approach that is easier, scalable, easier to, um, to implement by others. And therefore, I'm very happy if, if you make your own experiences and say, "Oh, you, you build this this way and use this to- software stack," um, I'm, I'm very interested in collaborating to find together a, a new, new approach. So, um, that said, um, regarding your hybrid approach or your fully integrated approach, um, I think my biggest concern or, like, my motivation is that we have so many OpenWrt devices that just always have issues booting, and then you wanna do a sysupgrade and then suddenly, it's all, all broken. So, um, my initial motivation really was that I want to be...
+
+[19:46] Speaker 3: because I also built this sysupgrade server and then thousands of people upgrade their devices and then they, they break their devices because the sysup- sysupgrade is broken. So, um, my motivation was to boot test, so I think you call it a smoke test, um, to just check does it boot, does the network work? The very basics work. Not even, like, is the wi-fi, uh, full speed or is it maybe, maybe somehow, uh, degraded in performance or anything like that, just like the very basics. So I have always the same setup of, like, it's a home router that does a bit of wi-fi. Um, I think what you're pursuing is much more involved than it says, okay, we have multiple devices at the same time, we flash them, we, like, connect them in a certain way. Um, that's much more, uh, much more complex because you don't have this one device that is monitored but you have multiple devices, and multiple devices can go wrong in different ways, so it's much, much more difficult to, um, get it in a stable way.
+
+[20:51] Speaker 3: Um, so I'm... So I think it's, it's much easier to run my tests on your, uh, on your devices than the other way around, that you run your tests on my devices
+
+[21:05] Speaker 1: Yeah.
+
+[21:05] Speaker 3: So I think it, it would be awesome if, if we can have, like, vanilla OpenWrt running on, in your testbed with more devices. Um, but to set up this, like, uh, let's say more complex setups, uh, in, in other people's setups, um, or other people's labs could be, could be very difficult. Um, however, since I'm using OpenWrt switches everywhere, um, technically it should be possible that we kind of build a driver that says, okay, device number one and number two now are on the same VLAN and suddenly can see each other, um, or like, even more devices. So technically it should be possible, we just have to come up with the, um, with the obstruction layer maybe for that to say, um, this test involves at least two devices and two network ports have to be connected and so on. So I think this is...
+
+[22:06] Speaker 3: For standard LabGrid as it's used right now, this is not, not part of it, but I'm sure we could figure something out because when we always use U-verse, for example, and OpenWrt switches, um, this could be quite generic to just say, okay, put these ports together for this test, uh, and then afterwards it's just reset and then every, every port is isolated again. So I think we could try to go in this direction.
+
+[22:36] Speaker 1: Well, we've actually then, uh, we did a, a proof of concept because our switch right now is a table link, uh, so it doesn't support OpenWrt test, OpenWrt.
+
+[22:47] Speaker 3: Okay, okay.
+
+[22:48] Speaker 1: And so what we had to do, uh, well, at first we were connecting, uh, with SSH through a switch and manually changing the configurations.
+
+[22:58] Speaker 3: Mm-hmm. Okay.
+
+[22:58] Speaker 1: Because we have been already testing some of the mesh tests, uh, so we needed to do this, uh, manually since, uh, we were in parallel, uh, trying to integrate with the current OpenWrt test infrastructure, but also, uh, making some progress on, uh, our project side. Um, so for that we were manually changing and we recently, uh, achieved some of these, uh, abstr- um, obstruction layer that you mentioned for the switch.
+
+[23:35] Speaker 3: Mm-hmm.
+
+[23:36] Speaker 1: Um, it is basically using a Python library, uh, that is called, uh, Parmigo.
+
+[23:42] Speaker 3: Oh, yeah. Mm-hmm.
+
+[23:43] Speaker 1: Uh, if you... Basically, uh, it's very useful for that. You can define, uh, different drivers for each, uh, switch model. And at least for basic operations like, uh, switching VLANs and, uh, switching the state of, um, PoE ports. Uh, seems pretty good.
+
+[24:06] Speaker 3: Mm-hmm.
+
+[24:06] Speaker 1: Uh, it's been working so far. So right now, uh, we can, um, basically with a single script, uh, change between modes and in one mode we can do tests, uh, for integration with OpenWrt test, and in the other mode we can develop for our project.
+
+[24:25] Speaker 3: Mm-hmm.
+
+[24:25] Speaker 1: So I think maybe, um, it would be interesting to, um-... contribute that to OpenWrt tests. Um, but I guess, um, it all depends on if you believe that it is a concern of OpenWrt test to support, um, multi-node tests for vanilla OpenWrt. Uh, so I, I think maybe this is the question, uh, we need to figure out, or it will-
+
+[25:00] Speaker 3: Mm-hmm.
+
+[25:00] Speaker 1: ... or if it is meant to keep as a single device testing, uh, approach.
+
+[25:06] Speaker 3: So I can, uh, directly answer this. So technically yes, it's, it's definitely, uh, desired. So, um, I would not necessarily, from my perspective, I would not necessarily focus on mesh because that's quite uncommon in the, like basic... I mean, it's, it's, it's becoming more and more of a thing again, but, uh, because people have such big houses that they need like multiple, uh, access points and they don't wanna use repeaters, but instead like a, a local mesh network.
+
+[25:37] Speaker 1: Yeah.
+
+[25:37] Speaker 3: So that's how it's kind of, um, at least from my perspecte- uh, perspective, it's, it's becoming more of a thing again. Um, but for the basics tests, um, what I said earlier, like testing WiFi speeds, like, the la- the last OpenWrt release we did the other day was mostly because we had like massive WiFi problems. So like, people would do an update and suddenly the WiFi would barely work anymore. And if we had automated tests that would do like a regular speed test over the WiFi, we would have definitely catch that and see like, "Oh, this, the performance is just so bad. Uh, there's a bug in there." So we definitely want this type of test, which could be over cable by using a switch, or that could be, um, by using, um, WiFi, like either would be fine.
+
+[26:26] Speaker 1: Okay.
+
+[26:27] Speaker 3: Um, however, um, I think the tests which I thought of would always be that you have this one, let's say, golden device where you have this one device where you're 100% sure that it's working fine. Um, you have it on a stable release, you always have it like, you know it's working fine, you know the WiFi is fast, the, the, the ethernet ports are coming up and so on. And then you connect it to a second device as a client or as a server, like whatever you want to test. And then, um, you have this one device on the test, and then you have however many other well working devices where you're sure they're working fine. I think that's a concept, at least I w- I've been told that this is like, makes it much easier to test things.
+
+[27:15] Speaker 3: Because instead, let's say you have three different or three times like freshly built firmware, which has like, has barely been tested, then suddenly like one of the devices is working fine, the other is kind of acting up, and then you're looking for the, for the, for the issue. And if you have two, two well working devices and one device is on the test, then you always know like, okay, it needs, uh, it has to be an issue with the device on the test.
+
+[27:41] Speaker 1: Yes.
+
+[27:42] Speaker 3: Do, do you get my point? The...
+
+[27:44] Speaker 1: Um, yeah.
+
+[27:46] Speaker 3: ... understanding?
+
+[27:47] Speaker 1: Uh, let, uh, let's see. I, I know that, uh, currently there is a workflow, for example, um, which is the health check, I think. Um...
+
+[27:58] Speaker 3: Yeah. Mm-hmm.
+
+[27:58] Speaker 1: Which tests, uh, basically, um, serial and SSH connection, uh, to make sure-
+
+[28:06] Speaker 3: Mm-hmm.
+
+[28:06] Speaker 1: ... basic, uh, functionality of the device is, uh, okay.
+
+[28:11] Speaker 3: Mm-hmm.
+
+[28:11] Speaker 1: So if I understand correctly, mainly it could be, uh, a nice thing to have, um, to also, uh, in this, I don't know, in, in this specific workflow or a different one, but, uh, having a feature that allows us to, um, connect to another device and do-
+
+[28:30] Speaker 3: Mm-hmm.
+
+[28:30] Speaker 1: ... this type of basic validation, but, uh, for, for example, uh, WiFi connection, uh, at a very, uh, basic level.
+
+[28:46] Speaker 3: Uh, uh, either way, um, sorry, my, my answer got a bit longer than needed, but yes, generally we're interested in multi-device testing.
+
+[28:55] Speaker 1: Great. Um, now the detail, uh, is perfect for us. Um-
+
+[29:02] Speaker 3: Mm-hmm.
+
+[29:03] Speaker 1: ... so thank you. Um, great. So now, oh, well, I forgot this one. Um, this is basically the, the infrastructure that we plan for, uh, our host where we will have the two library exporters, and one would be connected to your coordinator and the other one would be connected to our own local coordinator. And-
+
+[29:30] Speaker 3: Mm-hmm.
+
+[29:31] Speaker 1: ... well, basically that would be the, the integration that we need for supporting this hybrid mode. Um, and, well, uh, this part is about, uh, one PR that we have open for OpenWrt. Um, let me... Well, this one's... Uh, this one was providing, uh, since we have, uh, multiple, uh, devices of the same model, same, uh-
+
+[30:12] Speaker 3: Mm-hmm.
+
+[30:13] Speaker 1: ... type, uh, we wanted to add this capability, uh, for basically not having to create a new target file, um, on the code base and being able to-
+
+[30:26] Speaker 3: Yeah.
+
+[30:26] Speaker 1: ... ￡​more. Uh, this is the only PR that we have open running now. Um, but we also have prepared, um...... and next one that is dependent on this one. Uh...
+
+[30:39] Speaker 3: Mm-hmm.
+
+[30:39] Speaker 1: Basically, uh, has all the devices in our lab.
+
+[30:43] Speaker 3: Okay.
+
+[30:44] Speaker 1: Uh, so this is basically what is, um, open at the moment. And well, here are some of the questions that we have. Uh, these are maybe for some context, uh, about how you have everything in your setup. Um, so first question is, uh, that's your global coordinator, uh, and your lab, uh, running the same machine, or are they different machines?
+
+[31:13] Speaker 3: Mm-hmm. Um, so my lab is running in a, in a small shelf in my apartment here. Um, the global coordinator is a, is a virtual machine I run in a, in a data center. Um, so that way it also has a, a public IP address, where all the other labs can connect to. So, they all have WireGuard connections, and to have that working they, um, need a public IP at this point. So, yeah, it's two different machines. Um, on this g- global coordinator, I have, I think, five self-hosted, uh, GitHub runners. Um, those GitHub runners see what needs to be tested, and then basically, um, use their local WireGuard connections to then kind of, from the global coordinator, connect to, over WireGuard, to the labs, to the coordinator. Then they log certain devices and perform their tests. So...
+
+[32:16] Speaker 1: I agree.
+
+[32:17] Speaker 3: That already opens, uh, let's say, a bit of a design flaw, because if the, um, if the connection over the WireGuard is bad from my data center, let's say, to your data center, if that would be bad, then, uh, they, they could have already been issues, um, because of the latency. Because the, the agent is running, so... Or the, the, the runner is r- running on my, in my data center. And the, the actual devices would be controlled in your da- data center, or in your lab.
+
+[32:50] Speaker 3: So, um, that's-
+
+[32:51] Speaker 1: Right.
+
+[32:51] Speaker 3: ... just something that I realized lately, because I, I work with somebody in Eastern Europe, and the connection was really poor, so we had a bunch of issues. Um, so maybe there, again, it makes sense to, like, toss this approach and have, like, much more decentralized runners working.
+
+[33:09] Speaker 1: Okay. Yeah, totally. Um, that was super clear. Thank you. Um, okay. Yeah, this question was basically, uh, because we are trying to figure out how would you set up things, um, for our setup. Um.
+
+[33:24] Speaker 3: Mm-hmm.
+
+[33:24] Speaker 1: So just for, uh, having your experience and how, uh, you organize all of that, uh, it's something that we are going to consider, uh, for our design. Um, we also wanted to ask, uh, about Ansible a little bit. Uh, we didn't know about this, uh, tool before, uh, going into the details of the project. And, uh, we understand that there are, um, in Ansible, they call it, uh, control nodes and manage- managed nodes. And, uh, I guess the idea or the, uh, place where Open WRT Test wants to go is for, um, uh, main owner of the infrastructure, uh, to apply the deploys on the managed nodes, uh, of the other lab owners. Is this like this, or...?
+
+[34:30] Speaker 3: Um, so well, (laughs) first off, the, the... Ideally people would be able to set this up on their own. Um, however, in my experience, it, it barely worked. Like, I wrote a, a bit of documentation, and then people tried to, um... Even me sitting next to them tried to, like, replicate that, and they ha- they ran in to all kinds of issues. Because they used a different Ubuntu version, maybe they run a Debian instead of Ubuntu, and maybe they used netplan instead of NetworkManager, and then there was a dnsmasq mismatch in the version. And so... So, I had all kinds of, like, detailed problem, then some stuff worked, and then suddenly, like, TFTP wouldn't work, because there was a firewall suddenly in place, or the host name was wrong. And so, like, all kinds of issues appeared, and it was super, super tedious.
+
+[35:22] Speaker 3: So, at some point I thought, "Okay, let's, let's use Ansible, because Ansible kind of just takes over the full system and puts configuration files, um, at all the right places." But even that resulted in all kinds of... You would need always to adopt minor things. Um, so I'm... At this point, I, I'm not even sure if, if it can be expected from people running their own labs to, to use Ansible or to configure it man- manually. I already thought if it wouldn't be easier if you use something like, um, I think it's called MicroCore. It's like from Fedora. It's like its own operation system that does nothing except for running, like, containers, and then you could con- define your environment in containers.
+
+[36:13] Speaker 3: That you say, "Okay, we got a Labgrid coordinator, we got a Labgrid runner, we got a GitHub Action runner," and then you can, like, be very specific about these three things that have to run, so you don't end up that everyone is, who's running it has, like, a slightly different system and a slightly different, uh, network configuration, and suddenly nothing works anymore.
+
+[36:34] Speaker 1: Yep.
+
+[36:34] Speaker 3: So, again, just like with the global coordinator, I'm thinking the setup I came up initially with, like-... Raspberry Pi, Ubuntu and kind of configure it manually. Doesn't work at all because people have so many problems with it. Um, so I'm thinking, and I would like to evaluate this with you, um, to, to come up with a really simple way that you maybe have one big, uh, firmware image you flash on a SD card, and then you put this into your Raspberry Pi and then the full system boots up and maybe has even a simple web interface where you say what's your lab name and then it kind of, it just, um, does it everything for you. So, it's really easy to reproduce. That's maybe my biggest concern right now. (silence) Can you still hear me, Franco?
+
+[37:33] Speaker 1: Yeah, sorry. Uh, someone was, uh, reading the door. Uh, but I could hear you.
+
+[37:38] Speaker 3: No worries.
+
+[37:39] Speaker 1: Um, yeah, basically, uh, we had the opportunity to test, uh, the deploy with Ansible locally. Uh-
+
+[37:50] Speaker 3: Mm-hmm.
+
+[37:50] Speaker 1: ... at the beginning, we were doing everything manually, but, uh, because we didn't know, uh, that Ansible was there. But with Ansible, um, it all got much easier. Uh-
+
+[38:06] Speaker 3: Mm-hmm.
+
+[38:06] Speaker 1: ... we did run a lot of issues, uh, with some configuration files. Uh, as you say, it is very dependent on maybe the remote distribution. Uh, for example, uh, I think it i- it mostly works great for Debian-based, uh, distros, but for-
+
+[38:25] Speaker 3: Mm-hmm.
+
+[38:25] Speaker 1: ... another, uh, kind of, uh, distribution, I think it can be more problematic. Um, and yeah, so far, I think it's the best solution. Um, but I've taken note of, uh, MicroKore, I think you said. Uh, I think this is somewhat, something we can, uh, take a look at, um, and see if there's something that we can do on that side. Um-
+
+[38:56] Speaker 3: It's an... It's maybe something that needs to be explored, but, um, we could also just say everyone has to use Ubuntu 24 LTS, like long-term support, and then this barely changes at all. Um, and then we have to check in again in like maybe five years when the next long-term support version comes out. Um, I kind of like this idea of having docker containers, or generally containers, portland containers, um, to work with because then you can kind of pick out everything else. Um, but yeah, that's maybe something I'd like, I'd really like to see, um, figured out together. That's, uh, to have something that works for both of us.
+
+[39:41] Speaker 3: Or let's say-
+
+[39:42] Speaker 1: Okay.
+
+[39:42] Speaker 3: ... both communities.
+
+[39:45] Speaker 1: Yeah, we will, uh, take a look, uh, on that. I think we can do some research. Uh, at least for, uh, having a more cl- a more, uh, clear idea or of what are the possibilities, uh, and not necessarily, uh, implementing it, but, um, maybe just having it on the radar for the future. Um-
+
+[40:11] Speaker 3: Sure.
+
+[40:14] Speaker 1: Sorry.
+
+[40:17] Speaker 3: So-
+
+[40:17] Speaker 1: Um-
+
+[40:17] Speaker 3: ... I will, I will update my local test setup. It's been offline for some days, um, but I will update it, um, to, uh, this MicroKore setup and see if that's, if that's working. And if it's-
+
+[40:30] Speaker 1: Okay.
+
+[40:30] Speaker 3: ... working, I'll, I'll give you some, some documentation on how to do it. And maybe it turns out to be garbage, then I just switch back.
+
+[40:41] Speaker 1: Great. Um, g- give me a second. Uh, I will be right back. No one ever calls on my (inaudible 00:25:23) . (laughs) There. Um, okay great, so another question that I have, uh, was supposing we want to, uh, start using, uh, our love with OpenWrt test.
+
+[41:32] Speaker 3: Mm-hmm.
+
+[41:32] Speaker 1: Uh, if I don't understand, uh, correctly, uh, we need to connect the, uh, basically our, uh, supporter to the global coordinator.
+
+[41:43] Speaker 3: Mm-hmm.
+
+[41:43] Speaker 1: And I think for that we need an IP, and I, I'm not sure if that's, uh, documented, if that's something that we are supposed to, um, coordinate with you directly.
+
+[41:58] Speaker 3: Uh, yeah, that has to be... At this point it has to be done with me directly. Um...
+
+[42:04] Speaker 1: Okay.
+
+[42:04] Speaker 3: The... Because your device is not just pulling something from my server, but it goes both ways so I have to kind of, uh-
+
+[42:16] Speaker 1: Okay.
+
+[42:16] Speaker 3: ... set it up in a way. Um, you can send me a public, uh, WireGuard key which you're gonna be using. Um, I'll send you my public WireGuard key and I, I'll send you also the, the basically the configuration you can use, um, when we get an IP address and then, um, I deploy it on my server and then you have to make a pull request, um, to add new devices to the lab net.
+
+[42:44] Speaker 1: Okay, right. Um, yeah, I suppose we need first to, uh, well, create the PR for, uh, the lab, and that would be like the, uh, the last step, uh, the connection to the coordinator. But, well, this was, this was, uh, a questions that we had. Um, so great.
+
+[43:08] Speaker 3: Mm-hmm.
+
+[43:08] Speaker 1: Um-
+
+[43:08] Speaker 3: Well, (laughs) now I got some questions for you, if you have no further questions.
+
+[43:13] Speaker 1: Yeah, please.
+
+[43:15] Speaker 3: That's �� awesome. So first of, I, I, I'm really, really happy that you're working on this. Uh, I'm, I'm sorry that I've been so, um, bad at responding lately. It's not my lack of interest, it's, uh, just, I guess, doing a PhD is involving much more than doing actual work and science, but a lot of bureaucratic stuff and so on. So, um, the nice stuff, like this project which I really personally endorse, uh, sometimes is a bit shifted to the back. So, sorry for the, for the lack of activity there.
+
+[43:49] Speaker 1: No problem.
+
+[43:49] Speaker 3: And I'm really happy, uh, you're working on it, and also if you have question and so on, please, uh, don't hesitate to reach out and I will try to, to respond. Um, that being said, I, I was able to hire Bryan again, um, Bryan Sanchez, um, who is, uh, right now in Ecuador visiting his family, um, but he's going to be back next week, uh, in, in Nordhausen, and, um, he's actually paid for, and also doing his master's thesis on this project. So, um, or on testbeds, and, um, he's exploring different types of, um, of hardware setups like the, the image you showed at the beginning was like an Arduino, he's kind of looking into something similar with like an ESP32, um, and he's looking for different ways to build like a low-cost but, like, good working setup.
+
+[44:44] Speaker 3: So, I would really, um, appreciate if you and, uh, or like your team, um, and Bryan could get in touch, um-
+
+[44:53] Speaker 1: Sure.
+
+[44:53] Speaker 3: ... and maybe, um, exchange some ideas. I think, um, he's working on a master's thesis. He's at the very beginning, I would say, um, but he's, uh, very motivated to do, like, 3D prints, um, to design stuff, to, like, tinker with electronics. So, um, and I think that's very valuable to, like, come up with a cheap design that people can, um, reproduce at home, um, also without buying any special hardware, because from what I know from professional labs, they easily cost you €40,000 to €50,000, just like in license fees per year to get, like, the special testing stuff, uh, working. So, um, yeah, it's, it's a very similar approach, I think, you and Bryan, and so, um, it would be nice if you, you can get in contact.
+
+[45:42] Speaker 3: Um-
+
+[45:43] Speaker 1: Sure. um, the other thing is-
+
+[45:46] Speaker 3: Yeah, sorry.
+
+[45:47] Speaker 1: Uh, you can give him our contact, uh, or we can contact him.
+
+[45:50] Speaker 3: Mm-hmm.
+
+[45:50] Speaker 1: Uh, no problem. Uh, as soon as he's back, uh, we can get in touch.
+
+[45:57] Speaker 3: Awesome. That's great. I'm happy to hear that. Um, the other thing is, um, I've been looking into, um, a, a user interface for the test results, because I think it's, it's good to have these tests, but it's, like, not so helpful to have them in a static rendered site, and not so helpful to have them just in, like, GitHub test results, because, um, let's say if we want to migrate away from GitHub as a commercial thing, um, maybe we would, like, host it our, on our own, like, um, open source infrastructure. So, like, I'm, I'm looking into other ways, um, to, to store these test results, and one of the things I looked into was KernelCI, which is, uh, as the name implies, used by the kernel, the Linux kernel. Um, and technically, it would also be possible to use that for us. So instead of having this CI-based approach, um, we could have a KernelCI. Um, this, uh, I'll send a link. Um, they have a huge dashboard. Um, let's see, chat. This, this thing here is a chat?
+
+[47:13] Speaker 3: Sorry, I haven't used it in a long time. Yes, here. Okay, so it's, um, if you look at it, it has like all kinds of different firmware versions. So these could be OpenWrt, different branches, but also LibreMesh different branches. And then if you click on things, you can there see, um, a lot of different configurations for like different devices. So, um, I'm not sure if that's a perfect fit, because obviously the kernel is slightly different than what we're doing. But what they have is basically all kinds of hardware, um, boards that is then tied to, like, specific kernel versions. And they can show, um, yeah, basically if tests succeed or fail, and they can also s- show some kind of, um, uh, stats, I think when like benchmarks are better or worse and so on. And it's, it's very active. There's like tons of money in there. It's all open source, but there's also like all these big players like Google and ARM. Um, they're looking into this to, to improve it.
+
+[48:19] Speaker 3: So I'm kind of intrigued by, um, not coming up with our own interface, but kind of modify this interface to our needs. Um, some time ago I started to, um, test this already. I, I can send you later, um, some, like, a, a kind of working version. It's not fully working because it's, well, this whole thing is meant for the kernel, so you have to kind of modify it to be working with-
+
+[48:50] Speaker 1: Okay.
+
+[48:51] Speaker 3: ... OpenWrt, but, um...Yeah, the kind of people, I, I talked to them, um, and s- they were quite open to collaborate on, in some ways. Um, right now they're working on like a LabGrid integration, and I think that's another interesting thing. Um, this interface can then also function as a scheduling thing. So basically the jobs appear in this web interface and then all, all apps can connect to this, over APIs to this interface, and kind of request jobs and say, "Okay, I have this type of device," um, I mean, Belkin or, uh, LinkSys or whatever, and then this, uh, the kind of CI says, "Okay, no problem. I got some tests for you, here, please run all of these." And then the devices, uh, so test results are then stored. So instead of having to mess around with all this WireGuard stuff and so on, um, you could have just one central API and then all the labs can connect to that. So maybe that's a better approach, maybe it's worse.
+
+[49:54] Speaker 3: Um-
+
+[49:56] Speaker 1: Yeah.
+
+[49:56] Speaker 3: ... uh, that's something I, I would like to look into. Um, and then the last thing is, for the OpenWrt switches or the LinkSys switches, I think, um, there's something called the PDU daemon which is, um, which does power control for LabGrid, I think. Um, so LabGrid has their own power drivers but then there's also this external driver for power management. And I wonder if we can come up with like an, a small daemon as well to have an abstract layer for, uh, switches or for network topologies. Maybe that's too much work, but, um, if you have a LinkSys device, um, or a TP-Link or whatever, um, it has a different way of configu- configuring the, the PoE ports and so on. So it would be nice to, um, have that at least documented somehow.
+
+[50:52] Speaker 3: Because right now they're like-
+
+[50:53] Speaker 1: Okay.
+
+[50:54] Speaker 3: ... five to ten well-supported OpenWrt or switches that run OpenWrt, and there are tons and tons of cheap TP-Link switches. So it would be nice if we have like a known good controllable switches, and have that documented somehow.
+
+[51:13] Speaker 1: Sure. Uh, yeah, we are familiar with, uh, PDU daemon. It's actually what we are using for, um, controlling the relays, um, when running tests on our lab.
+
+[51:28] Speaker 3: Mm-hmm.
+
+[51:28] Speaker 1: And, yeah, I think it would be interesting, um, to, uh, do some research on this. Uh, we, the main issue we've had with the hardware was, uh, getting the switch actually. Um, the switch we have, we have is a TP-Link, uh, with 16 ports.
+
+[51:51] Speaker 3: Mm-hmm.
+
+[51:52] Speaker 1: Um, LinkSys is not, uh, as common here in Argentina so we have some-
+
+[51:58] Speaker 3: (laughs)
+
+[51:58] Speaker 1: ... issues getting that kind of hardware. Um, we have just, uh, three LinkSys, uh, routers that Javier gave us.
+
+[52:08] Speaker 3: Okay.
+
+[52:08] Speaker 1: Um, someone sent me, sent them, sent them to him. Um, but yeah, I think if we can, uh, continue with this, uh, it would be great. Um, and also for what you were saying, uh, about the kernelCI, um, I, I think that also sounds good. Um, I think Github has a quota for, um, uh, CI minutes, uh, that you can use, uh-
+
+[52:41] Speaker 3: Mm-hmm.
+
+[52:41] Speaker 1: ... and from that point it's, uh, it begins, uh, applying some charges I think. Uh, so it definitely will be good to, um, have something like this, uh, which is more open source and, and we have more control over it. Um, so yeah, these are all things that are super interesting, um.
+
+[53:06] Speaker 3: Mm-hmm.
+
+[53:07] Speaker 1: As you say, uh, we should see, uh, what the scope of our project, um, allow us to do. Um, especially because we have limited time, but-
+
+[53:20] Speaker 3: True.
+
+[53:21] Speaker 1: ... uh, at the very least we can, um, do the research on this and maybe, um, begin the, the basis of, uh, where it can go eventually.
+
+[53:35] Speaker 3: Yeah. Again, I think that's maybe something, um, really to discuss also with Brian because, um, for his Master's thesis he wants to not only do the hardware stuff and design some 3D things, but also, um, come up with like a coherent, um, software stack. So, um, if possible, great. Um, and sure, I understand your time is limited. I don't wanna like throw all kinds of tasks on you and expect them to, to happen, right? Um, I'm happy if you work on it, um, and if we can collaborate but I fully understand that you have, that you're busy with other stuff.
+
+[54:15] Speaker 1: Great. Um, yeah, we are going to, uh, put as much effort as possible to do as much as possible. Uh...
+
+[54:23] Speaker 3: Mm-hmm.
+
+[54:24] Speaker 1: But while we have the university, the project is meant, is meant to last, uh, six months, um.
+
+[54:31] Speaker 3: Mm-hmm.
+
+[54:32] Speaker 1: And the project, uh, got accepted a month ago so we are already a month in. We have time still, but, um, well, it all, it will depend on how quick things, uh, can, uh, advance.
+
+[54:50] Speaker 3: Sure, sure.
+
+[54:53] Speaker 1: Um, so, okay, I think that's, uh, all, uh, from my slide. Um-We have also, let me check here-
+
+[55:08] Speaker 3: Can you, can you send me this website you, you created? Because I think the-
+
+[55:12] Speaker 1: Yes.
+
+[55:13] Speaker 3: ... the documentation ... I mean-
+
+[55:14] Speaker 1: Um-
+
+[55:14] Speaker 3: I speak some Spanish, but, uh, Bryan is (laughs) native Spanish, so, um-
+
+[55:21] Speaker 1: Okay, right.
+
+[55:21] Speaker 3: ... I think he can-
+
+[55:21] Speaker 1: It's mostly Spanish. I think, uh ... well, schematics and other things might be in English, uh, but I think the translator should do, uh, pretty okay with this.
+
+[55:34] Speaker 3: Is it, is it private? It says, uh, I get a 404 Not Found.
+
+[55:39] Speaker 1: Um-
+
+[55:41] Speaker 3: Oh, sorry, you have to, um, you have t- the last part of the domain, the fce-fin-test-bed-utils. I need the, the whole path, I think.
+
+[55:53] Speaker 1: Yeah, uh, there are references in the web page that-
+
+[55:57] Speaker 3: Ah, yeah, now it's-
+
+[55:59] Speaker 1: ... exist, but are not actually deployed on pages, so, uh-
+
+[56:04] Speaker 3: Mm-hmm.
+
+[56:04] Speaker 1: ... you might get, uh, 404s. Uh, is that working?
+
+[56:10] Speaker 3: Yeah, now it's working. Awesome, thank you.
+
+[56:12] Speaker 1: Okay, great.
+
+[56:12] Speaker 3: And yeah, no problem, it's, it's in Spanish. I mean, maybe we can have a dual language at some point, but, um-
+
+[56:20] Speaker 1: Yeah, we may even, uh, switch to English at some point. Uh, this is mainly, again, internal documentation so far, so, um-
+
+[56:27] Speaker 3: Mm-hmm.
+
+[56:28] Speaker 1: That's the reason it's in Spanish, but I think it makes more sense for it to be in English, uh, since this ... it is a, um, a collaborative project, um-
+
+[56:40] Speaker 3: Yeah, long term, that would be super nice if, uh, this could be, uh-
+
+[56:45] Speaker 1: Yeah, for sure.
+
+[56:46] Speaker 3: ... English.
+
+[56:46] Speaker 1: Um, well, if you, uh, want to check later some things, we have a, a little demo where we show how we operate the test bed remotely. And, um-
+
+[56:57] Speaker 3: Oh, nice. Okay.
+
+[56:59] Speaker 1: There's also some documentation on, uh, I think the switch. Um, yeah, well, I think I didn't ... Yeah, this one is not yet uploaded, but I will be updating it, uh, very soon probably.
+
+[57:25] Speaker 3: Mm-hmm.
+
+[57:27] Speaker 1: Um, so, yeah, you can check this and, uh, you or, uh, Bryan, uh, uh, any question, uh, we will ... more than happy to, uh, answer.
+
+[57:41] Speaker 3: Awesome, okay. I'll work through this. Um, I'll get, uh, write the email to get, um, Bryan and you in touch, and, um, I'll also try to give you an update soon on the, on both the KernelCI as a web interface and also the, the micro:core, uh, thing as a deployment. These are really things I wanted to do for a long time, now maybe (laughs) I have the time. So, um, I'll try to work on it.
+
+[58:09] Speaker 1: Yeah.
+
+[58:09] Speaker 3: What, what's your plan for, for showing the results at this point? Do you have any static rendered site? Do you have, uh, do you store those results anywhere?
+
+[58:21] Speaker 1: Um, it's not defined, but, um, uh, I, I guess you were asking for the test results, right? Uh, like some kind of reports?
+
+[58:32] Speaker 3: Yes.
+
+[58:32] Speaker 1: Okay.
+
+[58:33] Speaker 3: Yeah, I mean-
+
+[58:34] Speaker 1: Uh, we will-
+
+[58:34] Speaker 3: ... it would be nice ... Mm-hmm, sorry?
+
+[58:37] Speaker 1: We've actually, uh, been checking out, um, let me go here, um, I just worked yesterday, um, here, uh, basically the OpenIoT Test UI, and-
+
+[59:00] Speaker 3: Mm-hmm.
+
+[59:00] Speaker 1: ... I, I think this is a good starting point for ... because we also want to be able to expose the report so people can actually, uh, see what happened with something go wrong, goes wrong, and-
+
+[59:14] Speaker 3: Mm-hmm.
+
+[59:15] Speaker 1: ... I think this is, uh, a very good starting point for that. Um, and I, I was planning to, um, start working over this basis, um-
+
+[59:27] Speaker 3: Mm-hmm.
+
+[59:28] Speaker 1: ... but i- if you have any additional idea that we can, uh, add to this, it would be great.
+
+[59:38] Speaker 3: Um, yeah, I think, um, maybe, maybe that's the, maybe that's the perfect way to just have it statically rendered, um, or maybe just have a simple database in the background, because this KernelCI stuff gets quite complex, um, I think if you wanna have long-term stats and stuff like that, maybe KernelCI is the better way. But, yeah, I don't know. Let's, let's evaluate that. I, I don't have a clear opinion.
+
+[01:00:06] Speaker 1: Yeah.
+
+[01:00:06] Speaker 3: I, I don't wanna influence you in this, at this point because (laughs) I think it's good if you explore-
+
+[01:00:12] Speaker 1: I understand.
+
+[01:00:12] Speaker 3: ... other options.
+
+[01:00:14] Speaker 1: Okay. Yeah, it's basically, uh, something to, uh, do some more deep analysis.
+
+[01:00:23] Speaker 3: Mm-hmm.
+
+[01:00:24] Speaker 1: We haven't done, uh, some, worrying so much about this yet, uh, because we have, uh-
+
+[01:00:29] Speaker 3: Sure, understandable.
+
+[01:00:29] Speaker 1: ... some more, uh, core, core issues to solve.
+
+[01:00:34] Speaker 3: Mm-hmm.
+
+[01:00:34] Speaker 1: Um, but yeah, as soon as possible, we, uh, we'll try to, uh, come up with a solution for this also.
+
+[01:00:43] Speaker 3: Okay. Cool. Um, for me, it's dinner time. I would, um, I would, uh, leave, Sounesh. Um, but, um, should we try to have another call maybe in two weeks or something? Or, um, or be in touch by email?
+
+[01:01:02] Speaker 1: Yeah.
+
+[01:01:02] Speaker 3: And then we can see if we are still happy. Yes.
+
+[01:01:04] Speaker 1: I, I think another call would be the idea, uh, just so we can, um, follow up on-... how things, um, progress and what decisions are taken. Uh, we are-
+
+[01:01:16] Speaker 3: Mm-hmm.
+
+[01:01:16] Speaker 1: ... also going to be, uh, talking with Javier and, uh, transmitting to him everything we talked today, so he's aware. And hopefully-
+
+[01:01:26] Speaker 3: Mm-hmm.
+
+[01:01:26] Speaker 1: ... he will be also, uh, with us in the next meeting. Uh, so he, of course, will be able to, uh, share a lot from his, his own experience.
+
+[01:01:38] Speaker 3: Mm-hmm.
+
+[01:01:38] Speaker 1: And, yeah, I think we can set, uh, for two weeks. I think it's okay for me. Um-
+
+[01:01:44] Speaker 3: Yeah, I can then also get, uh, Bryan aboard.
+
+[01:01:48] Speaker 1: Great. Um, you think Monday, uh, would be okay to, to repeat this or is there another, another day that is more suitable for, for you?
+
+[01:01:59] Speaker 3: So it's Monday, the 13th, right?
+
+[01:02:03] Speaker 1: Let me check. Uh, I think it's good. Uh, on my side there, no problem. Great. So-
+
+[01:02:11] Speaker 3: Um, let, let's, let's try that. I'll be in... I think I'll be in Japan around that time.
+
+[01:02:18] Speaker 1: Okay.
+
+[01:02:18] Speaker 3: Um, so I will have a bit of a, a time zone difference. Uh, I haven't yet checked the time differences, but I'll check the time zone and then we can agree on something that works for all of us, okay?
+
+[01:02:31] Speaker 1: Okay. Okay, so we...
+
+[01:02:34] Speaker 2: Can we put in the date?
+
+[01:02:35] Speaker 3: Yeah, let's, let's put in the date right now.
+
+[01:02:38] Speaker 1: Okay. Uh, I think for now we can fix, uh, Monday 13th and let's agree-
+
+[01:02:44] Speaker 3: Mm-hmm.
+
+[01:02:44] Speaker 1: ... on the specific time, uh, mm, we'll, uh, via Matrix. If that's okay for you?
+
+[01:02:54] Speaker 3: Yeah. Yeah, yeah.
+
+[01:02:56] Speaker 1: Okay, sure.
+
+[01:02:57] Speaker 3: Let's discuss the details now.
+
+[01:03:01] Speaker 2: Maybe we should ask Bryan on Matrix.
+
+[01:03:02] Speaker 3: Yes, I think he does not have an account, but I'll, uh, I'll convince him to get one. That would be very good.
+
+[01:03:07] Speaker 1: Right. Okay, and maybe, uh, I'm thinking about, uh, Javier, uh, if he was at university with classes today.
+
+[01:03:18] Speaker 3: Mm-hmm.
+
+[01:03:18] Speaker 1: I think that will be the case again in two weeks. So maybe, um, a slightly different, uh, time could work, but we can ask him, uh, later on, on the group.
+
+[01:03:32] Speaker 3: Mm-hmm. Sure. Yeah, just let me know. I'll, I'll check that I'll, I'm, I'll be free. I mean, I will be on a conference and then traveling, so I'll be kind of flexible, so no worries.
+
+[01:03:44] Speaker 1: Perfect.
+
+[01:03:45] Speaker 3: I can adapt to your schedule.
+
+[01:03:50] Speaker 1: Okay, great. Um-
+
+[01:03:52] Speaker 3: All right.
+
+[01:03:56] Speaker 1: Well, um, so hi, Greg. (laughs) Uh, sorry, without him talking to you. Um, sorry, a- are you, uh, Gotos? Or-
+
+[01:04:06] Speaker 5: Yes, um, it's the same.
+
+[01:04:09] Speaker 1: Okay.
+
+[01:04:09] Speaker 5: One of my names.
+
+[01:04:10] Speaker 1: Sorry. Uh, I just get, uh, confused because we all have, uh, real names and then nicknames and-
+
+[01:04:17] Speaker 5: I know.
+
+[01:04:17] Speaker 1: ... it gets a, a little bit complicated.
+
+[01:04:20] Speaker 3: (laughs)
+
+[01:04:20] Speaker 1: Uh, we also prepared some questions for you, uh, which are more on the LiveRemesh side.
+
+[01:04:25] Speaker 3: Okay.
+
+[01:04:26] Speaker 1: Um, we had meet- had a meeting, uh, around two weeks ago, I think, uh, with Ilario and, um... Let's see if I remember. Um...
+
+[01:04:40] Speaker 2: I don't remember the name. No, I don't remember the name.
+
+[01:04:42] Speaker 1: Italian. Um, you, you have to know her. Um, Italian lady. Uh, you... Okay. Uh, (laughs) I guess I don't remember her name. Um, but basically these, uh, were some questions that we had, uh, with respect to LiveRemesh, uh, and are more continuous, uh, integration oriented and basically, um, we are trying to figure out how to get, uh, images, uh, for LiveRemesh, uh, for our continuous integration. Um, and the main issue is that, um, what we have seen is that for OpenWRT, uh, this mirror exists, but this is not the case for LiveRemesh. Um, in this meeting that I'm mentioning, they called out, they, uh, told us about, uh, this project, um, which I think, uh, could be useful for, for that. Um, but we wanted to hear if, um, maybe you have, uh, some opinion on how this should be, uh, handled. Um, so sorry, I changed here the, some of my questions that we had.
+
+[01:06:24] Speaker 5: Um, uh, I just want let you know that, uh, recently, uh, if, if you missed that information, we recently bought, uh, a new, uh, VPS server with Ilario for, uh, the Azure server, and, but it's not, uh, actually used, uh, because, uh, we, uh, still need to fix, uh, the DNS, uh, issue, and, uh, I, I, I have to ask Xavier and Nico Ciani to, uh, to at least add a re- a record DNS. I will do it, uh, as soon as possible. And, uh, so we will have a- an official instance.
+
+[01:07:05] Speaker 5: Uh, um-
+
+[01:07:08] Speaker 1: Okay.
+
+[01:07:08] Speaker 5: ... and, uh, the, uh, the, the, the issue about, uh, the missing, uh, Initram FS images, uh, uh-Um, I, I started to, uh, to, to write some code, uh, to have, uh, some, uh, build roots, uh, but, uh, it, uh, it is really huge, uh, uh, because, uh, every, every build roots, uh, weight at least, uh, 20 gigabytes, uh, and, uh, um, uh, I, I, I plan to, to host it but, uh, it is really slow and, uh, we, we were thinking, uh, to, mm, put that aside in a, a certain way the, the build root and refer main- mainly to the attended sys upgrade server to avoid, uh, doing, uh, builds, uh, at all, only, only on demand the user can-
+
+[01:08:18] Speaker 1: Right.
+
+[01:08:18] Speaker 5: ... so, uh, I, I, I don't know if, uh, there is some, um, key but, uh, for the one way to, uh, to work the image builder, uh, to ask him to produce, uh, initramfs image, uh, I, I, I think Paul, uh, maybe can, could answer to this, uh, because, uh, for some devices, uh, it were, it were generated and, uh, maybe they works also, uh, well. But, uh, it was not, uh, a, a task of the image builder to produce, uh, them.
+
+[01:09:01] Speaker 1: Okay.
+
+[01:09:04] Speaker 3: You can, you can send me the images you need, uh, or the, the types of images you need, and then I can see if, uh, if I find a way to enable this. Usually I can do upstream patches for all kinds of things, so if you said I give this specific device and you need to initramfs, maybe I can help. And also if you need more compute power, I know that Freifunk in Germany has a lot of computer power to spare, so, um, if you say you need, like, a strong VM, um, I do that sometimes for, like, experiments and so on, um, with OpenWrt and then they often reach out and say, like, "Oh, no problem. Um, here's a big VM," and then I get, like, I don't know, 50 cores, uh, 60 m- 60 gigabytes of RAM. So, um, that's, like, a lot of compute you could use for then building your boomware. Maybe...
+
+[01:09:59] Speaker 3: If that's most- if you have a specific use case for, like, once a month so you wanna build your latest release or something, I can, I can try to get you in contact with some Freifunk people that have a lot of compute power.
+
+[01:10:16] Speaker 1: Uh, no, I think there's no specific use case, uh, at least for now. Um, I think it would be ideal to have, um, some kind of basic, uh, approach that allow us to basically pull the images and if it's, i- if it is possible to also build them on demand, that would be great.
+
+[01:10:39] Speaker 3: Mm-hmm.
+
+[01:10:41] Speaker 1: Um, in the worst-case scenario, uh, for our project, um, it would be enough I think to, um, academically for demonstrations, for just, uh, building images, um, uh, locally placing, placing them where they need to be, uh, to be used. But, um, well, the actual goal is to, um, make it as, uh, functional, uh, in real life as possible. So, um, I- I think that, uh, this approach, uh, could really work. Yeah.
+
+[01:11:25] Speaker 5: Um, if I w- I would add, uh, another information that, uh, is, uh, that, uh, the, uh, sy- the sysupgrade server, uh, on, uh, sysupgrade.antenine.org is now on, uh, a, my VPS and is not, uh, more, uh, in the home lab, so it is, uh, a bit more reliable and, uh, I have, uh, another, uh, attendance sysupgrade server in my home lab, but, uh, uh, since we are also a community network, uh, um, we try to host, uh, few, few staff, uh, uh, also because the connection is not, uh, so, so good. So I, um, removed it on a VPS.
+
+[01:12:16] Speaker 5: So it is, uh, a bit-
+
+[01:12:18] Speaker 1: Great.
+
+[01:12:18] Speaker 5: ... reliant.
+
+[01:12:21] Speaker 1: Okay, perfect.
+
+[01:12:21] Speaker 3: Um.
+
+[01:12:22] Speaker 1: Thank you.
+
+[01:12:24] Speaker 3: I think generally the sysupgrade server I'm maintaining can also take external repositories, so if you have your packages in place, uh, somewhere reachable, you can also just request full images from the sysupgrade server. I can write an email about this later, um, when you get the idea, but if it really comes to you want an API to get, like, images from, um, maybe I can help with that.
+
+[01:12:58] Speaker 1: Right. Yeah. I think that would be, uh, very useful.
+
+[01:13:05] Speaker 3: Sure.
+
+[01:13:09] Speaker 1: Okay.
+
+[01:13:10] Speaker 3: Okay. I gotta go, I gotta go. Um, thank you very much for organizing this.
+
+[01:13:15] Speaker 1: Thank you.
+
+[01:13:17] Speaker 3: And it's been fantastic.
+
+[01:13:17] Speaker 1: Thank you. It's been super, super good to have this meeting. And we'll see you next one. Uh, hope you, you're well.
+
+[01:13:25] Speaker 3: Yeah. Talk to you soon. Bye. Have a nice evening.
+
+[01:13:27] Speaker 5: Thank you all. Thank you.
+
+[01:13:29] Speaker 1: Bye-bye.
+
+[01:13:30] Speaker 3: Bye-bye.
+
+[01:13:30] Speaker 5: Bye-bye.
+
+[01:13:31] Speaker 1: Bye-bye. Take care.
+
+---
+Generated by AudioConvert.ai | Free, accurate audio transcription. (Watermark removable.)

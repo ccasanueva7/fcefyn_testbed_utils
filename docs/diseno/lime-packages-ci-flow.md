@@ -7,7 +7,9 @@ version OpenWrt support, the QEMU virtual path, and DTB patches.
 Companion pages:
 
 - [lime-packages CI: hardware tests](lime-packages-test-flow.md) - how
-  the artifacts produced here are exercised on the lab and on QEMU.
+  the artifacts produced here are exercised on the lab and on QEMU,
+  including the two-repo model (`lime-packages` workflow +
+  `libremesh-tests` test suite).
 - [Adding a device](lime-packages-add-device.md) - end-to-end checklist
   for onboarding a new board into the matrix.
 - [Build firmware (manual)](../operar/build-firmware-manual.md) - quick

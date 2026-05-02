@@ -12,6 +12,90 @@ Build pipeline overview:
 
 ---
 
+## 0. Two-repo model: workflow vs. tests
+
+The test infrastructure is deliberately split across two repositories:
+
+| Repo | What it owns |
+|------|-------------|
+| `fcefyn-testbed/lime-packages` | The CI workflow (`.github/workflows/build-firmware.yml`), the build scripts, and the matrix config. This is the fork of `libremesh/lime-packages`. |
+| `fcefyn-testbed/libremesh-tests` | The pytest test suite (`tests/test_libremesh.py`, `test_mesh.py`, etc.), labgrid environment files (`targets/<device>.yaml`), and the `uv` project that pins test dependencies. |
+
+The workflow checks out `libremesh-tests@staging` during each test
+job and calls `uv run pytest` from there. No test code lives inside
+`lime-packages` itself.
+
+### Why the split?
+
+`libremesh-tests` can be used independently:
+
+- Local runs against any firmware (pre-built or downloaded) without
+  going through the CI workflow.
+- Future reuse by other forks of `lime-packages` (or the upstream
+  `libremesh/lime-packages`) with zero changes to the test code.
+- Allows separate versioning - test improvements land in
+  `libremesh-tests` without touching `lime-packages`.
+
+### Repo ownership requirements
+
+For the CI workflow in `lime-packages` to access `libremesh-tests`,
+the self-hosted runner must be able to check out both repos. Two
+layouts work:
+
+**Option A: same GitHub organisation (current setup)**
+
+Both repos live in `fcefyn-testbed`. The runner is registered at the
+organisation level (`Settings > Actions > Runners`), so it can
+service workflows from any repo in the org.
+
+```
+fcefyn-testbed/lime-packages   <- workflow here
+fcefyn-testbed/libremesh-tests <- checked out by the workflow
+```
+
+The `actions/checkout` step in the workflow uses
+`repository: fcefyn-testbed/libremesh-tests` - this is a public
+repo, so no `token:` override is needed.
+
+**Option B: different organisations (future: upstream contribution)**
+
+The upstream `libremesh/lime-packages` workflow can still check out
+`fcefyn-testbed/libremesh-tests` (public repo, no auth needed):
+
+```yaml
+- uses: actions/checkout@v6
+  with:
+    repository: fcefyn-testbed/libremesh-tests
+    ref: staging
+    path: libremesh-tests
+```
+
+The runner, however, must be registered in the `libremesh` org (or in
+the specific `libremesh/lime-packages` repo) for the workflow to be
+eligible for self-hosted execution. The lab runner registration is the
+only thing that needs to change when contributing upstream - the
+`libremesh-tests` checkout line stays the same as long as the test
+repo remains public.
+
+**When `libremesh` eventually merges this CI approach,** the expected
+final state is:
+
+- Runner registered in `libremesh` org.
+- Workflow in `libremesh/lime-packages` checks out
+  `libremesh/libremesh-tests` (a fork/equivalent living in the same
+  upstream org).
+- `fcefyn-testbed/lime-packages` goes back to tracking upstream with
+  only testbed-specific device entries in `targets.yml`.
+
+### Pinned branch (`staging`)
+
+The workflow always checks out `libremesh-tests@staging`. This is the
+integration branch where reviewed test improvements land before going
+to `main`. Using a named branch (not a SHA) means test fixes propagate
+automatically to the next CI run without a `lime-packages` PR.
+
+---
+
 ## 1. Trigger matrix
 
 | Trigger                  | `test-firmware` | `test-mesh` | `test-mesh-pairs` | `test-firmware-qemu` | `test-mesh-qemu` |
