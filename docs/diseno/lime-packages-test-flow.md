@@ -243,20 +243,49 @@ SSH); set `VLAN_SWITCH_DISABLED=1` to skip it.
 
 ---
 
-## 8. Debugging a failed run
+## 8. Automatic issues on failure (healthcheck)
+
+On **schedule** runs (daily cron), `test-firmware` automatically
+manages GitHub issues for failing devices:
+
+| Outcome | Action |
+|---------|--------|
+| Test fails, no issue exists | Creates `CI healthcheck: <place> (<release>)` with label `healthcheck`. |
+| Test fails, issue already open | Adds a comment with the latest failure details. |
+| Test fails, issue closed | Reopens the issue and updates its body. |
+| Test passes, issue open | Comments "passed" and closes the issue. |
+
+Each issue body contains a metadata table (place, device, release, run
+link, date) and the full output of `lime-report.sh -m` (markdown
+mode, see [PR #1242](https://github.com/libremesh/lime-packages/pull/1242))
+inside a collapsible `<details>` block.
+
+`lime-report` is collected from the DUT **before** poweroff/unlock via
+`labgrid-client ssh -- lime-report.sh -m`. If the device is
+unreachable or the command does not exist yet, a fallback message is
+stored instead.
+
+This only triggers on `schedule` so that PRs and manual dispatches do
+not create noise in the issue tracker.
+
+---
+
+## 9. Debugging a failed run
 
 1. Open the run on GitHub, find the failed `test-firmware*` or
    `test-mesh*` job.
 2. Download `test-results-<device>` / `test-results-mesh-*`. Each
    bundle has `--lg-log` console output and `report.xml` (JUnit).
-3. On the lab host, check coordinator/exporter, TFTP permissions under
+3. Check the auto-created healthcheck issue for the device - it
+   contains the `lime-report` output.
+4. On the lab host, check coordinator/exporter, TFTP permissions under
    `/srv/tftp/firmwares/ci/`, and stale locks via `labgrid-client who`.
-4. For QEMU jobs, the `qemu-*-logs` artifact contains the QEMU console
+5. For QEMU jobs, the `qemu-*-logs` artifact contains the QEMU console
    plus pytest's `--lg-log`.
 
 ---
 
-## 9. Runner prerequisites
+## 10. Runner prerequisites
 
 The `testbed-fcefyn` runner must already run libremesh-tests
 workflows: `uv` and `labgrid-client` on `PATH` (via `uv run`), write
