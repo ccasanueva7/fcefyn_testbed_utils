@@ -15,17 +15,35 @@ Overview of the lab's **DIY rack** consisting of:
 
 <div class="rack-gallery" data-rack-gallery tabindex="0">
   <div class="rack-gallery__viewport">
+    <figure class="rack-gallery__slide" data-caption="Final tower rack, full-height front view.">
+      <img src="../../img/rack/rack_final1.jpeg" alt="Final tower rack front view" loading="lazy" decoding="async">
+    </figure>
+    <figure class="rack-gallery__slide" data-caption="Final tower rack, alternate full-height view with levels and cable routing.">
+      <img src="../../img/rack/rackfinal2.jpeg" alt="Final tower rack alternate front view" loading="lazy" decoding="async">
+    </figure>
     <figure class="rack-gallery__slide" data-caption="Tower rack overview: drawers, cabling, and gear per shelf.">
       <img src="../../img/rack/rack.png" alt="Tower rack with plastic drawers and cabling" loading="lazy" decoding="async">
     </figure>
     <figure class="rack-gallery__slide" data-caption="Initial bench setup: routers, USB hub, relays, and wiring before rack integration.">
       <img src="../../img/rack/starting_point.jpg" alt="Bench test setup with routers and relays" loading="lazy" decoding="async">
     </figure>
+    <figure class="rack-gallery__slide" data-caption="Drawer detail: Arduino, relays, USB-TTL adapters, terminal blocks, and internal cable organization.">
+      <img src="../../img/rack/rack_drawer_arduino-reles-adapters-borneras.jpeg" alt="Rack drawer with Arduino relays adapters and terminal blocks" loading="lazy" decoding="async">
+    </figure>
     <figure class="rack-gallery__slide" data-caption="Inside a drawer: USB hub, relay module, and cable routing.">
       <img src="../../img/rack/rack_2nd_level.jpg" alt="Rack drawer with USB hub and relays" loading="lazy" decoding="async">
     </figure>
     <figure class="rack-gallery__slide" data-caption="Upper drawers open: PSU, hub, and inter-level wiring.">
       <img src="../../img/rack/rack_1st_2nd_level.jpg" alt="Two rack levels open with PSU and wiring" loading="lazy" decoding="async">
+    </figure>
+    <figure class="rack-gallery__slide" data-caption="Banana Pi BPI-R4 integrated as one of the rack DUTs.">
+      <img src="../../img/rack/bananapir4.jpeg" alt="Banana Pi BPI-R4 in the rack" loading="lazy" decoding="async">
+    </figure>
+    <figure class="rack-gallery__slide" data-caption="OpenWrt One integrated in the rack.">
+      <img src="../../img/rack/openwrtone.jpeg" alt="OpenWrt One in the rack" loading="lazy" decoding="async">
+    </figure>
+    <figure class="rack-gallery__slide" data-caption="Managed TP-Link SG2016P switch used for VLANs, PoE and DUT access ports.">
+      <img src="../../img/rack/switchtplink.jpeg" alt="TP-Link SG2016P switch in the rack setup" loading="lazy" decoding="async">
     </figure>
     <div class="rack-gallery__overlay">
       <span class="rack-gallery__counter" data-rack-counter aria-live="polite"></span>
@@ -43,6 +61,9 @@ Separate box from the rack: relays/SSR, **UTP** (signals) and **230 V** to coole
 
 <div class="rack-gallery" data-rack-gallery tabindex="0">
   <div class="rack-gallery__viewport">
+    <figure class="rack-gallery__slide" data-caption="Updated AC control box: outlets, SSRs and relay enclosure used alongside the main rack.">
+      <img src="../../img/rack/caja_tomasyrelesssr.jpeg" alt="AC control box with outlets and solid state relays" loading="lazy" decoding="async">
+    </figure>
     <figure class="rack-gallery__slide" data-caption="Relay module enclosure (control box) exterior.">
       <img src="../../img/rack/reles_box_1.jpg" alt="Relay module enclosure exterior" loading="lazy" decoding="async">
     </figure>
