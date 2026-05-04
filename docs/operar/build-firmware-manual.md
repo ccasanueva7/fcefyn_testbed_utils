@@ -192,3 +192,5 @@ For architecture, caching, and feed indexing details, see:
 - [lime-packages CI: hardware tests](../diseno/lime-packages-test-flow.md) (downstream **libremesh-tests** on the `testbed-fcefyn` self-hosted runner)
 
 Manual procedures above still apply when you build outside CI or need a custom `menuconfig` / full Buildroot tree.
+
+For the automated CI workflow that builds and tests firmware directly in this repo, see [CI: Build & Test](ci-build-and-test.md).
