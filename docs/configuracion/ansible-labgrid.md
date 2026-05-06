@@ -172,9 +172,9 @@ When the managed node is the same machine running Ansible, use `ansible_connecti
 
 ### 6.1 Variable loading
 
-The playbook needs `labs` and `developers` from `labnet.yaml` to:
+The playbook needs `labs` from `labnet.yaml` to:
 
-- Add developers' SSH keys to `labgrid-dev`
+- Fetch developers' SSH keys from GitHub (using `maintainers` + `access` lists) and add to `labgrid-dev`
 - Generate the TFTP device/instance list
 - Generate coordinator `places.yaml`
 
@@ -191,7 +191,7 @@ Approximate task order:
 |------|--------|
 | Set hostname | Managed node hostname |
 | Create labgrid-dev | User for Labgrid |
-| Add SSH keys | Developers' keys on labgrid-dev |
+| Add SSH keys | Fetch from GitHub for `maintainers` + `access` users, add to labgrid-dev |
 | Install packages | pipx, microcom, ser2net, socat, iptables, etc. |
 | Install Labgrid | via pipx |
 | Install PDUDaemon | via pipx |
@@ -232,17 +232,16 @@ labs:
     device_instances:
       linksys_e8450: [belkin_rt3200_1, belkin_rt3200_2, belkin_rt3200_3]
       librerouter_librerouter-v1: [librerouter_1]
-    developers: [fcefyn-lab]
-
-developers:
-  fcefyn-lab:
-    sshkey: "ssh-ed25519 AAAA..."
+    maintainers: [francoriba, ccasanueva7, javierbrk]
+    access: [francoriba, aparcar]
 ```
+
+No top-level `developers:` block with `sshkey:` fields - since [commit 2f1aed1](https://github.com/aparcar/openwrt-tests/commit/2f1aed1) SSH keys are fetched from GitHub.
 
 ### 7.2 Use in the playbook
 
-- `hostvars[inventory_hostname]['labs'][inventory_hostname]` → current lab config.
-- `hostvars[inventory_hostname]['developers']` → SSH keys to install.
+- `labnet.labs[inventory_hostname]` → current lab config (maintainers, access, devices).
+- `lookup('url', 'https://github.com/' + item + '.keys')` → SSH keys fetched at deploy time.
 - `lookup('file', '../labnet.yaml')` → generating `places.yaml`.
 
 ---

@@ -10,7 +10,7 @@ Every contributed lab uses:
 
 - The global [labgrid-coordinator](openwrt-tests-onboarding.md#1-global-coordinator-architecture) hosted by the openwrt-tests maintainer (Paul / aparcar). Its address and SSH key are already wired into upstream Ansible.
 - A **WireGuard** tunnel between the lab host and the coordinator VM (outbound from the lab).
-- A **single inventory** in [openwrt-tests `labnet.yaml`](https://github.com/aparcar/openwrt-tests/blob/main/labnet.yaml) listing labs, devices, developer SSH keys.
+- A **single inventory** in [openwrt-tests `labnet.yaml`](https://github.com/aparcar/openwrt-tests/blob/main/labnet.yaml) listing labs, devices, maintainers, and access lists (SSH keys are fetched from GitHub at deploy time).
 - The [openwrt-tests `playbook_labgrid.yml`](https://github.com/aparcar/openwrt-tests/blob/main/ansible/playbook_labgrid.yml) applied to the lab host: user `labgrid-dev`, coordinator key in `authorized_keys`, `labgrid` and `labgrid-switch-abstraction` via pipx, exporter, TFTP, PDUDaemon, netplan, dnsmasq.
 
 The infrastructure is the same; what changes between paths is **which CI runner** executes tests and **which suite** expects which resources.
@@ -61,7 +61,7 @@ Goal: contribute DUTs so upstream [aparcar/openwrt-tests](https://github.com/apa
 
 **Steps:**
 
-1. Follow [openwrt-tests onboarding](openwrt-tests-onboarding.md): WireGuard, SSH keys, PR against `aparcar/openwrt-tests` with `labnet.yaml` entry, `ansible/files/exporter/<lab>/*`, lab doc.
+1. Follow [openwrt-tests onboarding](openwrt-tests-onboarding.md): WireGuard, GitHub usernames in `access:`, PR against `aparcar/openwrt-tests` with `labnet.yaml` entry, `ansible/files/exporter/<lab>/*`, lab doc.
 2. Apply `playbook_labgrid.yml` on the lab host (coordinator key, exporter, TFTP, PDUDaemon, dnsmasq, netplan). The playbook now also installs `labgrid-switch-abstraction` via pipx; labs without a managed switch can ignore the CLI.
 3. Optional: if the lab has a managed switch and wants dynamic VLAN switching in upstream tests, configure `switch.conf` and `dut-config.yaml` on the host and opt in per test run with `VLAN_SWITCH_ENABLED=1` + `LG_MULTI_PLACES`. See [switch-abstraction.md on the PR branch](https://github.com/aparcar/openwrt-tests/blob/main/docs/switch-abstraction.md) once PR [#218](https://github.com/aparcar/openwrt-tests/pull/218) is merged.
 

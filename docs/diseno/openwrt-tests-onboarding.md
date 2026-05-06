@@ -1,6 +1,6 @@
 # Onboarding to openwrt-tests
 
-Process for contributing hardware from a local lab to the [openwrt-tests](https://github.com/aparcar/openwrt-tests) ecosystem. Covers architecture, exporter connection, SSH keys, Ansible, and the step sequence to integrate DUTs with the upstream coordinator.
+Process for contributing hardware from a local lab to the [openwrt-tests](https://github.com/aparcar/openwrt-tests) ecosystem. Covers architecture, exporter connection, access management, Ansible, and the step sequence to integrate DUTs with the upstream coordinator.
 
 !!! info "Two contribution paths"
     This page focuses on the base openwrt-tests lab (Scenario A). For contributing a **libremesh-capable** lab (own self-hosted runner, managed switch with VLAN switching, multi-node mesh suite), see [Contributing a new lab](new-lab-contribution.md) which contrasts both paths.
@@ -98,20 +98,19 @@ The coordinator must SSH to the lab host. That is done with the coordinator publ
 | Key | Where it is configured | Purpose |
 |-----|------------------------|---------|
 | **Coordinator** public key | `~labgrid-dev/.ssh/authorized_keys` on the lab | Lets the coordinator SSH to the lab (proxy to DUTs). Deployed by Ansible. |
-| Each **developer** public key | `labnet.yaml → developers.<github_user>.sshkey` | Lets the developer reach lab DUTs via `LG_PROXY`. |
+| Each **developer** public key | Fetched from `https://github.com/<username>.keys` at Ansible deploy time; users listed in `labnet.yaml` `maintainers` + `access` | Lets the developer reach lab DUTs via `LG_PROXY`. |
 | Lab **WireGuard** public key | Manual exchange with maintainer | Establishes VPN tunnel between lab and coordinator. |
 
 The coordinator key is already in the openwrt-tests Ansible playbook; it deploys when you run the playbook.
 
-#### Developer keys in `labnet.yaml`
+#### Developer access in `labnet.yaml`
 
 Each developer who needs remote DUT access needs:
 
-1. Their **personal SSH public key** (ed25519) in the `developers:` section of `labnet.yaml`.
-2. Their **GitHub username** as identifier.
-3. To be listed in `labs.<lab>.developers` for the target lab.
+1. At least one **SSH public key** (ed25519) registered on their **GitHub profile** (Settings > SSH and GPG keys).
+2. Their **GitHub username** listed in `access:` for the target lab in `labnet.yaml`.
 
-The openwrt-tests Ansible playbook iterates `labs.<lab>.developers`, looks up each `sshkey` in `developers:`, and appends to `~labgrid-dev/.ssh/authorized_keys` on the lab host. Each developer can then SSH as `labgrid-dev` to use `labgrid-client`.
+The openwrt-tests Ansible playbook iterates the union of `maintainers` + `access` for each lab, fetches SSH keys from `https://github.com/<username>.keys`, and appends them to `~labgrid-dev/.ssh/authorized_keys` on the lab host. Each developer can then SSH as `labgrid-dev` to use `labgrid-client`. Key rotation on GitHub takes effect on the next Ansible run.
 
 ---
 
@@ -137,48 +136,52 @@ A PR to openwrt-tests to add a new lab includes:
 
 | File | Description |
 |------|-------------|
-| `labnet.yaml` | Lab entry under `labs:`, devices, instances, developer SSH keys. |
+| `labnet.yaml` | Lab entry under `labs:`, devices, instances, `maintainers`, `access` (GitHub usernames). |
 | `ansible/files/exporter/<lab>/exporter.yaml` | Exporter config: places with resources (serial, power, SSH target). |
 | `ansible/files/exporter/<lab>/netplan.yaml` | Host network config (VLANs). |
 | `ansible/files/exporter/<lab>/dnsmasq.conf` | DHCP/TFTP for lab VLANs. |
 | `ansible/files/exporter/<lab>/pdudaemon.conf` | PDUDaemon config (power control). |
 | `docs/labs/<lab>.md` | Lab documentation: hardware, DUTs, maintainers. |
 
-### 5.1 Developers in labnet.yaml
+### 5.1 Access lists in labnet.yaml
 
-Each developer registers with their **GitHub username** and **personal SSH public key** (ed25519). Include the upstream maintainer (`aparcar`) so they can debug.
+Each lab defines two lists of GitHub usernames (without `@` prefix):
+
+- **`maintainers:`** - notified via `@username` mentions in healthcheck issues.
+- **`access:`** - SSH access to the lab host (keys fetched from GitHub).
+
+Include the upstream maintainer (`aparcar`) in `access:` so they can debug.
 
 ```yaml
 labs:
   labgrid-fcefyn:
-    developers:
-      - francoriba     # GitHub username
+    maintainers:
+      - francoriba
+      - ccasanueva7
+      - javierbrk
+    access:
+      - francoriba
       - aparcar         # upstream maintainer (debugging)
-
-developers:
-  francoriba:
-    sshkey: ssh-ed25519 AAAA...  # developer personal key
 ```
 
-### 5.2 Generate SSH key for a new developer {: #52-generate-ssh-key-for-new-developer }
+No `sshkey` field is needed. Ansible fetches keys from `https://github.com/<username>.keys` at deploy time.
 
-```bash
-ssh-keygen -t ed25519 -C "github_username" -f ~/.ssh/id_ed25519
-cat ~/.ssh/id_ed25519.pub
-```
+### 5.2 Register GitHub username for a new developer {: #52-register-github-username }
 
-Add the public key (`cat` output) to `labnet.yaml` under `developers.<github_user>.sshkey`. The private key stays on the developer PC.
+1. Ensure the developer has at least one ed25519 SSH key on their GitHub profile (**Settings > SSH and GPG keys**).
+2. Add their GitHub username to `access:` in the target lab entry in `labnet.yaml`.
+3. Open a PR to openwrt-tests.
 
-To use another PC, copy the key pair (`id_ed25519` + `id_ed25519.pub`) to `~/.ssh/` on the new machine with `chmod 600` on the private key. One `labnet.yaml` entry covers all PCs for the same developer.
+To use multiple PCs, add all SSH keys to the GitHub profile. One `labnet.yaml` entry covers all keys for the same developer. Key rotation on GitHub takes effect on the next Ansible run.
 
 !!! warning "Do not confuse with host keys"
-    Orchestration host keys (`/etc/wireguard/public.key`, keys in `~labgrid-dev/.ssh/`) serve other purposes. Under `labnet.yaml → developers` only put **personal** keys for people who will run `labgrid-client` from their machines.
+    Orchestration host keys (`/etc/wireguard/public.key`, keys in `~labgrid-dev/.ssh/`) serve other purposes. `labnet.yaml` `access:` lists only contain **GitHub usernames** of people who will run `labgrid-client` from their machines.
 
 ---
 
 ## 6. Onboarding sequence
 
-Suggested order: first the **WireGuard** tunnel (the coordinator VM must register the lab peer; without the tunnel there is no return SSH from the VM). In parallel prepare the **PR** with inventory, exporter, and developers' **personal** SSH keys ([5.2](#52-generate-ssh-key-for-new-developer)). After merge, the openwrt-tests **playbook_labgrid** deploys `authorized_keys` and services on the host.
+Suggested order: first the **WireGuard** tunnel (the coordinator VM must register the lab peer; without the tunnel there is no return SSH from the VM). In parallel prepare the **PR** with inventory, exporter, and `access` usernames ([5.2](#52-register-github-username)). After merge, the openwrt-tests **playbook_labgrid** fetches SSH keys from GitHub and deploys `authorized_keys` and services on the host.
 
 ```mermaid
 sequenceDiagram
@@ -193,8 +196,8 @@ sequenceDiagram
     Maint->>DC: Register lab peer on WireGuard server
     Lab->>Lab: Deploy wg0 Ansible wireguard or manual
     Lab->>DC: WireGuard tunnel active handshake
-    Lab->>Lab: Developer SSH ed25519 keys section_5_2
-    Lab->>PR: PR labnet developers exporter netplan dnsmasq pdu docs
+    Lab->>Lab: Register GitHub usernames in access section_5_2
+    Lab->>PR: PR labnet maintainers access exporter netplan dnsmasq pdu docs
     Maint->>PR: Review and merge
     Maint->>Lab: Coordinator gRPC address if needed
     Lab->>Lab: playbook_labgrid openwrt_tests authorized_keys exporter
@@ -209,7 +212,7 @@ sequenceDiagram
 * ~~Receive WireGuard config from the maintainer (assigned IP, endpoint, server public key)~~ **Done** - IP `10.0.0.10/24`, endpoint `195.37.88.188:51820`
 * ~~Apply tunnel on the host: Ansible role `wireguard` in `fcefyn_testbed_utils`~~ **Done** - see [section 9](#wireguard-ansible-fcefyn)
 * ~~Verify tunnel: `sudo wg show wg0` (recent handshake)~~ **Done**
-* Per developer: generate personal ed25519 key ([5.2](#52-generate-ssh-key-for-new-developer)) and list `labs.<lab>.developers` + `developers.<github_user>.sshkey` in `labnet.yaml`
+* Per developer: ensure ed25519 key is on their GitHub profile and add GitHub username to `labs.<lab>.access` in `labnet.yaml` ([5.2](#52-register-github-username))
 * Prepare lab files: `exporter.yaml`, `netplan.yaml`, `dnsmasq.conf`, `pdudaemon.conf`
 * Document the lab in `docs/labs/<lab>.md` (upstream)
 * Open PR to openwrt-tests with the above

@@ -215,21 +215,14 @@ ssh-keygen -f ~/.ssh/known_hosts -R 192.168.1.1
 
 ### 3.6 Lab identity key (fcefyn-lab)
 
-The lab uses a **machine key** (`fcefyn-lab`), not a developer personal key (unlike other upstream openwrt-tests labs). That simplifies handover: when maintainers change, lab identity stays the same and `labnet.yaml` does not need new personal keys.
+Since [commit 2f1aed1](https://github.com/aparcar/openwrt-tests/commit/2f1aed1) upstream `labnet.yaml` no longer stores SSH keys inline. Instead, each lab entry has `maintainers:` (for healthcheck notifications) and `access:` (for SSH access), both listing GitHub usernames. The Ansible playbook fetches public keys from `https://github.com/<username>.keys` at deploy time and adds them to `~labgrid-dev/.ssh/authorized_keys`.
 
 **Where it is set:**
 
-- **labnet.yaml** (openwrt-tests): `labs.labgrid-fcefyn.developers` lists `fcefyn-lab`; `developers.fcefyn-lab.sshkey` holds the public key. Ansible copies it to `/home/labgrid-dev/.ssh/authorized_keys`.
-- **Lenovo (host):** Private key at `~/.ssh/id_ed25519_fcefyn_lab`. Anyone with physical or SSH access can use it as `labgrid-dev` to run tests.
+- **labnet.yaml** (openwrt-tests): `labs.labgrid-fcefyn.access` lists `francoriba` and `aparcar`. Ansible fetches their GitHub SSH keys and deploys them to `/home/labgrid-dev/.ssh/authorized_keys`.
+- **Lenovo (host):** The developer uses the SSH key registered on their GitHub account. No separate machine key is needed.
 
-**Create/recreate key** (e.g. host migration, reinstall):
-
-```bash
-ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519_fcefyn_lab -C "labgrid-fcefyn" -N ""
-cat ~/.ssh/id_ed25519_fcefyn_lab.pub
-```
-
-Copy output to openwrt-tests `labnet.yaml` `developers.fcefyn-lab.sshkey`, run Ansible playbook, set `~/.ssh/config` with `Host labgrid-fcefyn`, `User labgrid-dev`, `IdentityFile ~/.ssh/id_ed25519_fcefyn_lab`.
+**Requirement:** Each user listed in `access:` must have at least one SSH public key on their GitHub profile (**Settings > SSH and GPG keys**). Key rotation on GitHub takes effect on the next Ansible run.
 
 **Local testing:** TFTP dirs belong to `labgrid-dev`. For Labgrid to create symlinks when running tests, connect to the host as `labgrid-dev` (see [Running tests locally - labgrid-dev and TFTP](../operar/lab-running-tests.md#labgrid-dev-and-tftp)).
 
@@ -525,7 +518,7 @@ Developer access is the upstream openwrt-tests pattern and does not require Zero
 
 No VPN. Two SSH hops:
 
-1. Developer public key in `labnet.yaml` → Ansible copies to `~labgrid-dev/.ssh/authorized_keys` on the lab host. The same key must also be registered on `~labgrid-dev/.ssh/authorized_keys` of the upstream `labgrid-coordinator` (upstream playbook does not deploy to the `[coordinator]` group - must be coordinated with upstream maintainer).
+1. Developer GitHub username in `labnet.yaml` `access:` list → Ansible fetches SSH keys from GitHub and copies to `~labgrid-dev/.ssh/authorized_keys` on both the lab host and the coordinator (the `coordinator.yml` playbook also fetches from GitHub).
 2. Set `LG_PROXY=labgrid-fcefyn` on the developer machine; SSH chain resolves via `~/.ssh/config` (ProxyJump through `labgrid-coordinator`).
 3. `labgrid-client` tunnels traffic (coordinator gRPC, exporter, SSH to DUTs) over SSH to host as `labgrid-dev`.
 4. DUT SSH runs on host via `labgrid-bound-connect`; `switch-vlan` runs on host via the same SSH session (credentials in `/etc/switch.conf` stay on host).
