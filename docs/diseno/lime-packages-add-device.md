@@ -188,8 +188,7 @@ gh workflow run build-firmware.yml \
   -f openwrt_releases=24.10.6
 ```
 
-Then opt into the lab path on the same branch (requires
-`physical-lab` environment approval):
+Then opt into the lab path on the same branch:
 
 ```bash
 gh workflow run build-firmware.yml \

@@ -100,22 +100,21 @@ automatically to the next CI run without a `lime-packages` PR.
 
 | Trigger                  | `test-firmware` | `test-mesh` | `test-mesh-pairs` | `test-firmware-qemu` | `test-mesh-qemu` |
 |--------------------------|-----------------|-------------|-------------------|----------------------|-------------------|
-| `pull_request`           | 1 random place  | forced N=3  | skipped           | run                  | run               |
+| `pull_request`           | every place     | forced N=3  | skipped           | run                  | run               |
 | `workflow_dispatch` (`physical_single=true`) | every place    | per `physical_mesh_count` (0/2/3) | skipped | run                  | run               |
 | `schedule` (cron 06:00 UTC) | every place  | skipped     | 3 walking pairs   | run                  | run               |
 
 Notes:
 
-- All jobs that touch the lab use `environment: physical-lab` for
-  GitHub-side approval gating. One environment approval covers every
-  `physical-lab`-bound job in the run (i.e. one click per PR).
+- QEMU tests run automatically on every PR without approval.
+- Physical tests (`test-firmware`, `test-mesh`) require approval from
+  a member of the **`lab-reviewers`** team via the `physical-lab`
+  GitHub Actions environment before execution on the self-hosted
+  runner. See [CI governance](#11-ci-governance-teams-and-merge-policy).
 - The workflow concurrency group `physical-lab-shared` makes sure that
   no two lab-bound triggers run at once.
-- Fork PRs (no environment access) get the QEMU jobs only.
-
-The `prepare-matrix` job downsamples `test_targets_matrix` to one
-random entry on `pull_request` so PRs do not block the lab on every
-device.
+- The `summary` job is a required status check for merging; it fails
+  if any upstream job failed or was cancelled.
 
 ---
 
@@ -164,18 +163,23 @@ share lab resources.
 
 ```mermaid
 flowchart LR
-  PR[Pull request] --> PM[prepare-matrix downsample]
-  PM -->|1 random place| TF[test-firmware]
-  PM -->|forced N=3| TM[test-mesh]
+  PR[Pull request] --> TF["test-firmware (every place)"]
+  PR --> TM["test-mesh (N=3)"]
   PR --> TQ[test-firmware-qemu + test-mesh-qemu]
+  TF --> S[summary]
+  TM --> S
+  TQ --> S
 ```
 
-- One random target from `test_targets_matrix` runs single-node
-  (cheap representative coverage).
+- Every physical place runs single-node `test-firmware` (after
+  `lab-reviewers` approval).
 - `test-mesh` is forced to `physical_mesh_count=3` on PRs because
   `pull_request` cannot pass workflow inputs and N=3 is the most
   representative shape (3 different SoC families).
-- The full sweep is reserved for the daily cron.
+- The `summary` job is a required status check; merge is blocked
+  until all jobs succeed.
+- Only members of the **`maintainers`** team can merge the PR
+  (see [CI governance](#11-ci-governance-teams-and-merge-policy)).
 
 ---
 
@@ -295,3 +299,80 @@ See [CI runner](../configuracion/ci-runner.md) and
 
 For a brand-new device that has not been onboarded yet, follow
 [Adding a device](lime-packages-add-device.md).
+
+---
+
+## 11. CI governance: teams and merge policy
+
+Access control for `fcefyn-testbed/lime-packages` is split into two
+GitHub Teams with distinct responsibilities:
+
+| Team | Members | Responsibility |
+|------|---------|---------------|
+| `lab-reviewers` | francoriba, ccasanueva7 | Approve physical lab test runs (environment deployment) |
+| `maintainers` | francoriba | Review PRs and merge to `master` |
+
+### Environment protection (`physical-lab`)
+
+The `physical-lab` environment has a **required reviewer** rule set to
+the `lab-reviewers` team. When a PR or `workflow_dispatch` triggers a
+job that uses `environment: physical-lab`, GitHub Actions pauses the
+job until a team member clicks **Approve and deploy** in the Actions
+UI. `can_admins_bypass` is disabled so the gate is uniform for everyone.
+
+The `schedule` trigger skips the gate (empty environment name) so the
+daily cron runs unattended.
+
+### Branch ruleset (`bloqueo marge`)
+
+A repository ruleset on `master` enforces:
+
+| Rule | Effect |
+|------|--------|
+| `required_status_checks` (`summary`) | PR cannot merge until `summary` passes |
+| `pull_request` (1 approval, dismiss stale) | PR needs at least one approving review |
+| `deletion` + `non_fast_forward` | Prevent branch deletion and force-pushes |
+
+**Bypass actors:** only the `maintainers` team. They can push directly
+to `master` for CI infrastructure fixes.
+
+### Summary job as CI gate
+
+The `summary` job depends on all other jobs (`if: always()`). The
+[build_summary.sh][summary-sh] script checks every upstream job result:
+
+- `success` or `skipped` (job condition not met) -> pass
+- `failure` or `cancelled` -> fail and exit non-zero
+
+Since `summary` is the required status check, and it waits for all
+jobs (including `test-firmware` which is pending environment approval),
+the PR stays unmergeable until every test completes successfully.
+
+[summary-sh]: https://github.com/fcefyn-testbed/lime-packages/blob/master/tools/ci/build_summary.sh
+
+### Complete PR lifecycle
+
+```mermaid
+sequenceDiagram
+    participant C as Contributor
+    participant GH as GitHub
+    participant LR as lab-reviewer
+    participant M as maintainer
+
+    C->>GH: Open PR
+    GH->>GH: Builds + QEMU tests (automatic)
+    GH-->>LR: Request environment approval
+    LR->>GH: Approve and deploy
+    GH->>GH: Physical tests run on self-hosted runner
+    GH->>GH: summary job evaluates all results
+    M->>GH: Code review (approve PR)
+    M->>GH: Merge
+```
+
+### Portability to upstream
+
+The workflow only references `environment: physical-lab` by name. All
+governance (teams, rulesets, environment reviewers) lives in GitHub
+repository/org settings, not in the YAML. Any organisation adopting
+this workflow creates its own `physical-lab` environment and teams
+without modifying the workflow file.
