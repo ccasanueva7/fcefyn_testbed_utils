@@ -142,26 +142,15 @@ For most boards, copy an existing similar entry and adjust. Examples:
   test_qemu: true
 ```
 
-### Small-flash device
+### Small-flash / ath79 device
 
-```yaml
-- device: librerouter-v1
-  imagebuilder: ath79-generic
-  profile: librerouter_librerouter-v1
-  arch: mips_24kc
-  sdk_arch: mips_24kc-openwrt-24.10
-  index_imagebuilder: ath79-generic
-  build_initramfs: true
-  image_format: multi-uimage
-  fit_arch: mips
-  fit_kernel_loadaddr: "0x80060000"
-  fit_bootargs: "console=ttyS0,115200n8 root=/dev/ram0"
-  packages: >-
-    lime-system lime-proto-batadv lime-proto-anygw
-    lime-hwd-openwrt-wan lime-hwd-ground-routing lime-app
-    babeld-auto-gw-mode batctl-default
-    -dnsmasq -odhcpd-ipv6only
-```
+!!! warning "ath79 (LibreRouter v1) — not supported in CI"
+    This device type cannot be added to the CI matrix with the current toolchain.
+    ImageBuilder for ath79/generic does not produce a RAM-bootable `KERNEL_INITRAMFS` artifact,
+    and the LibreRouter U-Boot fork does not propagate the initrd sub-image to the kernel.
+    The `multi-uimage` path was prototyped and discarded. LibreRouter lab runs must be done
+    manually with a pre-staged firmware image.
+    See [ImageBuilder limits](lime-packages/imagebuilder-limits.md) for the full investigation.
 
 ---
 

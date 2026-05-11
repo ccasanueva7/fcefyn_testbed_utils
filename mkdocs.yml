@@ -88,6 +88,9 @@ nav:
       - Adding a DUT: operar/dut-onboarding.md
       - Belkin U-Boot TFTP — PC Ethernet IP: operar/belkin-uboot-tftp-pc-network.md
       - Build firmware: operar/build-firmware-manual.md
+      - Mesh IP provisioning: operar/provision-mesh-ip.md
+      - DUT gateway management: operar/dut-gateway.md
+      - Labgrid helper scripts: operar/labgrid-scripts.md
       - Wake-on-LAN: operar/wake-on-lan-setup.md
       - ZeroTier (admin-only): operar/zerotier-remote-access.md
   - Component configuration:
@@ -101,8 +104,10 @@ nav:
           - DUTs: configuracion/duts-config.md
       - Services and automation:
           - Arduino relay: configuracion/arduino-relay.md
+          - PoE switch control: configuracion/poe-switch-control.md
           - TFTP / dnsmasq: configuracion/tftp-server.md
           - Ansible / Labgrid: configuracion/ansible-labgrid.md
+          - Ansible roles reference: configuracion/ansible-roles.md
           - CI Runner: configuracion/ci-runner.md
       - Observability:
           - Lab host stack (Prometheus and Grafana): configuracion/observabilidad.md
@@ -121,5 +126,6 @@ nav:
           - "Belkin RT3200 layout 1.0 DTB patch": diseno/lime-packages/belkin-rt3200-dtb.md
           - "ImageBuilder limits for ath79 / legacy linksys_e8450": diseno/lime-packages/imagebuilder-limits.md
           - "QEMU + vwifi virtual mesh": diseno/lime-packages/qemu-vwifi.md
+          - "Trusted-author CI gate": diseno/lime-packages/trusted-author-gate.md
       - Virtual mesh: diseno/virtual-mesh.md
   - Demos: demos.md

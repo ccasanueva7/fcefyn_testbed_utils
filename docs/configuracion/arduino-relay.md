@@ -187,3 +187,69 @@ arduino_relay_control.py status
 ```bash
 readlink -f /dev/arduino-relay
 ```
+
+---
+
+## 9. Full CLI reference (`arduino_relay_control.py`)
+
+```bash
+# Turn channels on/off (multiple channels allowed)
+arduino_relay_control.py on  0 1 2    # channels 0, 1, 2 on
+arduino_relay_control.py off 0        # channel 0 off
+arduino_relay_control.py toggle 0     # flip current state
+
+# Power-cycle with configurable delay (default 1000 ms)
+arduino_relay_control.py cycle 0
+arduino_relay_control.py cycle 0 --delay 2000
+
+# Pulse: turn on for N ms then off
+arduino_relay_control.py pulse 0 3000
+
+# All relays off
+arduino_relay_control.py all-off
+
+# Query current state
+arduino_relay_control.py status
+arduino_relay_control.py status 0     # single channel
+
+# GL.iNet MT300N-v2 power sequence (disconnect serial before powering on)
+arduino_relay_control.py on 0 --glinet-sequence
+```
+
+### Channel quick reference
+
+| Channel | Hardware | Notes |
+|---------|----------|-------|
+| 0 | Belkin RT3200 #1 | Electromechanical relay, 12 V DC |
+| 1 | Belkin RT3200 #2 | |
+| 2 | Belkin RT3200 #3 | |
+| 3 | Banana Pi R4 | |
+| 4 | LibreRouter 1 | 12 V DC jack (via splitter) |
+| 5–7 | Reserved / spare relays | |
+| 8 | Switch (no-load, unused) | SSR / Fotek |
+| 9 | Cooler | SSR / Fotek |
+| 10 | PSU (Fuente 12 V) | SSR / Fotek — auto-on when any DUT relay is activated |
+
+### Lock serialization
+
+`arduino_relay_control.py` uses `fcntl.flock` on `/tmp/switch.lock` to
+serialize access when multiple callers (PDUDaemon workers, manual commands)
+run concurrently. The lock is released after each command completes.
+
+---
+
+## 10. PDUDaemon integration
+
+The Ansible role configures PDUDaemon with a `localcmdline` driver that
+delegates to `arduino_relay_control.py`:
+
+```ini
+[arduino-relay]
+driver = localcmdline
+cmd_on  = arduino_relay_control.py on %s
+cmd_off = arduino_relay_control.py off %s
+cmd_status = arduino_relay_control.py status %s
+```
+
+Labgrid uses PDUDaemon to power DUTs on/off via the `PDUDaemonPower` resource
+defined in `targets/<device>.yaml`.
