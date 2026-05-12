@@ -128,11 +128,16 @@ def build_mesh_ip_commands(mesh_ip: str) -> list[str]:
 
 
 def build_gateway_commands(vlan: int, mesh_ip: str) -> list[str]:
-    """UCI commands for default gateway in the DUT's isolated VLAN."""
+    """UCI + ip commands for default gateway in the DUT's isolated VLAN.
+
+    The DUT needs an IP in the gateway's subnet (192.168.<vlan>.x/24) on
+    br-lan, otherwise the kernel rejects the route as unreachable.
+    """
     gateway = f"192.168.{vlan}.254"
     last_octet = mesh_ip.split(".")[-1]
     src_ip = f"192.168.{vlan}.{last_octet}"
     return [
+        f"uci add_list network.lan.ipaddr='{src_ip}/24'",
         "uci delete network.lan.gateway 2>/dev/null; true",
         f"uci set network.lan.gateway='{gateway}'",
     ]
@@ -151,11 +156,15 @@ def build_firewall_commands() -> list[str]:
     """Disable and stop the firewall persistently.
 
     MUST run AFTER network restart, because OpenWrt hotplug re-enables the
-    firewall when interfaces come up.
+    firewall when interfaces come up. Handles both fw3 (iptables) and
+    fw4 (nftables) since the DUT fleet has both.
     """
     return [
         "if [ -x /etc/init.d/firewall ]; then /etc/init.d/firewall disable 2>/dev/null; fi || true",
         "if [ -x /etc/init.d/firewall ]; then /etc/init.d/firewall stop 2>/dev/null; fi || true",
+        # fw4 / nftables
+        "nft flush ruleset 2>/dev/null || true",
+        # fw3 / iptables (older devices)
         "iptables -P INPUT ACCEPT 2>/dev/null || true",
         "iptables -P OUTPUT ACCEPT 2>/dev/null || true",
         "iptables -P FORWARD ACCEPT 2>/dev/null || true",
@@ -301,10 +310,17 @@ def provision_one(
     # --- Phase 2: commit + network restart ---
     phase2_commit = build_commit_commands()
 
-    # --- Phase 3: firewall (after network restart settles) ---
-    phase3_fw: list[str] = []
+    # --- Phase 3: force-apply route + firewall (after network restart) ---
+    phase3_post: list[str] = []
     if not skip_internet:
-        phase3_fw = build_firewall_commands()
+        last_octet = mesh_ip.split(".")[-1]
+        src_ip = f"192.168.{vlan}.{last_octet}"
+        gateway = f"192.168.{vlan}.254"
+        phase3_post += [
+            f"ip addr show dev br-lan | grep -q '{src_ip}/' || ip addr add {src_ip}/24 dev br-lan",
+            f"ip route replace default via {gateway} dev br-lan src {src_ip}",
+        ]
+        phase3_post += build_firewall_commands()
 
     # --- Phase 4: verify ---
     phase4_verify: list[str] = []
@@ -313,9 +329,9 @@ def provision_one(
 
     if dry_run:
         all_cmds = phase1 + phase2_commit
-        if phase3_fw:
+        if phase3_post:
             all_cmds += [f"# (wait {NETWORK_RESTART_WAIT:.0f}s for network restart)"]
-            all_cmds += phase3_fw
+            all_cmds += phase3_post
         all_cmds += phase4_verify
         print(f"\n  [{dut_id}] {port} (VLAN {vlan}, type={device_type})")
         print(f"  Mesh IP: {mesh_ip}")
@@ -351,9 +367,9 @@ def provision_one(
         if not wait_for_prompt(ser, timeout=15.0):
             print(f"  WARN {dut_id}: no prompt after network restart", file=sys.stderr)
 
-        # Phase 3: firewall (after restart so hotplug doesn't re-enable it)
-        if phase3_fw:
-            _run_commands(ser, phase3_fw, dut_id)
+        # Phase 3: force-apply route + firewall (after restart settles)
+        if phase3_post:
+            _run_commands(ser, phase3_post, dut_id)
 
         # Phase 4: verify
         if phase4_verify:
