@@ -88,6 +88,7 @@ nav:
       - Adding a DUT: operar/dut-onboarding.md
       - Belkin U-Boot TFTP — PC Ethernet IP: operar/belkin-uboot-tftp-pc-network.md
       - Build firmware: operar/build-firmware-manual.md
+      - DUT provisioning (full): operar/provision-dut.md
       - Mesh IP provisioning: operar/provision-mesh-ip.md
       - DUT gateway management: operar/dut-gateway.md
       - Labgrid helper scripts: operar/labgrid-scripts.md

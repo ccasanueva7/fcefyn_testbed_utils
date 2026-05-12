@@ -31,12 +31,14 @@ DUT network config (gateway, DNS, secondary IP, firewall) is handled by test fix
 - Secondary IP on the gateway subnet (e.g. `192.168.{vlan}.x/24` isolated, `192.168.200.x/24` mesh) so the upstream router can route replies
 - Firewall stopped (`fw3`/`fw4`) since test DUTs do not need it
 
-**Initial provisioning (once per DUT, via serial):** `provision_mesh_ip.py` adds the per-DUT mesh SSH/control IP (`10.13.200.x`) plus the `192.168.200.x` secondary address used for mesh-VLAN gateway reachability. It does not change the gateway. The real LibreMesh `br-lan` address used by mesh assertions remains the node's dynamic `10.13.x.x` address.
+**Initial provisioning (once per DUT, via serial):** [`provision_dut.py`](../operar/provision-dut.md) configures everything in one command: mesh IPs, gateway, DNS, firewall off, NTP, and per-device hooks (OpenWrt One eth swap, LibreRouter opkg feeds). The real LibreMesh `br-lan` address used by mesh assertions remains the node's dynamic `10.13.x.x` address.
 
 ```bash
-python3 scripts/provision_mesh_ip.py --all --dry-run   # verify IPs
-python3 scripts/provision_mesh_ip.py --all              # apply IPs
+python3 scripts/provision_dut.py --all --dry-run   # verify commands
+python3 scripts/provision_dut.py --all              # apply all config
 ```
+
+For mesh IPs only (legacy): `python3 scripts/provision_mesh_ip.py --all`.
 
 Hardware data per DUT (switch port, isolated VLAN, serial, ssh_alias): `configs/dut-config.yaml`, `duts` section.
 

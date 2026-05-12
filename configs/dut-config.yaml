@@ -16,9 +16,11 @@ switch:
 # DUT hardware database - physical facts per device
 # Note: `libremesh_fixed_ip` is the persistent mesh SSH/control IP on VLAN 200.
 # It is not the node's dynamic LibreMesh service IP used for mesh assertions.
+# `device_type` selects per-device hooks in provision_dut.py (eth swap, opkg feeds, etc.)
 duts:
   belkin_rt3200_1:
     location: fcefyn-testbed
+    device_type: linksys_e8450
     serial_port: "/dev/belkin-rt3200-1"
     serial_speed: 115200
     ssh_alias: "dut-belkin-1"
@@ -32,6 +34,7 @@ duts:
 
   belkin_rt3200_2:
     location: fcefyn-testbed
+    device_type: linksys_e8450
     serial_port: "/dev/belkin-rt3200-2"
     serial_speed: 115200
     ssh_alias: "dut-belkin-2"
@@ -45,6 +48,7 @@ duts:
 
   belkin_rt3200_3:
     location: fcefyn-testbed
+    device_type: linksys_e8450
     serial_port: "/dev/belkin-rt3200-3"
     serial_speed: 115200
     ssh_alias: "dut-belkin-3"
@@ -58,6 +62,7 @@ duts:
 
   bananapi_bpi-r4:
     location: fcefyn-testbed
+    device_type: bananapi_bpi-r4
     serial_port: "/dev/bpi-r4"
     serial_speed: 115200
     ssh_alias: "dut-bananapi"
@@ -71,6 +76,7 @@ duts:
 
   openwrt_one:
     location: fcefyn-testbed
+    device_type: openwrt_one
     serial_port: "/dev/openwrt-one"
     serial_speed: 115200
     ssh_alias: "dut-openwrt-one"
@@ -85,6 +91,7 @@ duts:
 
   librerouter_1:
     location: fcefyn-testbed
+    device_type: librerouter_v1
     serial_port: "/dev/librerouter-1"
     serial_speed: 115200
     ssh_alias: "dut-librerouter-1"

@@ -1,5 +1,8 @@
 # Mesh IP provisioning (`provision_mesh_ip.py`)
 
+!!! tip "Prefer `provision_dut.py` for new setups"
+    [`provision_dut.py`](provision-dut.md) does everything this script does **plus** gateway, DNS, firewall, NTP, and per-device hooks in a single command.
+
 One-time setup script that configures each physical DUT with the addresses
 needed for SSH access and test control in mesh mode (VLAN 200). Run once
 after a DUT is factory-reset or reflashed with a clean OpenWrt image.
@@ -107,6 +110,7 @@ proceeding. After the final `uci commit`, the script optionally calls
 
 ## See also
 
+- [Full DUT provisioning](provision-dut.md) — mesh IPs + gateway + DNS + firewall + NTP in one command (recommended over this script)
 - [DUT gateway management](dut-gateway.md) — updating the default gateway after VLAN switches
 - [Adding a DUT](dut-onboarding.md) — full onboarding procedure for new hardware
 - `configs/dut-config.yaml` — per-DUT serial port and mesh IP

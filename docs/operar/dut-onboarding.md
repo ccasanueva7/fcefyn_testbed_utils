@@ -21,7 +21,8 @@ Repos involved: **fcefyn-testbed-utils** (lab config), **aparcar/openwrt-tests**
 | 9. TFTP | Host | `mkdir /srv/tftp/<place>/`, firmware, symlink |
 | 10. Observability | fcefyn-testbed-utils | Install exporter on DUT + add `observability_duts` entry (see [observabilidad](../configuracion/observabilidad.md)) |
 | 11. Deploy | - | Ansible (`playbook_labgrid.yml`) |
-| 12. Verify | - | `labgrid-client places`, serial, SSH |
+| 12. Provision | fcefyn-testbed-utils | [`provision_dut.py --device <name>`](provision-dut.md) (mesh IPs + internet) |
+| 13. Verify | - | `labgrid-client places`, serial, SSH |
 
 ---
 
