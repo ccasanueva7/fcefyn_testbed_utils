@@ -148,12 +148,18 @@ def build_dns_commands() -> list[str]:
 
 
 def build_firewall_commands() -> list[str]:
-    """Disable and stop the firewall persistently."""
+    """Disable and stop the firewall persistently.
+
+    MUST run AFTER network restart, because OpenWrt hotplug re-enables the
+    firewall when interfaces come up.
+    """
     return [
         "if [ -x /etc/init.d/firewall ]; then /etc/init.d/firewall disable 2>/dev/null; fi || true",
         "if [ -x /etc/init.d/firewall ]; then /etc/init.d/firewall stop 2>/dev/null; fi || true",
+        "iptables -P INPUT ACCEPT 2>/dev/null || true",
         "iptables -P OUTPUT ACCEPT 2>/dev/null || true",
-        "iptables -F OUTPUT 2>/dev/null || true",
+        "iptables -P FORWARD ACCEPT 2>/dev/null || true",
+        "iptables -F 2>/dev/null || true",
     ]
 
 
@@ -173,6 +179,9 @@ def build_ntp_commands() -> list[str]:
         "uci commit system",
         "if [ -x /etc/init.d/sysntpd ]; then /etc/init.d/sysntpd restart; fi || true",
     ]
+
+
+NETWORK_RESTART_WAIT = 15.0
 
 
 def build_commit_commands() -> list[str]:
@@ -245,6 +254,16 @@ def find_dut_by_device(device: str, config_path: Path) -> dict | None:
 # ---------------------------------------------------------------------------
 
 
+def _run_commands(
+    ser: serial.Serial, commands: list[str], dut_id: str, timeout: float = 4.0,
+) -> None:
+    """Send a list of commands, warning on errors."""
+    for cmd in commands:
+        out = send_command(ser, cmd, timeout=timeout)
+        if "error" in out.lower() and "exists" not in out.lower() and "no such" not in out.lower():
+            print(f"  WARN {dut_id} on '{cmd}': {out[:200]}", file=sys.stderr)
+
+
 def provision_one(
     dut: dict,
     *,
@@ -252,7 +271,14 @@ def provision_one(
     skip_mesh_ip: bool = False,
     skip_internet: bool = False,
 ) -> bool:
-    """Provision a single DUT. Returns True on success."""
+    """Provision a single DUT. Returns True on success.
+
+    Execution order matters:
+      Phase 1: UCI settings (mesh IPs, gateway, DNS, NTP, device hooks)
+      Phase 2: uci commit + /etc/init.d/network restart (long wait)
+      Phase 3: Firewall disable (AFTER restart, because hotplug re-enables it)
+      Phase 4: Verify connectivity
+    """
     dut_id = dut["id"]
     port = dut["serial_port"]
     baud = dut["serial_speed"]
@@ -260,30 +286,40 @@ def provision_one(
     mesh_ip = dut["libremesh_fixed_ip"]
     device_type = dut.get("device_type", "")
 
-    all_commands: list[str] = []
-
+    # --- Phase 1: UCI + NTP (before network restart) ---
+    phase1: list[str] = []
     if not skip_mesh_ip:
-        all_commands += build_mesh_ip_commands(mesh_ip)
-
+        phase1 += build_mesh_ip_commands(mesh_ip)
     if not skip_internet:
-        all_commands += build_gateway_commands(vlan, mesh_ip)
-        all_commands += build_dns_commands()
-        all_commands += build_firewall_commands()
-        all_commands += build_ntp_commands()
-
+        phase1 += build_gateway_commands(vlan, mesh_ip)
+        phase1 += build_dns_commands()
+        phase1 += build_ntp_commands()
     hooks = DEVICE_HOOKS.get(device_type, [])
     if hooks:
-        all_commands += hooks
+        phase1 += hooks
 
-    all_commands += build_commit_commands()
+    # --- Phase 2: commit + network restart ---
+    phase2_commit = build_commit_commands()
 
+    # --- Phase 3: firewall (after network restart settles) ---
+    phase3_fw: list[str] = []
     if not skip_internet:
-        all_commands += build_verify_commands(vlan)
+        phase3_fw = build_firewall_commands()
+
+    # --- Phase 4: verify ---
+    phase4_verify: list[str] = []
+    if not skip_internet:
+        phase4_verify = build_verify_commands(vlan)
 
     if dry_run:
+        all_cmds = phase1 + phase2_commit
+        if phase3_fw:
+            all_cmds += [f"# (wait {NETWORK_RESTART_WAIT:.0f}s for network restart)"]
+            all_cmds += phase3_fw
+        all_cmds += phase4_verify
         print(f"\n  [{dut_id}] {port} (VLAN {vlan}, type={device_type})")
         print(f"  Mesh IP: {mesh_ip}")
-        for cmd in all_commands:
+        for cmd in all_cmds:
             print(f"    {cmd}")
         return True
 
@@ -303,10 +339,25 @@ def provision_one(
             print(f"  ERROR {dut_id}: no shell prompt on {port} (DUT booted?)", file=sys.stderr)
             return False
 
-        for cmd in all_commands:
-            out = send_command(ser, cmd, timeout=4.0)
-            if "error" in out.lower() and "exists" not in out.lower() and "no such" not in out.lower():
-                print(f"  WARN {dut_id} on '{cmd}': {out[:200]}", file=sys.stderr)
+        # Phase 1: UCI settings
+        _run_commands(ser, phase1, dut_id)
+
+        # Phase 2: commit + network restart
+        _run_commands(ser, phase2_commit, dut_id, timeout=6.0)
+
+        # Wait for network restart to settle, then re-acquire prompt
+        print(f"  [{dut_id}] Waiting {NETWORK_RESTART_WAIT:.0f}s for network restart...")
+        time.sleep(NETWORK_RESTART_WAIT)
+        if not wait_for_prompt(ser, timeout=15.0):
+            print(f"  WARN {dut_id}: no prompt after network restart", file=sys.stderr)
+
+        # Phase 3: firewall (after restart so hotplug doesn't re-enable it)
+        if phase3_fw:
+            _run_commands(ser, phase3_fw, dut_id)
+
+        # Phase 4: verify
+        if phase4_verify:
+            _run_commands(ser, phase4_verify, dut_id, timeout=10.0)
     finally:
         ser.close()
 
