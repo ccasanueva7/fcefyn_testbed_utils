@@ -19,10 +19,11 @@ Repos involved: **fcefyn-testbed-utils** (lab config), **aparcar/openwrt-tests**
 | 7. Targets | libremesh-tests | `targets/<device>.yaml` (only if new device type) |
 | 8. Netplan | openwrt-tests | `ansible/files/exporter/labgrid-fcefyn/netplan.yaml` (if new VLAN) |
 | 9. TFTP | Host | `mkdir /srv/tftp/<place>/`, firmware, symlink |
-| 10. Observability | fcefyn-testbed-utils | Install exporter on DUT + add `observability_duts` entry (see [observabilidad](../configuracion/observabilidad.md)) |
-| 11. Deploy | - | Ansible (`playbook_labgrid.yml`) |
+| 10. Observability config | fcefyn-testbed-utils | Add `observability_duts` entry in Ansible defaults (see [observabilidad](../configuracion/observabilidad.md)) |
+| 11. Deploy | - | Ansible (`playbook_labgrid.yml` + `playbook_testbed.yml --tags observability`) |
 | 12. Provision | fcefyn-testbed-utils | [`provision_dut.py --device <name>`](provision-dut.md) (mesh IPs + internet) |
-| 13. Verify | - | `labgrid-client places`, serial, SSH |
+| 13. Exporter | fcefyn-testbed-utils | [`setup_dut_exporter.py --device <name>`](setup-dut-exporter.md) (Prometheus metrics) |
+| 14. Verify | - | `labgrid-client places`, serial, SSH, Grafana metrics |
 
 ---
 

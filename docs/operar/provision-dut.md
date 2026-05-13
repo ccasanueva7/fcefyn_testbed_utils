@@ -112,6 +112,7 @@ To add hooks for a new device type: add an entry to `DEVICE_HOOKS` in `scripts/p
 
 ## See also
 
+- [DUT exporter setup](setup-dut-exporter.md) - next step: install Prometheus node exporter (run after this script)
 - [DUT configuration status](../configuracion/duts-config.md) - per-DUT firmware and notes
 - [Mesh IP provisioning](provision-mesh-ip.md) - legacy mesh-only script
 - [DUT gateway management](dut-gateway.md) - dynamic gateway updates

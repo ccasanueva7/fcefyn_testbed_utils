@@ -128,28 +128,32 @@ Active DUTs are listed in `ansible/roles/observability/defaults/main.yml` (repo 
 
 ## Adding a DUT
 
-### Step 1 - On the DUT (manual, once over SSH)
+### Step 1 - On the DUT (automated)
 
-Requires Internet on the DUT (opkg feeds). See also [duts-config - Internet access](duts-config.md#internet-access-opkg).
+Requires Internet on the DUT (opkg feeds). Run [`provision_dut.py`](../operar/provision-dut.md) first if freshly flashed.
 
-```sh
-opkg update
-opkg install prometheus-node-exporter-lua prometheus-node-exporter-lua-openwrt
-uci set prometheus-node-exporter-lua.main.listen_interface='loopback'
-uci commit prometheus-node-exporter-lua
-/etc/init.d/prometheus-node-exporter-lua enable
-/etc/init.d/prometheus-node-exporter-lua start
+```bash
+python scripts/setup_dut_exporter.py --device <name>
+# or all DUTs at once:
+python scripts/setup_dut_exporter.py --all
 ```
 
-Verify: `wget -qO- http://127.0.0.1:9100/metrics | head -5`
+The script ([docs](../operar/setup-dut-exporter.md)) installs all packages, deploys `filesystem.lua`, configures loopback-only listening, and verifies metrics are served. It runs over **parallel SSH** and is idempotent.
 
-The exporter listens **only on loopback** for security.
+??? note "Manual equivalent (for reference)"
 
-Optional collectors (hardware dependent):
+    ```sh
+    opkg update
+    opkg install prometheus-node-exporter-lua prometheus-node-exporter-lua-openwrt \
+                 prometheus-node-exporter-lua-hwmon prometheus-node-exporter-lua-wifi \
+                 luci-lib-nixio
+    uci set prometheus-node-exporter-lua.main.listen_interface='loopback'
+    uci commit prometheus-node-exporter-lua
+    /etc/init.d/prometheus-node-exporter-lua enable
+    /etc/init.d/prometheus-node-exporter-lua start
+    ```
 
-```sh
-opkg install prometheus-node-exporter-lua-hwmon prometheus-node-exporter-lua-wifi
-```
+    Verify: `wget -qO- http://127.0.0.1:9100/metrics | head -5`
 
 #### Filesystem collector (no official package)
 
