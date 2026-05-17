@@ -1,59 +1,66 @@
 # Onboarding to openwrt-tests
 
-Process for contributing hardware from a local lab to the [openwrt-tests](https://github.com/aparcar/openwrt-tests) ecosystem. Covers architecture, exporter connection, access management, Ansible, and the step sequence to integrate DUTs with the upstream coordinator.
+Process for contributing hardware from a local lab to the [openwrt-tests](https://github.com/aparcar/openwrt-tests) ecosystem. Covers architecture, exporter connection, access management, Ansible, and the step sequence to integrate DUTs with the upstream SSH gateway and per-lab coordinator.
 
 !!! info "Two contribution paths"
     This page focuses on the base openwrt-tests lab (Scenario A). For contributing a **libremesh-capable** lab (own self-hosted runner, managed switch with VLAN switching, multi-node mesh suite), see [Contributing a new lab](new-lab-contribution.md) which contrasts both paths.
 
 ---
 
-## 1. Global-coordinator architecture
+## 1. Per-lab coordinator + SSH gateway {: #1-per-lab-coordinator-ssh-gateway }
 
-The openwrt-tests **global-coordinator** is a **VM in a datacenter** with a public IP, maintained by Paul (aparcar). All remote labs connect to it over **WireGuard**. **GitHub Actions self-hosted runners** also run on that VM and reach labs through the WireGuard tunnel to run tests.
+Each lab runs its own `labgrid-coordinator` locally (loopback `127.0.0.1:20408`), deployed by the upstream Ansible playbook `playbook_labgrid.yml`. The datacenter **VM** (`global-coordinator` hostname) maintained by Paul (aparcar) acts as an **SSH gateway** - it does **not** run a `labgrid-coordinator` service. GitHub-hosted runners (`ubuntu-latest`) reach labs through this VM via **WireGuard**, and the `LG_PROXY` SSH tunnel forwards gRPC calls to the lab's local coordinator.
 
 ```mermaid
 flowchart TD
-    subgraph datacenter ["Datacenter VM"]
-        GC["labgrid-coordinator :20408"]
-        RUNNERS["GitHub Actions runners"]
+    subgraph datacenter ["Datacenter VM - SSH gateway"]
+        SSH_GW["SSH jump host\n(labgrid-dev)"]
     end
 
     subgraph lab_aparcar ["Aparcar lab"]
+        COORD_A["labgrid-coordinator :20408"]
         EXP_A["labgrid-exporter"]
         BC_A["labgrid-bound-connect"]
         DUT_A["DUTs"]
     end
 
     subgraph lab_fcefyn ["FCEFyN lab"]
+        COORD_F["labgrid-coordinator :20408"]
         EXP_F["labgrid-exporter"]
         BC_F["labgrid-bound-connect"]
         DUT_F["DUTs"]
     end
 
-    RUNNERS -- "1" --> GC
-    EXP_A -- "2" --> GC
-    EXP_F -- "2" --> GC
-    RUNNERS -- "3" --> BC_A
-    RUNNERS -- "3" --> BC_F
-    BC_A -- "4" --> DUT_A
-    BC_F -- "4" --> DUT_F
+    GH["GitHub-hosted runners\n(ubuntu-latest)"]
+
+    GH -- "1" --> SSH_GW
+    SSH_GW -- "2" --> lab_aparcar
+    SSH_GW -- "2" --> lab_fcefyn
+    EXP_A -- "3" --> COORD_A
+    EXP_F -- "3" --> COORD_F
+    GH -. "4 (tunneled)" .-> BC_A
+    GH -. "4 (tunneled)" .-> BC_F
+    BC_A -- "5" --> DUT_A
+    BC_F -- "5" --> DUT_F
 ```
 
 | # | Connection | Detail |
 |---|---|---|
-| 1 | Runners → Coordinator | gRPC localhost:20408 (reserve / lock / unlock) |
-| 2 | Exporter → Coordinator | gRPC via WireGuard (register resources) |
-| 3 | Runners → bound-connect | SSH via WireGuard (LG_PROXY=labgrid-X) |
-| 4 | bound-connect → DUTs | socat with so-bindtodevice on correct VLAN interface |
+| 1 | Runners → SSH gateway | SSH to datacenter VM (ProxyJump entry point) |
+| 2 | SSH gateway → lab hosts | SSH over WireGuard tunnel |
+| 3 | Exporter → local coordinator | gRPC loopback :20408 (register resources) |
+| 4 | Runners → bound-connect | SSH tunneled via gateway + WireGuard (LG_PROXY=labgrid-X) |
+| 5 | bound-connect → DUTs | socat with so-bindtodevice on correct VLAN interface |
 
 All connections between labs and the VM traverse a **WireGuard** tunnel (point-to-point VPN).
 
 | Component | Location | Role |
 |-----------|----------|------|
-| **Coordinator** | Datacenter VM (public IP) | gRPC server (port 20408). Registers places (`places.yaml`), coordinates reservations and locks. Does **not** proxy SSH. |
-| **GitHub runners** | Same VM | Self-hosted runners executing CI workflow jobs against remote DUTs via `LG_PROXY`. |
-| **WireGuard** | Between each lab and the VM | Tunnel so runners can SSH to lab hosts and lab exporters can reach the coordinator. |
-| **Exporter** | Lab host | Registers local DUT resources (serial, power, network) with the coordinator over gRPC. |
+| **Coordinator** | Each lab host (loopback) | gRPC server (port 20408). Registers places (`places.yaml`), coordinates reservations and locks. Does **not** proxy SSH. |
+| **SSH gateway** | Datacenter VM (public IP) | Jump host for CI runners and developers. Routes SSH to lab hosts over WireGuard. Does **not** run a `labgrid-coordinator`. |
+| **GitHub runners** | GitHub-hosted (`ubuntu-latest`) | Execute CI workflow jobs; reach DUTs via SSH through the gateway. |
+| **WireGuard** | Between each lab and the VM | SSH transport tunnel so runners can reach lab hosts. |
+| **Exporter** | Lab host | Registers local DUT resources (serial, power, network) with the local coordinator over gRPC (loopback). |
 | **`labgrid-bound-connect`** | Lab host | SSH ProxyCommand invoked by the runner. Uses `socat` with `so-bindtodevice` to connect to a DUT IP on the correct VLAN interface. |
 | **Place** | Configuration | Abstraction of one DUT: resources (serial, power, SSH target), boot strategy, firmware. |
 
@@ -66,20 +73,20 @@ See [CI execution flow](openwrt-tests-ci-flow.md) for the full sequence of how a
 
 ## 2. Exporter connection to the coordinator
 
-The exporter initiates the connection *toward* the coordinator.
+The exporter connects to the coordinator on the **same host** (loopback).
 
 ```bash
-labgrid-exporter --coordinator <coordinator_host>:<port> /etc/labgrid/exporter.yaml
+labgrid-exporter /etc/labgrid/exporter.yaml
 ```
 
-In practice the exporter runs as a systemd service (`labgrid-exporter.service`) and the coordinator is set in config or environment (`LG_COORDINATOR=<host>:<port>`, default `127.0.0.1:20408`). Since Labgrid 25.0 (May 2025) the transport is **gRPC**; previous versions used WebSocket/WAMP via crossbar.
+In practice the exporter runs as a systemd service (`labgrid-exporter.service`). No `LG_COORDINATOR` override is needed because both the coordinator and the exporter run on the same host - the default `127.0.0.1:20408` applies. Since Labgrid 25.0 (May 2025) the transport is **gRPC**; previous versions used WebSocket/WAMP via crossbar.
 
 **What you need from the upstream maintainer:**
 
-- Coordinator address (host and gRPC port, typically `20408`).
-- Coordinator SSH public key to add to `authorized_keys` for user `labgrid-dev` on the lab (already included in the openwrt-tests Ansible playbook).
+- SSH gateway address (host and port) for WireGuard tunnel setup.
+- SSH gateway public key to add to `authorized_keys` for user `labgrid-dev` on the lab (already included in the openwrt-tests Ansible playbook).
 
-**Firewalls / NAT:** The lab must be able to connect *outbound* to the coordinator (outgoing gRPC over TCP). The coordinator then uses SSH proxy over the same path to reach DUTs.
+**Firewalls / NAT:** The lab must allow **inbound SSH** (port 22) from the WireGuard interface so that CI runners (tunneling through the gateway VM) can reach the lab host. The coordinator and exporter communicate entirely over loopback.
 
 ---
 
@@ -88,20 +95,20 @@ In practice the exporter runs as a systemd service (`labgrid-exporter.service`) 
 When a developer or CI runs `labgrid-client console` or `labgrid-client ssh`, the flow is:
 
 ```
-client → SSH to coordinator (jump host) → SSH to exporter → serial/SSH to DUT
+client → SSH to gateway VM (jump host) → SSH to lab host → serial/SSH to DUT
 ```
 
-The coordinator must SSH to the lab host. That is done with the coordinator public key in `authorized_keys` for user `labgrid-dev`.
+The gateway VM must SSH to the lab host. That is done with the gateway's public key in `authorized_keys` for user `labgrid-dev`.
 
 ### 3.1 Keys involved
 
 | Key | Where it is configured | Purpose |
 |-----|------------------------|---------|
-| **Coordinator** public key | `~labgrid-dev/.ssh/authorized_keys` on the lab | Lets the coordinator SSH to the lab (proxy to DUTs). Deployed by Ansible. |
+| **Gateway VM** public key | `~labgrid-dev/.ssh/authorized_keys` on the lab | Lets CI runners (via the gateway) SSH to the lab for proxy access to DUTs. Deployed by Ansible. |
 | Each **developer** public key | Fetched from `https://github.com/<username>.keys` at Ansible deploy time; users listed in `labnet.yaml` `maintainers` + `access` | Lets the developer reach lab DUTs via `LG_PROXY`. |
-| Lab **WireGuard** public key | Manual exchange with maintainer | Establishes VPN tunnel between lab and coordinator. |
+| Lab **WireGuard** public key | Manual exchange with maintainer | Establishes SSH transport tunnel between lab and gateway VM. |
 
-The coordinator key is already in the openwrt-tests Ansible playbook; it deploys when you run the playbook.
+The gateway key is already in the openwrt-tests Ansible playbook; it deploys when you run the playbook.
 
 #### Developer access in `labnet.yaml`
 
@@ -187,7 +194,7 @@ Suggested order: first the **WireGuard** tunnel (the coordinator VM must registe
 sequenceDiagram
     participant Lab as Lab_owner_host
     participant Maint as Upstream_maintainer
-    participant DC as VM_coordinator_runners
+    participant DC as VM_SSH_gateway
     participant PR as PR_openwrt_tests
 
     Lab->>Lab: WireGuard keypair on lab host
@@ -199,11 +206,10 @@ sequenceDiagram
     Lab->>Lab: Register GitHub usernames in access section_5_2
     Lab->>PR: PR labnet maintainers access exporter netplan dnsmasq pdu docs
     Maint->>PR: Review and merge
-    Maint->>Lab: Coordinator gRPC address if needed
-    Lab->>Lab: playbook_labgrid openwrt_tests authorized_keys exporter
-    Lab->>DC: Outbound exporter gRPC
+    Lab->>Lab: playbook_labgrid deploys coordinator exporter authorized_keys
+    Lab->>Lab: Exporter registers places with local coordinator
     DC->>Lab: SSH to lab via tunnel proxy DUTs
-    DC->>DC: Places registered CI runners on VM
+    Note over DC: CI runners reach lab coordinator via SSH tunnel
 ```
 
 ### 6.1 Checklist
@@ -217,7 +223,7 @@ sequenceDiagram
 * Document the lab in `docs/labs/<lab>.md` (upstream)
 * Open PR to openwrt-tests with the above
 * After merge: run `playbook_labgrid.yml` from openwrt-tests on the host (or have the maintainer run it): coordinator SSH key ends up in `~labgrid-dev/.ssh/authorized_keys` and exporter is configured
-* Confirm `labgrid-exporter` points at the coordinator gRPC address (`LG_COORDINATOR=<host>:20408`)
+* Confirm `labgrid-exporter` and `labgrid-coordinator` are running on the lab host (`systemctl status labgrid-exporter labgrid-coordinator`)
 * Verify places: `labgrid-client places` (with `LG_PROXY` per upstream README)
 
 ---
@@ -227,8 +233,7 @@ sequenceDiagram
 | What you need | How to get it |
 |---------------|---------------|
 | WireGuard config (IP, endpoint, peer key) | Send lab WireGuard public key to the maintainer; receive data back. |
-| Coordinator URL | Ask the maintainer or see project docs. |
-| Coordinator SSH key | Already in Ansible playbook; deploys when applied. Alternatively the maintainer provides it. |
+| Gateway VM SSH key | Already in Ansible playbook; deploys when applied. Alternatively the maintainer provides it. |
 | Ansible access to lab | Lab owner gives SSH to the maintainer (Ansible control node public key), or runs the playbook locally. |
 | VLAN configuration | Defined by the lab owner for their hardware; files go in the PR. |
 
@@ -238,7 +243,7 @@ sequenceDiagram
 
 | Aspect | openwrt-tests (upstream) | libremesh-tests (fork) |
 |--------|--------------------------|------------------------|
-| Coordinator | Global (datacenter VM) | Same global coordinator |
+| Coordinator | Per-lab (loopback on each lab host) | Same per-lab coordinator |
 | CI runner | aparcar runners (datacenter VM) | Self-hosted runner per lab (e.g. `testbed-fcefyn`) |
 | Ansible control node | Aparcar infrastructure | The lab itself (self-setup) |
 | Managed switch | Optional | Required |
@@ -253,7 +258,7 @@ For a full side-by-side contribution walkthrough (which steps are shared, which 
 
 ## 9. WireGuard in Ansible (fcefyn_testbed_utils) {: #wireguard-ansible-fcefyn }
 
-Role in `fcefyn_testbed_utils` to bring up the lab host tunnel toward the **global-coordinator**. It does not replace key exchange with the upstream maintainer: it only automates install, `wg0.conf`, and systemd on Debian/Ubuntu.
+Role in `fcefyn_testbed_utils` to bring up the lab host tunnel toward the **SSH gateway VM** (`global-coordinator` hostname). It does not replace key exchange with the upstream maintainer: it only automates install, `wg0.conf`, and systemd on Debian/Ubuntu.
 
 | Item | Location |
 |------|----------|

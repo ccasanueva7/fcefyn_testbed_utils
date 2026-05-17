@@ -24,11 +24,11 @@ Detail: [ansible-labgrid](../configuracion/ansible-labgrid.md).
 
 ### Labgrid inventory
 
-All DUTs are exported through one global coordinator (datacenter VM, via WireGuard) and one exporter (`labgrid-exporter`).
+All DUTs are registered by the local `labgrid-exporter` with the `labgrid-coordinator` on the same host (loopback :20408).
 
 | Component | Configuration |
 |-----------|---------------|
-| **Coordinator** | Global (Aparcar), reachable via WireGuard |
+| **Coordinator** | Local (loopback :20408 on lab host) |
 | **Exporter** | One `labgrid-exporter` service with all DUTs |
 | **Default state** | Isolated VLANs (100-108) - compatible with openwrt-tests |
 | **Dynamic VLAN** | `switch-vlan` CLI from [labgrid-switch-abstraction](https://github.com/fcefyn-testbed/labgrid-switch-abstraction); invoked by `conftest_vlan.py` and tunneled via SSH to the lab host when `LG_PROXY` is set |

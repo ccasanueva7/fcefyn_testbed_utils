@@ -13,7 +13,7 @@ independently.
 | `virtual_mesh` | `virtual_mesh` | Builds vwifi from source, installs QEMU, loads `mac80211_hwsim` | CMake, git, kernel headers | `which vwifi-server`, `lsmod | grep mac80211_hwsim` |
 | `arduino_relay` | `arduino` | Deploys arduino daemon, udev rule for `/dev/arduino-relay`, systemd service | Arduino Nano connected | `systemctl status arduino-relay-daemon` |
 | `poe_switch` | `poe_switch` | Installs `labgrid-switch-abstraction` via pipx, deploys `poe_switch_control.py` | Switch reachable via SSH | `poe_switch_control.py status 1` |
-| `wireguard` | `wireguard` | Configures WireGuard tunnel to openwrt-tests global-coordinator | Public key shared with coordinator maintainer | `wg show` |
+| `wireguard` | `wireguard` | Configures WireGuard SSH transport tunnel to openwrt-tests SSH gateway VM (`global-coordinator` hostname) | Public key shared with gateway maintainer | `wg show` |
 | `zerotier` | `zerotier` (via `testbed`) | Installs ZeroTier and joins network `93afae5963ea9881` | Node authorized at my.zerotier.com | `zerotier-cli info` |
 | `wol` | `wol` | Enables Wake-on-LAN on the host NIC at boot via systemd | Correct interface in `wol_interface` | `ethtool enp0s25 | grep Wake` |
 | `tftp_cleanup` | `tftp_cleanup` | Systemd timer that prunes broken TFTP symlinks and orphan labgrid cache dirs | TFTP dir at `/srv/tftp` | `systemctl status tftp-cleanup.timer` |
@@ -71,12 +71,12 @@ See [PoE switch control](poe-switch-control.md) for usage and troubleshooting.
 ### `wireguard`
 
 - Generates a WireGuard key pair on the host if one does not exist
-- Renders `/etc/wireguard/wg0.conf` from a template with coordinator peer settings
+- Renders `/etc/wireguard/wg0.conf` from a template with SSH gateway VM peer settings
 - Enables `wg-quick@wg0` at boot
 
-The lab's public key must be shared with the coordinator maintainer (Aparcar)
-to be authorized in the coordinator's `wg0.conf`. See
-[openwrt-tests onboarding](openwrt-tests-onboarding.md).
+The lab's public key must be shared with the gateway VM maintainer (Aparcar)
+to be authorized in the VM's `wg0.conf`. See
+[openwrt-tests onboarding](../diseno/openwrt-tests-onboarding.md).
 
 ### `zerotier`
 

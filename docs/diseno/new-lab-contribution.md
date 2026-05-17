@@ -1,6 +1,6 @@
 # Contributing a new lab
 
-Two contribution paths share the same global coordinator but differ in what the lab must support and which runners execute CI. This page summarizes both so a new contributor picks the minimum setup for the target workflow.
+Two contribution paths share the same SSH gateway VM and upstream Ansible per-lab coordinator setup, but differ in what the lab must support and which runners execute CI. This page summarizes both so a new contributor picks the minimum setup for the target workflow.
 
 ---
 
@@ -8,28 +8,29 @@ Two contribution paths share the same global coordinator but differ in what the 
 
 Every contributed lab uses:
 
-- The global [labgrid-coordinator](openwrt-tests-onboarding.md#1-global-coordinator-architecture) hosted by the openwrt-tests maintainer (Paul / aparcar). Its address and SSH key are already wired into upstream Ansible.
-- A **WireGuard** tunnel between the lab host and the coordinator VM (outbound from the lab).
+- A local [labgrid-coordinator](openwrt-tests-onboarding.md#1-per-lab-coordinator-ssh-gateway) on each lab host (loopback :20408), deployed by the upstream Ansible playbook. The SSH gateway VM (`global-coordinator` hostname) provides SSH jump access for CI runners and developers.
+- A **WireGuard** tunnel between the lab host and the SSH gateway VM (for SSH transport).
 - A **single inventory** in [openwrt-tests `labnet.yaml`](https://github.com/aparcar/openwrt-tests/blob/main/labnet.yaml) listing labs, devices, maintainers, and access lists (SSH keys are fetched from GitHub at deploy time).
-- The [openwrt-tests `playbook_labgrid.yml`](https://github.com/aparcar/openwrt-tests/blob/main/ansible/playbook_labgrid.yml) applied to the lab host: user `labgrid-dev`, coordinator key in `authorized_keys`, `labgrid` and `labgrid-switch-abstraction` via pipx, exporter, TFTP, PDUDaemon, netplan, dnsmasq.
+- The [openwrt-tests `playbook_labgrid.yml`](https://github.com/aparcar/openwrt-tests/blob/main/ansible/playbook_labgrid.yml) applied to the lab host: user `labgrid-dev`, gateway SSH key in `authorized_keys`, `labgrid-coordinator`, `labgrid-exporter`, `labgrid-switch-abstraction` via pipx, TFTP, PDUDaemon, netplan, dnsmasq.
 
 The infrastructure is the same; what changes between paths is **which CI runner** executes tests and **which suite** expects which resources.
 
 ```mermaid
 flowchart LR
   subgraph shared [Shared upstream]
-    coord[labgrid-coordinator<br/>datacenter VM]
+    sshgw[SSH gateway VM]
     labnet[labnet.yaml<br/>aparcar/openwrt-tests]
   end
 
   subgraph labHost [Lab host]
+    coord[labgrid-coordinator<br/>loopback :20408]
     exporter[labgrid-exporter]
     switchVlan[switch-vlan CLI<br/>optional]
     duts[DUTs]
   end
 
   subgraph scenarioA [A  base openwrt-tests]
-    runnerA[aparcar runners<br/>datacenter VM]
+    runnerA[GitHub-hosted runners<br/>ubuntu-latest]
     suiteA[openwrt-tests suite]
   end
 
@@ -38,8 +39,8 @@ flowchart LR
     suiteB[libremesh-tests suite]
   end
 
-  exporter -->|gRPC| coord
-  runnerA -->|LG_PROXY| exporter
+  exporter -->|gRPC loopback| coord
+  runnerA -->|"LG_PROXY (via SSH gateway)"| exporter
   runnerB -->|LG_PROXY| exporter
   suiteA --> runnerA
   suiteB --> runnerB
@@ -57,12 +58,12 @@ Goal: contribute DUTs so upstream [aparcar/openwrt-tests](https://github.com/apa
 
 **Audience:** lab owners who want upstream openwrt-tests coverage on their hardware.
 
-**Runners:** the GitHub Actions runners hosted by aparcar (same datacenter VM as the coordinator). No self-hosted runner required.
+**Runners:** GitHub-hosted runners (`ubuntu-latest`) that reach the lab via the SSH gateway VM. No self-hosted runner required.
 
 **Steps:**
 
 1. Follow [openwrt-tests onboarding](openwrt-tests-onboarding.md): WireGuard, GitHub usernames in `access:`, PR against `aparcar/openwrt-tests` with `labnet.yaml` entry, `ansible/files/exporter/<lab>/*`, lab doc.
-2. Apply `playbook_labgrid.yml` on the lab host (coordinator key, exporter, TFTP, PDUDaemon, dnsmasq, netplan). The playbook now also installs `labgrid-switch-abstraction` via pipx; labs without a managed switch can ignore the CLI.
+2. Apply `playbook_labgrid.yml` on the lab host (gateway SSH key, coordinator, exporter, TFTP, PDUDaemon, dnsmasq, netplan). The playbook now also installs `labgrid-switch-abstraction` via pipx; labs without a managed switch can ignore the CLI.
 3. Optional: if the lab has a managed switch and wants dynamic VLAN switching in upstream tests, configure `switch.conf` and `dut-config.yaml` on the host and opt in per test run with `VLAN_SWITCH_ENABLED=1` + `LG_MULTI_PLACES`. See [switch-abstraction.md on the PR branch](https://github.com/aparcar/openwrt-tests/blob/main/docs/switch-abstraction.md) once PR [#218](https://github.com/aparcar/openwrt-tests/pull/218) is merged.
 
 Nothing else is required on the lab side. Upstream CI will start scheduling jobs when `labnet.yaml` lists the lab.
@@ -79,7 +80,7 @@ Goal: run the [libremesh-tests](https://github.com/fcefyn-testbed/libremesh-test
 
 **Steps:**
 
-1. Complete Scenario A (same upstream onboarding; the inventory, exporter, coordinator, `playbook_labgrid.yml` are shared).
+1. Complete Scenario A (same upstream onboarding; the inventory, exporter, per-lab coordinator, `playbook_labgrid.yml` are shared).
 2. Managed switch **must be configured**. On the lab host:
    - Credentials in `/etc/switch.conf` (system-wide, group-readable so any SSH user can run `switch-vlan`; see [switch-config.md#multi-user-setup](../configuracion/switch-config.md#multi-user-setup-recommended-for-labs-with-remote-devs)).
    - DUT-to-port map in `/etc/testbed/dut-config.yaml` (or set `SWITCH_DUT_CONFIG`). DUT names in that file must match the suffix of labgrid place names (see place-to-DUT mapping below).
@@ -105,7 +106,7 @@ Set `PLACE_PREFIX=labgrid-mylab-` when contributing a lab named `mylab`; `PLACE_
 
 | Requirement | Scenario A | Scenario B |
 |---|---|---|
-| WireGuard tunnel to coordinator | required | required |
+| WireGuard tunnel to SSH gateway VM | required | required |
 | `labnet.yaml` entry in openwrt-tests | required | required |
 | `playbook_labgrid.yml` applied | required | required |
 | Self-hosted GitHub runner | **not needed** | **required** |
@@ -123,5 +124,5 @@ A lab can contribute to both paths at once: the infrastructure is shared. Scenar
 - [openwrt-tests onboarding](openwrt-tests-onboarding.md) - full walkthrough of Scenario A (WireGuard, SSH, Ansible, sequence diagram).
 - [Ansible and Labgrid](../configuracion/ansible-labgrid.md) - what upstream vs FCEFyN playbooks deploy.
 - [Switch](../configuracion/switch-config.md) - VLAN layout, `switch.conf` multi-user setup, `switch-vlan` invocation.
-- [Lab architecture](lab-architecture.md) - shared coordinator, VLAN scheduling, locking.
+- [Lab architecture](lab-architecture.md) - per-lab coordinator, VLAN scheduling, locking.
 - [CI runner](../configuracion/ci-runner.md) - self-hosted runner setup (Scenario B).

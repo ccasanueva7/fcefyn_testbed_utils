@@ -13,13 +13,13 @@ Configuration of the host (Lenovo T430, Ubuntu) as the HIL orchestration server.
 | **Netplan** | `/etc/netplan/labnet.yaml` | VLANs 100-108 (OpenWrt) + vlan200 (LibreMesh). `link:` = physical interface (`ip link show`). |
 | **dnsmasq** | `/etc/dnsmasq.conf` | DHCP and TFTP per VLAN. Without it, DUTs do not get IP or network flash. |
 | **PDUDaemon** | `/etc/pdudaemon/pdudaemon.conf` | Power cycle via Arduino relay or PoE. PoE needs override with switch password (5.2.1). |
-| **Labgrid** | `/etc/labgrid/exporter.yaml` | Single exporter; global coordinator (datacenter VM, via WireGuard) manages reservations. |
+| **Labgrid** | `/etc/labgrid/exporter.yaml` | Single exporter + local coordinator (loopback :20408) on the same host manage reservations. |
 | **SSH to DUTs** | `labgrid-bound-connect vlanNNN 192.168.1.1 22` | Connects to DUT on its isolated VLAN. See [SSH access to DUTs](../operar/dut-ssh-access.md). |
 | **udev** | `/etc/udev/rules.d/99-serial-devices.rules` | Per-DUT serial symlinks (`/dev/belkin-rt3200-1`, etc.). |
 | **TFTP** | `/srv/tftp/<place>/` | Firmware per place. See [tftp-server](tftp-server.md). |
 | **TFTP cleanup** | Ansible role `tftp_cleanup` + `tftp-cleanup.timer` | Daily prune of broken TFTP symlinks and orphan `/var/cache/labgrid/` entries older than 30 days. See [tftp-server §7.1](tftp-server.md#71-automated-cleanup-tftp-cleanuptimer). |
 | **ZeroTier** | Ansible role `zerotier` | Admin-only remote access to host via VPN. See [8.3](#83-remote-access-zerotier-for-admins-proxyjump-for-developers). |
-| **WireGuard** | Ansible role `wireguard` | Tunnel to openwrt-tests global coordinator (upstream SSH jump host for developers and CI). See [8.3.1](#831-wireguard-global-coordinator). |
+| **WireGuard** | Ansible role `wireguard` | SSH transport tunnel to openwrt-tests SSH gateway VM (upstream jump host for developers and CI). See [8.3.1](#831-wireguard-global-coordinator). |
 | **Wake-on-LAN** | BIOS + ethtool + `wol.service` | Power on the host from off over LAN. See [wake-on-lan-setup](../operar/wake-on-lan-setup.md). |
 | **CI Runner** | `~/actions-runner/` | GitHub Actions self-hosted runner. See [ci-runner](ci-runner.md). |
 
@@ -33,7 +33,7 @@ Configuration of the host (Lenovo T430, Ubuntu) as the HIL orchestration server.
 
 The host (Lenovo T430) centralizes tests and hardware access using:
 
-- **Labgrid Exporter** - Publishes all DUTs to the global coordinator (datacenter VM, via WireGuard). See [Lab architecture](../diseno/lab-architecture.md).
+- **Labgrid Coordinator + Exporter** - Local coordinator (loopback :20408) manages reservations; exporter publishes DUTs to it. See [Lab architecture](../diseno/lab-architecture.md).
 - **dnsmasq** - DHCP and TFTP server on each VLAN. Used to load images on DUTs during boot (recovery) and for WAN to obtain IP.
 - **PDUDaemon** - Power cycle: Arduino relays (barrel jack) or `poe_switch_control.py` (PoE).
 - **SSH to DUTs** - `labgrid-bound-connect` connects to 192.168.1.1 on the correct VLAN.
@@ -461,7 +461,7 @@ Each symlink should exist when the corresponding device is plugged.
 - **poe_switch:** poe_switch_control.py, switch_client, switch_drivers (PoE control)
 
 - **zerotier:** ZeroTier for admin remote access (see [8.3](#83-remote-access-zerotier-for-admins-proxyjump-for-developers))
-- **wireguard:** WireGuard tunnel to openwrt-tests global coordinator (see [8.3.1](#831-wireguard-global-coordinator))
+- **wireguard:** WireGuard SSH transport tunnel to openwrt-tests SSH gateway VM (see [8.3.1](#831-wireguard-global-coordinator))
 - **wol:** persistent Wake-on-LAN (see [8.4](#84-wake-on-lan-persistence))
 
 Run from fcefyn_testbed_utils repo root:
@@ -482,7 +482,7 @@ ansible-playbook -i ansible/inventory/hosts.yml ansible/playbook_testbed.yml --t
 # ZeroTier only (remote access)
 ansible-playbook -i ansible/inventory/hosts.yml ansible/playbook_testbed.yml --tags zerotier -K
 
-# WireGuard only (global coordinator tunnel)
+# WireGuard only (SSH gateway tunnel)
 ansible-playbook -i ansible/inventory/hosts.yml ansible/playbook_testbed.yml --tags wireguard -K
 
 # Wake-on-LAN only (persist after reboot)
@@ -518,9 +518,9 @@ Developer access is the upstream openwrt-tests pattern and does not require Zero
 
 No VPN. Two SSH hops:
 
-1. Developer GitHub username in `labnet.yaml` `access:` list → Ansible fetches SSH keys from GitHub and copies to `~labgrid-dev/.ssh/authorized_keys` on both the lab host and the coordinator (the `coordinator.yml` playbook also fetches from GitHub).
+1. Developer GitHub username in `labnet.yaml` `access:` list → Ansible fetches SSH keys from GitHub and copies to `~labgrid-dev/.ssh/authorized_keys` on both the lab host and the SSH gateway VM (the `coordinator.yml` playbook also fetches from GitHub).
 2. Set `LG_PROXY=labgrid-fcefyn` on the developer machine; SSH chain resolves via `~/.ssh/config` (ProxyJump through `labgrid-coordinator`).
-3. `labgrid-client` tunnels traffic (coordinator gRPC, exporter, SSH to DUTs) over SSH to host as `labgrid-dev`.
+3. `labgrid-client` tunnels traffic (lab coordinator gRPC, exporter, SSH to DUTs) over SSH to host as `labgrid-dev`.
 4. DUT SSH runs on host via `labgrid-bound-connect`; `switch-vlan` runs on host via the same SSH session (credentials in `/etc/switch.conf` stay on host).
 
 Developer runs as `labgrid-dev` on host, no general `sudo`, cannot change system config.
@@ -562,15 +562,15 @@ zerotier-cli listnetworks   # verify
 
 **External devices (machines):** see [zerotier-remote-access](../operar/zerotier-remote-access.md).
 
-### 8.3.1 WireGuard (global-coordinator) {: #831-wireguard-global-coordinator }
+### 8.3.1 WireGuard (SSH gateway) {: #831-wireguard-global-coordinator }
 
-WireGuard tunnel between lab host and openwrt-tests **global-coordinator**. Lets the coordinator (datacenter VM with public IP) reach the host over SSH for DUT proxy, and CI runners run tests on lab devices.
+WireGuard tunnel between lab host and openwrt-tests **SSH gateway VM** (`global-coordinator` hostname). Lets CI runners and developers (tunneling through the VM) reach the host over SSH for DUT proxy. The VM does not run a `labgrid-coordinator` - that service runs locally on each lab host.
 
-**vs ZeroTier:** ZeroTier is for FCEFyN admin access. WireGuard is for upstream openwrt-tests integration. Both coexist.
+**vs ZeroTier:** ZeroTier is for FCEFyN admin access. WireGuard is for upstream openwrt-tests integration (SSH transport). Both coexist.
 
 #### Current status
 
-Tunnel active. Lab host IP: `10.0.0.10/24`. Coordinator endpoint: `195.37.88.188:51820`. Values in `ansible/roles/wireguard/defaults/main.yml`.
+Tunnel active. Lab host IP: `10.0.0.10/24`. Gateway VM endpoint: `195.37.88.188:51820`. Values in `ansible/roles/wireguard/defaults/main.yml`.
 
 #### Prerequisite: key exchange with maintainer
 
@@ -585,7 +585,7 @@ sudo chmod 600 /etc/wireguard/private.key
 ```
 
 2. Send public key (`cat /etc/wireguard/public.key`) to maintainer via Matrix.
-3. Receive: assigned IP, coordinator endpoint, server public key.
+3. Receive: assigned IP, gateway VM endpoint, server public key.
 4. Update `ansible/roles/wireguard/defaults/main.yml` with received values.
 
 #### Install (Ansible role)
@@ -605,7 +605,7 @@ Role prints public key in debug output for sending to maintainer.
 
 ```bash
 sudo wg show wg0              # interface state and last handshake
-ping 10.0.0.1                 # reach coordinator (server-side WG IP)
+ping 10.0.0.1                 # reach SSH gateway VM (server-side WG IP)
 ```
 
 !!! warning "Private key"

@@ -1,6 +1,6 @@
 # Lab architecture {: #lab-architecture }
 
-Technical design of the FCEFyN HIL testbed: one global coordinator shared with the openwrt-tests ecosystem, DUTs available for both [openwrt-tests](https://github.com/aparcar/openwrt-tests) and [libremesh-tests](https://github.com/fcefyn-testbed/libremesh-tests), and dynamic VLAN as a per-test attribute.
+Technical design of the FCEFyN HIL testbed: per-lab `labgrid-coordinator` (loopback) + SSH gateway VM shared with the openwrt-tests ecosystem, DUTs available for both [openwrt-tests](https://github.com/aparcar/openwrt-tests) and [libremesh-tests](https://github.com/fcefyn-testbed/libremesh-tests), and dynamic VLAN as a per-test attribute.
 
 ![Full testbed architecture](../img/diagrams/full_design.png)
 
@@ -12,22 +12,22 @@ The diagram above shows the complete system. Key elements:
 
 | Element | Description |
 |---|---|
-| **Paul's VM (public cloud)** | Datacenter VM with the `labgrid-coordinator`, a pool of GitHub Actions self-hosted runners for openwrt-tests, and `labgrid-client` / pytest plugin. |
-| **FCEFyN Testbed (on-prem)** | Orchestration host running `labgrid-exporter`, `pdudaemon`, dnsmasq/TFTP, and the libremesh-tests self-hosted runner. DUTs connect via managed switch. |
-| **Remote Labs** | Other contributors' labs. Each runs an exporter that registers devices with the global coordinator. A lab may serve openwrt-tests, libremesh-tests, or both. |
-| **GitHub Actions** | Push/PR events trigger CI workflows. openwrt-tests jobs run on Paul's runners; libremesh-tests jobs run on the FCEFyN runner. |
+| **Paul's VM (public cloud)** | Datacenter VM acting as **SSH gateway** (`global-coordinator` hostname). Does **not** run `labgrid-coordinator`. GitHub-hosted runners (`ubuntu-latest`) reach labs through it via WireGuard. |
+| **FCEFyN Testbed (on-prem)** | Orchestration host running `labgrid-coordinator` (loopback :20408), `labgrid-exporter`, `pdudaemon`, dnsmasq/TFTP, and the libremesh-tests self-hosted runner. DUTs connect via managed switch. |
+| **Remote Labs** | Other contributors' labs. Each runs its own local `labgrid-coordinator` + `labgrid-exporter`. A lab may serve openwrt-tests, libremesh-tests, or both. |
+| **GitHub Actions** | Push/PR events trigger CI workflows. openwrt-tests jobs run on GitHub-hosted runners (tunneled via gateway VM); libremesh-tests jobs run on the FCEFyN self-hosted runner. |
 
-### Single coordinator, two test suites
+### Per-lab coordinator, two test suites
 
-All labs share one `labgrid-coordinator`. Both openwrt-tests runners (on Paul's VM) and the libremesh-tests runner (on the FCEFyN host) connect to it. Labgrid locks serialize device access - only one runner holds a device at a time, regardless of which project triggered the job.
+Each lab runs its own `labgrid-coordinator` locally (loopback :20408). Both openwrt-tests runners (GitHub-hosted, tunneling via the SSH gateway VM) and the libremesh-tests runner (self-hosted on the FCEFyN host) connect to the **same local coordinator** on the lab host. Labgrid locks serialize device access - only one runner holds a device at a time, regardless of which project triggered the job.
 
-For the full connection topology (WireGuard, `LG_PROXY`, `LG_COORDINATOR`) see [Integration overview](integration-overview.md).
+For the full connection topology (WireGuard, `LG_PROXY`) see [Integration overview](integration-overview.md).
 
 ---
 
 ## 2. Per-project device opt-in
 
-The coordinator sees **all** devices from **all** labs. It does not distinguish between projects. The filtering happens at the **CI configuration** level:
+Each lab's coordinator sees only the devices registered by its local exporter. It does not distinguish between projects. The filtering of which labs participate happens at the **CI configuration** level:
 
 | Project | Device registry | Who decides which labs participate |
 |---|---|---|
@@ -38,9 +38,9 @@ This means a lab can contribute devices to **one project, the other, or both**:
 
 - A lab listed only in openwrt-tests' `labnet.yaml` will never receive libremesh-tests jobs.
 - A lab listed only in the libremesh-tests config will never receive openwrt-tests jobs.
-- The FCEFyN lab appears in both, so its DUTs serve both projects (serialized by coordinator locks).
+- The FCEFyN lab appears in both, so its DUTs serve both projects (serialized by the lab's local coordinator locks).
 
-The coordinator itself is "project-agnostic" - it only manages locks and resource registration. The decision of which devices to test on which project belongs to each repository's CI configuration.
+Each lab coordinator is "project-agnostic" - it only manages locks and resource registration. The decision of which devices to test on which project belongs to each repository's CI configuration.
 
 ---
 
@@ -54,7 +54,7 @@ The VLAN on a DUT port follows the **test run that holds the Labgrid lock**: the
 
 | Component | Role |
 |---|---|
-| Coordinator | One global (datacenter VM, via WireGuard) |
+| Coordinator | Local per lab (loopback :20408) |
 | Exporter | One `labgrid-exporter` process for all DUTs |
 | DUT inventory | `dut-config.yaml` (hardware database for Labgrid and switch port mapping) |
 | VLAN scheduling | Per-test VLAN where needed; Labgrid lock serializes access |
@@ -62,14 +62,13 @@ The VLAN on a DUT port follows the **test run that holds the Labgrid lock**: the
 ```mermaid
 flowchart LR
     subgraph lab ["FCEFyN lab host"]
+        COORD["labgrid-coordinator\n(loopback :20408)"]
         EXP["labgrid-exporter"]
         SW["Switch TP-Link\n(VLANs 100-108, 200)"]
         DUTs["DUTs"]
     end
 
-    COORD["labgrid-coordinator\n(datacenter VM)"]
-
-    EXP -->|"gRPC via WireGuard\n(register resources)"| COORD
+    EXP -->|"gRPC loopback\n(register resources)"| COORD
     SW -->|"access port\n(isolated or VLAN 200)"| DUTs
 ```
 
@@ -99,7 +98,7 @@ Multi-node tests (libremesh-tests mesh, openwrt-tests multi-node) switch DUTs to
 ```mermaid
 sequenceDiagram
     participant CI as libremesh runner
-    participant COORD as Global Coordinator
+    participant COORD as Lab Coordinator (loopback)
     participant SW as Switch
     participant DUT as DUT port
 

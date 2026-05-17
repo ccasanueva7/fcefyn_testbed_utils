@@ -14,7 +14,7 @@ A testbed that can be accessed/operates remotely by allowed users validates **Op
 
 An orchestration host, either manually operated or running a CI runner, coordinates the execution of tests and infrastructure components. It runs a [Labgrid exporter](https://labgrid.readthedocs.io/en/stable/man/exporter.html), a [TFTP server](../configuracion/tftp-server.md), switch control commands, and [Pytest](https://docs.pytest.org/en/stable/) test suites.
 
-Device access and scheduling are handled by a [Labgrid coordinator](https://labgrid.readthedocs.io/en/latest/man/coordinator.html), referred to as the [**global coordinator**](../diseno/openwrt-tests-onboarding.md/#1-global-coordinator-architecture) and provided by openwrt-tests. This component manages locks and reservations over devices and their associated labgrid remote [resources and places](https://labgrid.readthedocs.io/en/stable/overview.html#remote-resources-and-places).
+Device access and scheduling are handled by a [Labgrid coordinator](https://labgrid.readthedocs.io/en/latest/man/coordinator.html) running locally on the lab host (loopback :20408), deployed by the upstream [openwrt-tests Ansible playbook](../diseno/openwrt-tests-onboarding.md/#1-per-lab-coordinator-ssh-gateway). This component manages locks and reservations over devices and their associated labgrid remote [resources and places](https://labgrid.readthedocs.io/en/stable/overview.html#remote-resources-and-places).
 
 The physical infrastructure is organized in a [DIY rack](../diseno/diy-rack.md), which includes a managed switch, power control mechanisms such as PoE and relays, USB serial adapters, Ethernet connections to the Devices Under Test (DUTs) and a fan/cooler.
 
@@ -43,7 +43,7 @@ Auxiliar support contacts from our friends from related projects:
 | Actor | Usage                                                                 |
 |-------|-----------------------------------------------------------------------|
 | **FCEFyN lab maintainers** | Development, manual test runs, toubleshooting, debugging.             |
-| **Global coordinator (Aparcar)** | Manages locks for all DUTs; lab exporter registers via WireGuard.     |
+| **Lab coordinator (local)** | Manages locks for lab DUTs; exporter registers via loopback. CI runners reach it via SSH tunnel. |
 | **CI runners (openwrt-tests)** | Jobs that reserve places and run pytest with `LG_PLACE` / `LG_IMAGE`. |
 | **CI runners (libremesh-tests)** | Jobs that reserve places, change VLAN dynamically, and run pytest.    |
 
@@ -65,7 +65,7 @@ Summary of flows relevant to operations and incidents. Host firewall detail: [ho
 | INPUT | Inside | Host → DUT | SSH | 22 | Via `labgrid-bound-connect` (static isolated VLAN per DUT). |
 | INPUT | Inside | DUT → host | TFTP | 69/udp | Initramfs load from host (udp). |
 | INPUT | Inside | Host → switch | SSH | 22 | VLAN management (e.g. `switch-fcefyn`). |
-| OUTPUT | Cross | Exporter → global coordinator | gRPC (TCP) | 20408 | To coordinator on datacenter VM via WireGuard. |
+| OUTPUT | Loopback | Exporter → lab coordinator | gRPC (TCP) | 20408 | Loopback on same host (127.0.0.1). |
 | INPUT | Public | Internet → Oracle VPS | HTTPS | 443 | Public Grafana (TLS on Nginx). |
 | INPUT | Public | Internet → VPS | SSH | 22 | VPS admin; Grafana reverse tunnel goes **from** the lab. |
 | OUTPUT | Cross / Public | DUT → Internet | HTTP/S | 80, 443, … | Per lab gateway NAT; see duts-config. |

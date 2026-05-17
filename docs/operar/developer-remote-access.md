@@ -37,9 +37,9 @@ ansible-playbook -i ansible/inventory.ini ansible/playbook_labgrid.yml --limit l
 
 Ansible fetches your public keys from `https://github.com/your_github_user.keys` and adds them to `~labgrid-dev/.ssh/authorized_keys`. If you rotate keys on GitHub, re-running the playbook updates access automatically.
 
-### 1.4 Register the key on the upstream coordinator
+### 1.4 Register the key on the SSH gateway VM
 
-The upstream `coordinator.yml` playbook also fetches keys from GitHub for all users in `maintainers` + `access` across labs. The coordinator maintainer ([@aparcar](https://github.com/aparcar)) must run the coordinator playbook after the PR is merged. Without this, SSH to the coordinator fails with `Permission denied (publickey)`.
+The upstream `coordinator.yml` playbook also fetches keys from GitHub for all users in `maintainers` + `access` across labs. The gateway maintainer ([@aparcar](https://github.com/aparcar)) must run the playbook after the PR is merged. Without this, SSH to the gateway VM (`labgrid-coordinator` SSH alias) fails with `Permission denied (publickey)`.
 
 ---
 
@@ -61,12 +61,12 @@ Host labgrid-* !labgrid-coordinator
 ```
 
 !!! warning "Avoid proxy loops"
-    The `!labgrid-coordinator` negation prevents the coordinator from matching the wildcard and creating a `ProxyJump` to itself (manifests as `banner exchange` timeouts or `UNKNOWN port 65535`).
+    The `!labgrid-coordinator` negation prevents the SSH gateway host from matching the wildcard and creating a `ProxyJump` to itself (manifests as `banner exchange` timeouts or `UNKNOWN port 65535`).
 
 Notes:
 
-- The coordinator endpoint (`195.37.88.188:51818`) is maintained by the upstream project. If connection is refused, ask upstream for the current IP/port.
-- The lab alias `labgrid-fcefyn` is resolved to its WireGuard IP by `/etc/hosts` on the coordinator. No `HostName` is needed in the wildcard block.
+- The SSH alias `labgrid-coordinator` points to the **SSH gateway VM** (not a labgrid-coordinator service). The endpoint (`195.37.88.188:51818`) is maintained by the upstream project.
+- The lab alias `labgrid-fcefyn` is resolved to its WireGuard IP by `/etc/hosts` on the gateway VM. No `HostName` is needed in the wildcard block.
 
 ---
 
@@ -276,9 +276,9 @@ sequenceDiagram
 
 | Component | Where | What |
 |-----------|-------|------|
-| `labgrid-coordinator` (SSH jump) | Upstream VM, port 51818 | SSH jump host to every lab (`ProxyJump`) |
-| `labgrid-coordinator` (gRPC) | Same VM, port 20408 | Place reservations (lock/unlock) over gRPC (Labgrid 25.0+, May 2025; earlier versions used WebSocket/WAMP) |
-| Exporter | Lab host | Publishes DUTs (serial, power, TFTP, SSH); connects outbound to the coordinator gRPC via WireGuard |
+| SSH gateway VM (SSH jump) | Upstream VM, port 51818 | SSH jump host to every lab (`ProxyJump`). Hostname `global-coordinator`. |
+| Lab coordinator (gRPC) | Each lab host, port 20408 (loopback) | Place reservations (lock/unlock) over gRPC (Labgrid 25.0+, May 2025). Reached by developers via `LG_PROXY` SSH tunnel. |
+| Exporter | Lab host | Publishes DUTs (serial, power, TFTP, SSH); connects to the local coordinator gRPC (loopback) |
 | `LG_PROXY` | Developer env var | Tells labgrid-client to tunnel gRPC and SSH through the ProxyJump chain |
 | `labgrid-dev` | Host user | Unprivileged account for developers |
 | `labnet.yaml` | [openwrt-tests](https://github.com/aparcar/openwrt-tests/blob/main/labnet.yaml) | Shared device inventory and access lists (keys fetched from GitHub) |
