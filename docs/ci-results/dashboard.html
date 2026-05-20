@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LibreMesh CI Test Dashboard — FCEFyN Testbed</title>
+  <style>
+    :root {
+      --primary:        #1e4136;
+      --primary-light:  #2d6a58;
+      --accent:         #b45309;
+      --accent-hover:   #92400e;
+      --pass:           #16a34a;
+      --fail:           #dc2626;
+      --skip:           #d97706;
+      --unknown:        #9ca3af;
+      --bg:             #f9fafb;
+      --surface:        #ffffff;
+      --surface-alt:    #f3f4f6;
+      --border:         #e5e7eb;
+      --text:           #111827;
+      --text-muted:     #6b7280;
+      --text-on-primary:#ffffff;
+      --shadow:         0 1px 3px rgba(0,0,0,.10), 0 1px 2px rgba(0,0,0,.06);
+      --shadow-md:      0 4px 6px rgba(0,0,0,.07), 0 2px 4px rgba(0,0,0,.06);
+      --radius:         8px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5;
+    }
+
+    header {
+      background: var(--primary); color: var(--text-on-primary);
+      padding: 0 24px; display: flex; align-items: center;
+      justify-content: space-between; height: 56px; box-shadow: var(--shadow);
+    }
+    header .brand {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 16px; font-weight: 600; letter-spacing: .3px;
+    }
+    header .meta { font-size: 12px; opacity: .75; text-align: right; }
+    header a { color: #ffd54f; text-decoration: none; }
+    header a:hover { text-decoration: underline; }
+
+    main { max-width: 1200px; margin: 0 auto; padding: 24px 16px; }
+
+    .stats-bar {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 12px; margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px 16px;
+      box-shadow: var(--shadow); text-align: center;
+    }
+    .stat-card .value { font-size: 28px; font-weight: 700; line-height: 1; }
+    .stat-card .label { font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: var(--text-muted); margin-top: 4px; }
+    .stat-card.pass  .value { color: var(--pass); }
+    .stat-card.fail  .value { color: var(--fail); }
+    .stat-card.skip  .value { color: var(--skip); }
+    .stat-card.total .value { color: var(--primary); }
+
+    .toolbar {
+      display: flex; align-items: center;
+      justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 16px;
+    }
+    .filter-tabs { display: flex; gap: 6px; }
+    .filter-tab {
+      background: none; border: 1px solid var(--border); border-radius: 20px;
+      padding: 5px 14px; font-size: 13px; cursor: pointer; color: var(--text-muted); transition: all .15s;
+    }
+    .filter-tab:hover { border-color: var(--primary-light); color: var(--primary); }
+    .filter-tab.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .search-box {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 6px; padding: 5px 10px;
+    }
+    .search-box input {
+      border: none; outline: none; font-size: 13px;
+      background: transparent; width: 180px; color: var(--text);
+    }
+
+    .device-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+
+    .device-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+      overflow: hidden; transition: box-shadow .15s;
+    }
+    .device-card:hover { box-shadow: var(--shadow-md); }
+
+    .card-header {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      padding: 14px 16px 10px; border-bottom: 1px solid var(--border); gap: 8px;
+    }
+    .card-header .info { flex: 1; min-width: 0; }
+    .card-title { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 2px; display: flex; align-items: center; gap: 6px; }
+
+    .type-badge {
+      font-size: 10px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .5px; padding: 1px 6px; border-radius: 3px; flex-shrink: 0;
+    }
+    .type-badge.physical    { background: #dbeafe; color: #1d4ed8; }
+    .type-badge.qemu-single { background: #f3e8ff; color: #7c3aed; }
+    .type-badge.qemu-mesh   { background: #fce7f3; color: #be185d; }
+
+    .status-pill {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 11px; font-weight: 600; padding: 2px 8px;
+      border-radius: 10px; flex-shrink: 0;
+    }
+    .status-pill.pass    { background: #dcfce7; color: #15803d; }
+    .status-pill.fail    { background: #fee2e2; color: #b91c1c; }
+    .status-pill.skip    { background: #fef3c7; color: #92400e; }
+    .status-pill.unknown { background: var(--surface-alt); color: var(--text-muted); }
+
+    .card-body { padding: 12px 16px; }
+
+    .run-history { display: flex; gap: 3px; margin-bottom: 10px; align-items: center; }
+    .run-dot {
+      width: 10px; height: 24px; border-radius: 3px; cursor: pointer; flex-shrink: 0; transition: opacity .1s;
+    }
+    .run-dot:hover { opacity: .75; }
+    .run-dot.pass    { background: var(--pass); }
+    .run-dot.fail    { background: var(--fail); }
+    .run-dot.skip    { background: var(--skip); }
+    .run-dot.unknown { background: var(--border); }
+    .run-history-label { font-size: 11px; color: var(--text-muted); margin-left: 6px; }
+
+    /* Test detail section */
+    .test-detail { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; }
+
+    .test-summary {
+      display: flex; gap: 10px; margin-bottom: 8px;
+      padding: 8px 10px; background: var(--surface-alt);
+      border-radius: 6px; font-size: 12px; flex-wrap: wrap;
+    }
+    .ts-pass { color: var(--pass); font-weight: 600; }
+    .ts-fail { color: var(--fail); font-weight: 600; }
+    .ts-skip { color: var(--skip); font-weight: 600; }
+    .ts-time { color: var(--text-muted); }
+
+    .test-bar { height: 5px; border-radius: 3px; background: var(--border); display: flex; overflow: hidden; margin-bottom: 8px; }
+    .test-bar .seg-pass { background: var(--pass); }
+    .test-bar .seg-fail { background: var(--fail); }
+    .test-bar .seg-skip { background: var(--skip); }
+
+    .expand-btn {
+      background: none; border: none; cursor: pointer;
+      font-size: 11px; color: var(--accent); padding: 0;
+      display: flex; align-items: center; gap: 3px; margin-bottom: 6px;
+    }
+    .expand-btn:hover { color: var(--accent-hover); }
+    .expand-btn svg { transition: transform .2s; }
+    .expand-btn.open svg { transform: rotate(180deg); }
+
+    .test-cases { display: none; max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px; }
+    .test-cases.open { display: block; }
+    .test-case {
+      display: flex; align-items: flex-start; gap: 7px;
+      padding: 5px 10px; font-size: 12px; border-bottom: 1px solid var(--border);
+    }
+    .test-case:last-child { border-bottom: none; }
+    .test-case .tc-icon { flex-shrink: 0; font-size: 11px; margin-top: 1px; }
+    .test-case .tc-name { flex: 1; word-break: break-all; }
+    .test-case.fail .tc-name { color: var(--fail); }
+    .test-case.skip .tc-name { color: var(--skip); }
+    .test-case .tc-time { flex-shrink: 0; color: var(--text-muted); font-size: 11px; }
+
+    .no-detail { font-size: 11px; color: var(--text-muted); font-style: italic; }
+
+    .card-meta {
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 11px; color: var(--text-muted);
+      margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);
+    }
+    .card-meta a { color: var(--accent); text-decoration: none; }
+    .card-meta a:hover { color: var(--accent-hover); text-decoration: underline; }
+
+    .empty-state { grid-column: 1/-1; text-align: center; padding: 48px 24px; color: var(--text-muted); }
+    .no-results-msg { display: none; text-align: center; padding: 20px; color: var(--text-muted); font-size: 13px; grid-column: 1/-1; }
+
+    @media (max-width: 600px) {
+      header { flex-direction: column; height: auto; padding: 12px 16px; gap: 6px; }
+      .toolbar { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="2" y="3" width="20" height="14" rx="2"/>
+      <path d="M8 21h8M12 17v4"/>
+      <circle cx="12" cy="10" r="2"/>
+      <path d="M8.5 7.5a5 5 0 0 1 7 0M5.5 5a9 9 0 0 1 13 0"/>
+    </svg>
+    LibreMesh CI Test Dashboard
+  </div>
+  <div class="meta">
+    <div id="last-update">Loading…</div>
+    <div><a href="https://github.com/fcefyn-testbed/lime-packages/actions/workflows/build-firmware.yml" target="_blank">View CI runs ↗</a></div>
+  </div>
+</header>
+
+<main>
+  <div class="stats-bar">
+    <div class="stat-card total"><div class="value" id="stat-total">—</div><div class="label">Jobs tracked</div></div>
+    <div class="stat-card pass"> <div class="value" id="stat-pass">—</div> <div class="label">Passing</div></div>
+    <div class="stat-card fail"> <div class="value" id="stat-fail">—</div> <div class="label">Failing</div></div>
+    <div class="stat-card skip"> <div class="value" id="stat-skip">—</div> <div class="label">Skipped</div></div>
+  </div>
+
+  <div class="toolbar">
+    <div class="filter-tabs">
+      <button class="filter-tab active" data-filter="all">All</button>
+      <button class="filter-tab" data-filter="physical">Physical</button>
+      <button class="filter-tab" data-filter="qemu-single">QEMU single</button>
+      <button class="filter-tab" data-filter="qemu-mesh">QEMU mesh</button>
+    </div>
+    <div class="search-box">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+      </svg>
+      <input type="text" id="search" placeholder="Search device or place…" />
+    </div>
+  </div>
+
+  <div class="device-grid" id="device-grid">
+    <div class="empty-state"><p>Loading…</p></div>
+  </div>
+</main>
+
+<script>
+(function () {
+  const REPO         = 'fcefyn-testbed/lime-packages';
+  const API          = 'https://api.github.com';
+  const WF           = 'build-firmware.yml';
+  const RUNS         = 10;
+  const RESULTS_BASE = 'results/';   // served alongside this page
+
+  // ── GitHub API (no auth, public repo) ─────────────────────────────────────
+  async function ghFetch(path) {
+    const r = await fetch(`${API}${path}`, { headers: { Accept: 'application/vnd.github+json' } });
+    return r.ok ? r.json() : null;
+  }
+
+  // ── Static file fetch (report.xml published by CI) ─────────────────────────
+  async function fetchReport(path) {
+    try {
+      const r = await fetch(RESULTS_BASE + path);
+      if (!r.ok) return null;
+      return parseJUnit(await r.text());
+    } catch { return null; }
+  }
+
+  // ── JUnit XML parser ──────────────────────────────────────────────────────
+  function parseJUnit(xml) {
+    const doc = new DOMParser().parseFromString(xml, 'text/xml');
+    let tests = 0, failures = 0, errors = 0, skipped = 0, time = 0;
+    const cases = [];
+    for (const s of doc.querySelectorAll('testsuite')) {
+      tests    += parseInt(s.getAttribute('tests')    || 0);
+      failures += parseInt(s.getAttribute('failures') || 0);
+      errors   += parseInt(s.getAttribute('errors')   || 0);
+      skipped  += parseInt(s.getAttribute('skipped')  || 0);
+      time     += parseFloat(s.getAttribute('time')   || 0);
+      for (const tc of s.querySelectorAll('testcase')) {
+        const f = tc.querySelector('failure, error');
+        const sk = tc.querySelector('skipped');
+        cases.push({ name: tc.getAttribute('name'), status: f ? 'fail' : sk ? 'skip' : 'pass', time: parseFloat(tc.getAttribute('time')||0).toFixed(1) });
+      }
+    }
+    return { tests, passed: tests - failures - errors - skipped, failures: failures + errors, skipped, time: time.toFixed(1), cases };
+  }
+
+  // ── Results path — use devices.json path if available, else derive ──────────
+  function resultsPath(entry) {
+    if (entry.results_path) return entry.results_path;
+    if (entry.type === 'physical')    return `physical/${entry.place}-${entry.release}/report.xml`;
+    if (entry.type === 'qemu-single') return `qemu-single/${entry.device}-${entry.release}/report.xml`;
+    if (entry.type === 'qemu-mesh')   return `qemu-mesh/${entry.device}-${entry.release}/report.xml`;
+    return null;
+  }
+
+  // ── Parse GitHub job name ──────────────────────────────────────────────────
+  function parseJobName(name) {
+    if (name.includes('${{')) return null;
+    const ph = name.match(/^test-firmware\s+\(([^/]+?)\s*\/\s*([^)]+)\)$/);
+    if (ph) return { id: `physical-${ph[1].trim()}-${ph[2].trim()}`, displayName: placeLabel(ph[1].trim()), place: ph[1].trim(), release: ph[2].trim(), type: 'physical' };
+    const qs = name.match(/^test-firmware-qemu-single\s+\(([^/]+?)\s*\/\s*([^)]+)\)$/);
+    if (qs) return { id: `qemu-single-${qs[1].trim()}-${qs[2].trim()}`, displayName: `QEMU single · ${qs[1].trim()}`, device: qs[1].trim(), release: qs[2].trim(), type: 'qemu-single' };
+    const qm = name.match(/^test-mesh-qemu\s+\(([^/]+?)\s*\/\s*([^)]+)\)$/);
+    if (qm) return { id: `qemu-mesh-${qm[1].trim()}-${qm[2].trim()}`, displayName: `QEMU mesh · ${qm[1].trim()}`, device: qm[1].trim(), release: qm[2].trim(), type: 'qemu-mesh' };
+    return null;
+  }
+
+  function placeLabel(p) {
+    return { belkin_rt3200_1: 'Belkin RT3200 #1', belkin_rt3200_2: 'Belkin RT3200 #2', belkin_rt3200_3: 'Belkin RT3200 #3' }[p] || p;
+  }
+
+  function statusOf(c) {
+    if (!c || c === 'in_progress') return 'unknown';
+    if (c === 'success') return 'pass';
+    if (c === 'failure') return 'fail';
+    return 'skip';
+  }
+  const statusLabel = { pass: 'Pass', fail: 'Fail', skip: 'Skipped', unknown: '—' };
+
+  // ── Render card ────────────────────────────────────────────────────────────
+  function renderCard(entry) {
+    const latest = entry.runs[0];
+    const status = latest ? statusOf(latest.conclusion) : 'unknown';
+    const subtitle = [
+      entry.place   ? `<code style="font-size:11px">${entry.place}</code>`   : '',
+      entry.release ? `<span>OpenWrt ${entry.release}</span>` : '',
+    ].filter(Boolean).join(' · ');
+
+    const dots = entry.runs.slice(0, 10).map(r => {
+      const s = statusOf(r.conclusion);
+      const t = new Date(r.started_at).toLocaleString();
+      return `<div class="run-dot ${s}" title="${t} — ${s}" onclick="window.open('${r.html_url}','_blank')"></div>`;
+    }).join('');
+
+    const latestTime = latest
+      ? new Date(latest.started_at).toLocaleDateString(undefined, { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' })
+      : '';
+    const dur = latest && latest.duration_s
+      ? `${Math.floor(latest.duration_s/60)}m ${latest.duration_s%60}s` : '';
+
+    // Test detail section (from static report.xml)
+    let detailHtml = '';
+    const r = entry._report;
+    if (r) {
+      const total = r.tests || 1;
+      const pw = ((r.passed / total)*100).toFixed(1);
+      const fw = ((r.failures / total)*100).toFixed(1);
+      const sw = ((r.skipped / total)*100).toFixed(1);
+      const rows = r.cases.map(c =>
+        `<div class="test-case ${c.status}">
+          <span class="tc-icon">${c.status === 'pass' ? '✓' : c.status === 'fail' ? '✗' : '–'}</span>
+          <span class="tc-name">${esc(c.name)}</span>
+          <span class="tc-time">${c.time}s</span>
+        </div>`
+      ).join('');
+      detailHtml = `
+        <div class="test-detail">
+          <div class="test-summary">
+            <span class="ts-pass">✓ ${r.passed} passed</span>
+            ${r.failures > 0 ? `<span class="ts-fail">✗ ${r.failures} failed</span>` : ''}
+            ${r.skipped  > 0 ? `<span class="ts-skip">– ${r.skipped} skipped</span>` : ''}
+            <span class="ts-time">${r.time}s · ${r.tests} total</span>
+          </div>
+          <div class="test-bar">
+            <div class="seg-pass" style="width:${pw}%"></div>
+            <div class="seg-fail" style="width:${fw}%"></div>
+            <div class="seg-skip" style="width:${sw}%"></div>
+          </div>
+          <button class="expand-btn" id="expand-${entry.id}" onclick="toggleCases('${entry.id}', this)">
+            Test cases
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="test-cases" id="cases-${entry.id}">${rows}</div>
+        </div>`;
+    } else {
+      detailHtml = `<div class="test-detail"><span class="no-detail">Test details not yet published</span></div>`;
+    }
+
+    return `
+      <div class="device-card" data-type="${entry.type}" data-name="${entry.id} ${entry.displayName}">
+        <div class="card-header">
+          <div class="info">
+            <div class="card-title">${esc(entry.displayName)}</div>
+            <div class="card-subtitle">${subtitle}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+            <span class="type-badge ${entry.type}">${entry.type}</span>
+            <span class="status-pill ${status}">${statusLabel[status]}</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="run-history">
+            ${dots || '<span style="font-size:12px;color:var(--text-muted)">No runs found</span>'}
+            ${entry.runs.length ? `<span class="run-history-label">last ${entry.runs.length}</span>` : ''}
+          </div>
+          ${detailHtml}
+          <div class="card-meta">
+            <span>${latestTime}${dur ? ' · ' + dur : ''}</span>
+            ${latest ? `<a href="${latest.html_url}" target="_blank">View run ↗</a>` : ''}
+          </div>
+        </div>
+      </div>`;
+  }
+
+  window.toggleCases = function (id, btn) {
+    const el = document.getElementById('cases-' + id);
+    if (!el) return;
+    const open = el.classList.toggle('open');
+    btn.classList.toggle('open', open);
+  };
+
+  function esc(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── Filter + search ────────────────────────────────────────────────────────
+  let currentFilter = 'all';
+  function applyFilter() {
+    const term = document.getElementById('search').value.toLowerCase();
+    const grid = document.getElementById('device-grid');
+    let visible = 0;
+    for (const card of grid.querySelectorAll('.device-card')) {
+      const show = (currentFilter === 'all' || card.dataset.type === currentFilter)
+                && (!term || card.dataset.name.toLowerCase().includes(term));
+      card.style.display = show ? '' : 'none';
+      if (show) visible++;
+    }
+    let nm = grid.querySelector('.no-results-msg');
+    if (!nm) { nm = document.createElement('p'); nm.className='no-results-msg'; grid.appendChild(nm); }
+    nm.textContent = 'No matching results.';
+    nm.style.display = visible === 0 ? 'block' : 'none';
+  }
+  document.querySelectorAll('.filter-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentFilter = btn.dataset.filter;
+      applyFilter();
+    });
+  });
+  document.getElementById('search').addEventListener('input', applyFilter);
+
+  function updateStats(entries) {
+    let pass=0, fail=0, skip=0;
+    for (const e of entries) {
+      const s = e.runs[0] ? statusOf(e.runs[0].conclusion) : 'unknown';
+      if (s==='pass') pass++; else if (s==='fail') fail++; else if (s==='skip') skip++;
+    }
+    document.getElementById('stat-total').textContent = entries.length;
+    document.getElementById('stat-pass').textContent  = pass;
+    document.getElementById('stat-fail').textContent  = fail;
+    document.getElementById('stat-skip').textContent  = skip;
+  }
+
+  // ── Main ──────────────────────────────────────────────────────────────────
+  async function loadDashboard() {
+    const grid = document.getElementById('device-grid');
+
+    const runsData = await ghFetch(`/repos/${REPO}/actions/workflows/${WF}/runs?per_page=${RUNS}`);
+    if (!runsData || !runsData.workflow_runs.length) {
+      grid.innerHTML = `<div class="empty-state"><p>No workflow runs found.</p></div>`;
+      return;
+    }
+
+    const runs = runsData.workflow_runs;
+    document.getElementById('last-update').textContent =
+      'Updated ' + new Date(runs[0].updated_at).toLocaleString();
+
+    const jobPages = await Promise.all(
+      runs.map(r => ghFetch(`/repos/${REPO}/actions/runs/${r.id}/jobs?per_page=100`))
+    );
+
+    const byId = new Map();
+    for (let ri = 0; ri < runs.length; ri++) {
+      const page = jobPages[ri];
+      if (!page) continue;
+      for (const job of page.jobs) {
+        const parsed = parseJobName(job.name);
+        if (!parsed) continue;
+        if (!byId.has(parsed.id)) byId.set(parsed.id, { ...parsed, runs: [], _report: null });
+        const dur = (job.started_at && job.completed_at)
+          ? Math.round((new Date(job.completed_at) - new Date(job.started_at)) / 1000) : null;
+        byId.get(parsed.id).runs.push({
+          conclusion: job.conclusion,
+          started_at: job.started_at || runs[ri].created_at,
+          html_url:   job.html_url,
+          duration_s: dur,
+        });
+      }
+    }
+
+    // Also load devices.json to include entries not visible in the GitHub API
+    // (e.g. unit tests from tests.yml which is a separate workflow)
+    try {
+      const devData = await fetch(RESULTS_BASE + 'devices.json');
+      if (devData.ok) {
+        const { devices } = await devData.json();
+        for (const d of devices) {
+          if (!byId.has(d.id)) {
+            byId.set(d.id, { ...d, displayName: d.display_name || d.id, runs: [], _report: null });
+          }
+        }
+      }
+    } catch { /* devices.json optional */ }
+
+    if (!byId.size) {
+      grid.innerHTML = `<div class="empty-state"><p>No test jobs found in the last ${RUNS} runs.</p></div>`;
+      return;
+    }
+
+    const order = ['physical', 'qemu-single', 'qemu-mesh'];
+    const entries = Array.from(byId.values()).sort((a,b) => {
+      const d = order.indexOf(a.type) - order.indexOf(b.type);
+      return d !== 0 ? d : a.id.localeCompare(b.id);
+    });
+
+    // Render immediately with API data
+    grid.innerHTML = entries.map(renderCard).join('');
+    updateStats(entries);
+    applyFilter();
+
+    // Then try to load report.xml in parallel and re-render cards that have results
+    await Promise.all(entries.map(async (entry, i) => {
+      const path = resultsPath(entry);
+      if (!path) return;
+      const report = await fetchReport(path);
+      if (!report) return;
+      entry._report = report;
+      const cards = grid.querySelectorAll('.device-card');
+      if (cards[i]) cards[i].outerHTML = renderCard(entry);
+    }));
+  }
+
+  loadDashboard();
+})();
+</script>
+</body>
+</html>
