@@ -1,0 +1,68 @@
+{
+  "last_updated": "2026-05-13T00:00:00Z",
+  "devices": [
+    {
+      "id": "physical-belkin_rt3200_1-24.10.6",
+      "device": "linksys_e8450",
+      "display_name": "Belkin RT3200 #1",
+      "place": "belkin_rt3200_1",
+      "release": "24.10.6",
+      "type": "physical",
+      "results_path": "physical/belkin_rt3200_1-24.10.6/report.xml"
+    },
+    {
+      "id": "physical-belkin_rt3200_2-24.10.6",
+      "device": "linksys_e8450",
+      "display_name": "Belkin RT3200 #2",
+      "place": "belkin_rt3200_2",
+      "release": "24.10.6",
+      "type": "physical",
+      "results_path": "physical/belkin_rt3200_2-24.10.6/report.xml"
+    },
+    {
+      "id": "physical-belkin_rt3200_3-24.10.6",
+      "device": "linksys_e8450",
+      "display_name": "Belkin RT3200 #3",
+      "place": "belkin_rt3200_3",
+      "release": "24.10.6",
+      "type": "physical",
+      "results_path": "physical/belkin_rt3200_3-24.10.6/report.xml"
+    },
+    {
+      "id": "qemu-single-qemu_x86_64-24.10.6",
+      "device": "qemu_x86_64",
+      "display_name": "QEMU single · qemu_x86_64",
+      "place": null,
+      "release": "24.10.6",
+      "type": "qemu-single",
+      "results_path": "qemu-single/qemu_x86_64-24.10.6/report.xml"
+    },
+    {
+      "id": "qemu-single-qemu_x86_64-25.12.2",
+      "device": "qemu_x86_64",
+      "display_name": "QEMU single · qemu_x86_64",
+      "place": null,
+      "release": "25.12.2",
+      "type": "qemu-single",
+      "results_path": "qemu-single/qemu_x86_64-25.12.2/report.xml"
+    },
+    {
+      "id": "qemu-mesh-qemu_x86_64-24.10.6",
+      "device": "qemu_x86_64",
+      "display_name": "QEMU mesh · qemu_x86_64",
+      "place": null,
+      "release": "24.10.6",
+      "type": "qemu-mesh",
+      "results_path": "qemu-mesh/qemu_x86_64-24.10.6/report.xml"
+    },
+    {
+      "id": "qemu-mesh-qemu_x86_64-25.12.2",
+      "device": "qemu_x86_64",
+      "display_name": "QEMU mesh · qemu_x86_64",
+      "place": null,
+      "release": "25.12.2",
+      "type": "qemu-mesh",
+      "results_path": "qemu-mesh/qemu_x86_64-25.12.2/report.xml"
+    }
+  ]
+}
